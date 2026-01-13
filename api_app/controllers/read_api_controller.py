@@ -9,7 +9,7 @@ import ast
 
 
 class ReadApiController(http.Controller):
-    @http.route('/api_app/read_data', type='json', auth='user', csrf=False, methods=['POST'])
+    @http.route('/api_app/read_data', type='json', auth='public', csrf=False, methods=['POST'])
     def read_data(self, **kw):
 
         for key, value in kw.items():
