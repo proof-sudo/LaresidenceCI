@@ -18,7 +18,6 @@
         <field name="name">Utilisateur</field>
         <field name="category_id" ref="module_category_residence"/>
         <field name="implied_ids" eval="[(4, ref('base.group_user'))]"/>
-        <field name="comment">Accès en lecture aux données The Residence</field>
     </record>
 
     <!-- Groupe: Gestionnaire -->
@@ -26,7 +25,6 @@
         <field name="name">Gestionnaire</field>
         <field name="category_id" ref="module_category_residence"/>
         <field name="implied_ids" eval="[(4, ref('group_residence_user'))]"/>
-        <field name="comment">Gestion des réservations, commandes et membres</field>
     </record>
 
     <!-- Groupe: Administrateur -->
@@ -34,7 +32,6 @@
         <field name="name">Administrateur</field>
         <field name="category_id" ref="module_category_residence"/>
         <field name="implied_ids" eval="[(4, ref('group_residence_manager'))]"/>
-        <field name="comment">Configuration complète de The Residence</field>
     </record>
 
     <!-- Groupe: Personnel Cuisine -->
@@ -42,7 +39,6 @@
         <field name="name">Personnel Cuisine</field>
         <field name="category_id" ref="module_category_residence"/>
         <field name="implied_ids" eval="[(4, ref('base.group_user'))]"/>
-        <field name="comment">Accès aux commandes restaurant pour préparation</field>
     </record>
 
     <!-- Groupe: Personnel Accueil -->
@@ -50,7 +46,6 @@
         <field name="name">Personnel Accueil</field>
         <field name="category_id" ref="module_category_residence"/>
         <field name="implied_ids" eval="[(4, ref('base.group_user'))]"/>
-        <field name="comment">Accès aux réservations et check-in</field>
     </record>
 
     <!-- ==========================================
