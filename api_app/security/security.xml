@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- ==========================================
+         CATÉGORIE DE MODULE
+         ========================================== -->
+    <record id="module_category_residence" model="ir.module.category">
+        <field name="name">The Residence</field>
+        <field name="description">Gestion de The Residence - Club privé</field>
+        <field name="sequence">100</field>
+    </record>
+
+    <!-- ==========================================
+         GROUPES D'UTILISATEURS
+         ========================================== -->
+
+    <!-- Groupe: Utilisateur (lecture seule) -->
+    <record id="group_residence_user" model="res.groups">
+        <field name="name">Utilisateur</field>
+        <field name="category_id" ref="module_category_residence"/>
+        <field name="implied_ids" eval="[(4, ref('base.group_user'))]"/>
+        <field name="comment">Accès en lecture aux données The Residence</field>
+    </record>
+
+    <!-- Groupe: Gestionnaire -->
+    <record id="group_residence_manager" model="res.groups">
+        <field name="name">Gestionnaire</field>
+        <field name="category_id" ref="module_category_residence"/>
+        <field name="implied_ids" eval="[(4, ref('group_residence_user'))]"/>
+        <field name="comment">Gestion des réservations, commandes et membres</field>
+    </record>
+
+    <!-- Groupe: Administrateur -->
+    <record id="group_residence_admin" model="res.groups">
+        <field name="name">Administrateur</field>
+        <field name="category_id" ref="module_category_residence"/>
+        <field name="implied_ids" eval="[(4, ref('group_residence_manager'))]"/>
+        <field name="comment">Configuration complète de The Residence</field>
+    </record>
+
+    <!-- Groupe: Personnel Cuisine -->
+    <record id="group_residence_kitchen" model="res.groups">
+        <field name="name">Personnel Cuisine</field>
+        <field name="category_id" ref="module_category_residence"/>
+        <field name="implied_ids" eval="[(4, ref('base.group_user'))]"/>
+        <field name="comment">Accès aux commandes restaurant pour préparation</field>
+    </record>
+
+    <!-- Groupe: Personnel Accueil -->
+    <record id="group_residence_reception" model="res.groups">
+        <field name="name">Personnel Accueil</field>
+        <field name="category_id" ref="module_category_residence"/>
+        <field name="implied_ids" eval="[(4, ref('base.group_user'))]"/>
+        <field name="comment">Accès aux réservations et check-in</field>
+    </record>
+
+    <!-- ==========================================
+         RÈGLES D'ACCÈS (Record Rules)
+         ========================================== -->
+
+    <!-- Multi-société: Configuration -->
+    <record id="rule_residence_config_company" model="ir.rule">
+        <field name="name">Configuration: Multi-Société</field>
+        <field name="model_id" ref="model_residence_config"/>
+        <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+        <field name="groups" eval="[(4, ref('base.group_user'))]"/>
+    </record>
+
+    <!-- Multi-société: Emplacements -->
+    <record id="rule_residence_location_company" model="ir.rule">
+        <field name="name">Emplacements: Multi-Société</field>
+        <field name="model_id" ref="model_residence_location"/>
+        <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+        <field name="groups" eval="[(4, ref('base.group_user'))]"/>
+    </record>
+
+    <!-- Multi-société: Types Menu -->
+    <record id="rule_residence_menu_kind_company" model="ir.rule">
+        <field name="name">Types Menu: Multi-Société</field>
+        <field name="model_id" ref="model_residence_menu_kind"/>
+        <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+        <field name="groups" eval="[(4, ref('base.group_user'))]"/>
+    </record>
+
+    <!-- Multi-société: Catégories Menu -->
+    <record id="rule_residence_menu_category_company" model="ir.rule">
+        <field name="name">Catégories Menu: Multi-Société</field>
+        <field name="model_id" ref="model_residence_menu_category"/>
+        <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+        <field name="groups" eval="[(4, ref('base.group_user'))]"/>
+    </record>
+
+    <!-- Multi-société: Types Abonnement -->
+    <record id="rule_residence_membership_type_company" model="ir.rule">
+        <field name="name">Types Abonnement: Multi-Société</field>
+        <field name="model_id" ref="model_residence_membership_type"/>
+        <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+        <field name="groups" eval="[(4, ref('base.group_user'))]"/>
+    </record>
+
+    <!-- Multi-société: Abonnements -->
+    <record id="rule_residence_subscription_company" model="ir.rule">
+        <field name="name">Abonnements: Multi-Société</field>
+        <field name="model_id" ref="model_residence_member_subscription"/>
+        <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+        <field name="groups" eval="[(4, ref('base.group_user'))]"/>
+    </record>
+
+    <!-- Multi-société: Commandes Restaurant -->
+    <record id="rule_residence_order_company" model="ir.rule">
+        <field name="name">Commandes Restaurant: Multi-Société</field>
+        <field name="model_id" ref="model_residence_order"/>
+        <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+        <field name="groups" eval="[(4, ref('base.group_user'))]"/>
+    </record>
+
+    <!-- Multi-société: Logs Webhook -->
+    <record id="rule_residence_webhook_log_company" model="ir.rule">
+        <field name="name">Logs Webhook: Multi-Société</field>
+        <field name="model_id" ref="model_residence_webhook_log"/>
+        <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+        <field name="groups" eval="[(4, ref('base.group_user'))]"/>
+    </record>
+
+</odoo>

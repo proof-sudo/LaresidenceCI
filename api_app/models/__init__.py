@@ -1,7 +1,9 @@
-# -*- coding:utf-8 -*-
+# -*- coding: utf-8 -*-
 
-from . import api_app_call_log
-from . import api_app_read
-from . import api_app_write
-from . import api_app_create
-from . import api_app_unlink
+from . import residence_config
+from . import residence_membership
+from . import residence_webhook_log
+from . import res_partner
+from . import product_template
+from . import sale_order
+from . import residence_order

@@ -1,0 +1,173 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- ==========================================
+         SALE.ORDER (RÉSERVATIONS) - VUES
+         ========================================== -->
+
+    <!-- Extension vue formulaire -->
+    <record id="view_sale_order_form_residence" model="ir.ui.view">
+        <field name="name">sale.order.form.residence</field>
+        <field name="model">sale.order</field>
+        <field name="inherit_id" ref="sale.view_order_form"/>
+        <field name="arch" type="xml">
+            <!-- Ajouter onglet Réservation -->
+            <xpath expr="//notebook" position="inside">
+                <page string="Réservation" name="residence_reservation"
+                      invisible="not is_residence_reservation">
+                    <group>
+                        <group string="Informations Réservation">
+                            <field name="residence_external_id" readonly="1"/>
+                            <field name="residence_space_id" readonly="1"/>
+                            <field name="residence_start_time"/>
+                            <field name="residence_end_time"/>
+                            <field name="residence_guest_count"/>
+                        </group>
+                        <group string="Statut">
+                            <field name="residence_reservation_status"/>
+                            <field name="residence_calendar_event_id" readonly="1"/>
+                        </group>
+                    </group>
+                    <group>
+                        <field name="residence_notes" placeholder="Notes pour la réservation"/>
+                        <field name="residence_rejection_reason" 
+                               invisible="residence_reservation_status != 'rejected'"
+                               readonly="1"/>
+                    </group>
+
+                    <group string="Invités">
+                        <field name="residence_invitee_ids" nolabel="1">
+                            <list editable="bottom">
+                                <field name="name"/>
+                                <field name="email"/>
+                                <field name="phone"/>
+                            </list>
+                        </field>
+                    </group>
+                </page>
+            </xpath>
+
+            <!-- Boutons de workflow -->
+            <xpath expr="//header" position="inside">
+                <button name="action_approve_reservation" type="object"
+                        string="Approuver" class="btn-primary"
+                        invisible="not is_residence_reservation or residence_reservation_status != 'pending'"/>
+                <button name="action_reject_reservation" type="object"
+                        string="Rejeter" class="btn-secondary"
+                        invisible="not is_residence_reservation or residence_reservation_status != 'pending'"/>
+                <button name="action_checkin_reservation" type="object"
+                        string="Check-in" class="btn-primary"
+                        invisible="not is_residence_reservation or residence_reservation_status != 'approved'"/>
+                <button name="action_complete_reservation" type="object"
+                        string="Terminer" class="btn-primary"
+                        invisible="not is_residence_reservation or residence_reservation_status not in ('approved', 'checked_in')"/>
+                <button name="action_cancel_reservation" type="object"
+                        string="Annuler Réservation" class="btn-secondary"
+                        invisible="not is_residence_reservation or residence_reservation_status in ('completed', 'cancelled')"/>
+            </xpath>
+
+            <!-- Badge statut -->
+            <xpath expr="//field[@name='state']" position="after">
+                <field name="is_residence_reservation" invisible="1"/>
+                <field name="residence_reservation_status" widget="badge"
+                       invisible="not is_residence_reservation"
+                       decoration-info="residence_reservation_status == 'pending'"
+                       decoration-success="residence_reservation_status in ('approved', 'checked_in', 'completed')"
+                       decoration-danger="residence_reservation_status in ('rejected', 'cancelled')"/>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- Vue liste réservations -->
+    <record id="view_sale_order_list_reservations" model="ir.ui.view">
+        <field name="name">sale.order.list.reservations</field>
+        <field name="model">sale.order</field>
+        <field name="arch" type="xml">
+            <list string="Réservations" decoration-info="residence_reservation_status == 'pending'"
+                  decoration-success="residence_reservation_status in ('approved', 'checked_in')"
+                  decoration-muted="residence_reservation_status in ('completed', 'cancelled')"
+                  decoration-danger="residence_reservation_status == 'rejected'">
+                <field name="name"/>
+                <field name="partner_id"/>
+                <field name="residence_space_id"/>
+                <field name="residence_start_time"/>
+                <field name="residence_end_time"/>
+                <field name="residence_guest_count"/>
+                <field name="residence_reservation_status" widget="badge"
+                       decoration-info="residence_reservation_status == 'pending'"
+                       decoration-success="residence_reservation_status in ('approved', 'checked_in', 'completed')"
+                       decoration-danger="residence_reservation_status in ('rejected', 'cancelled')"/>
+                <field name="amount_total" sum="Total"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- Vue recherche réservations -->
+    <record id="view_sale_order_search_reservations" model="ir.ui.view">
+        <field name="name">sale.order.search.reservations</field>
+        <field name="model">sale.order</field>
+        <field name="arch" type="xml">
+            <search string="Rechercher Réservations">
+                <field name="name"/>
+                <field name="partner_id"/>
+                <field name="residence_space_id"/>
+                <filter name="filter_today" string="Aujourd'hui"
+                        domain="[('residence_start_time', '&gt;=', datetime.datetime.combine(context_today(), datetime.time(0,0,0))),
+                                 ('residence_start_time', '&lt;', datetime.datetime.combine(context_today() + relativedelta(days=1), datetime.time(0,0,0)))]"/>
+                <filter name="filter_this_week" string="Cette semaine"
+                        domain="[('residence_start_time', '&gt;=', (context_today() - relativedelta(weekday=0)).strftime('%Y-%m-%d')),
+                                 ('residence_start_time', '&lt;', (context_today() + relativedelta(weekday=6, days=1)).strftime('%Y-%m-%d'))]"/>
+                <separator/>
+                <filter name="filter_pending" string="En attente"
+                        domain="[('residence_reservation_status', '=', 'pending')]"/>
+                <filter name="filter_approved" string="Approuvées"
+                        domain="[('residence_reservation_status', '=', 'approved')]"/>
+                <filter name="filter_checked_in" string="Check-in"
+                        domain="[('residence_reservation_status', '=', 'checked_in')]"/>
+                <separator/>
+                <group expand="0" string="Grouper par">
+                    <filter name="group_space" string="Salle"
+                            context="{'group_by': 'residence_space_id'}"/>
+                    <filter name="group_status" string="Statut"
+                            context="{'group_by': 'residence_reservation_status'}"/>
+                    <filter name="group_date" string="Date"
+                            context="{'group_by': 'residence_start_time:day'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- Vue calendrier réservations -->
+    <record id="view_sale_order_calendar_reservations" model="ir.ui.view">
+        <field name="name">sale.order.calendar.reservations</field>
+        <field name="model">sale.order</field>
+        <field name="arch" type="xml">
+            <calendar string="Réservations" date_start="residence_start_time" 
+                      date_stop="residence_end_time" color="residence_space_id"
+                      mode="week" event_open_popup="true">
+                <field name="partner_id"/>
+                <field name="residence_space_id"/>
+                <field name="residence_reservation_status"/>
+            </calendar>
+        </field>
+    </record>
+
+    <!-- Action: Liste des réservations -->
+    <record id="action_residence_reservations" model="ir.actions.act_window">
+        <field name="name">Réservations</field>
+        <field name="res_model">sale.order</field>
+        <field name="view_mode">list,form,calendar,kanban</field>
+        <field name="domain">[('is_rental_order', '=', True)]</field>
+        <field name="context">{'default_is_rental_order': True}</field>
+        <field name="view_ids" eval="[(5, 0, 0),
+            (0, 0, {'view_mode': 'list', 'view_id': ref('view_sale_order_list_reservations')}),
+            (0, 0, {'view_mode': 'calendar', 'view_id': ref('view_sale_order_calendar_reservations')}),
+            (0, 0, {'view_mode': 'form', 'view_id': ref('sale.view_order_form')})]"/>
+        <field name="search_view_id" ref="view_sale_order_search_reservations"/>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Aucune réservation
+            </p>
+        </field>
+    </record>
+
+</odoo>

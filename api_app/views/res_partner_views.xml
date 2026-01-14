@@ -1,0 +1,139 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- ==========================================
+         MEMBRES (RES.PARTNER) - VUES
+         ========================================== -->
+
+    <!-- Extension vue formulaire contact -->
+    <record id="view_partner_form_residence" model="ir.ui.view">
+        <field name="name">res.partner.form.residence</field>
+        <field name="model">res.partner</field>
+        <field name="inherit_id" ref="base.view_partner_form"/>
+        <field name="arch" type="xml">
+            <!-- Ajouter checkbox "Est un membre" -->
+            <xpath expr="//field[@name='category_id']" position="before">
+                <field name="is_residence_member"/>
+            </xpath>
+
+            <!-- Ajouter onglet The Residence -->
+            <xpath expr="//notebook" position="inside">
+                <page string="The Residence" name="residence" 
+                      invisible="not is_residence_member">
+                    <group>
+                        <group string="Informations Membre">
+                            <field name="residence_external_id" readonly="1"/>
+                            <field name="residence_qr_token" readonly="1"/>
+                            <button name="generate_new_qr_token" type="object"
+                                    string="Nouveau QR Token" class="btn-secondary"/>
+                            <field name="residence_joined_date"/>
+                        </group>
+                        <group string="Abonnement">
+                            <field name="residence_membership_type_id"/>
+                            <field name="residence_membership_status"/>
+                        </group>
+                    </group>
+
+                    <group string="Statistiques">
+                        <group>
+                            <field name="residence_subscription_count"/>
+                            <button name="action_view_subscriptions" type="object"
+                                    string="Voir Abonnements" class="btn-link"/>
+                        </group>
+                        <group>
+                            <field name="residence_reservation_count"/>
+                            <button name="action_view_reservations" type="object"
+                                    string="Voir Réservations" class="btn-link"/>
+                        </group>
+                        <group>
+                            <field name="residence_order_count"/>
+                            <button name="action_view_orders" type="object"
+                                    string="Voir Commandes" class="btn-link"/>
+                        </group>
+                    </group>
+                </page>
+            </xpath>
+
+            <!-- Boutons statistiques dans la box -->
+            <xpath expr="//div[@name='button_box']" position="inside">
+                <button name="action_view_reservations" type="object"
+                        class="oe_stat_button" icon="fa-calendar"
+                        invisible="not is_residence_member">
+                    <field name="residence_reservation_count" widget="statinfo" string="Réservations"/>
+                </button>
+                <button name="action_view_orders" type="object"
+                        class="oe_stat_button" icon="fa-cutlery"
+                        invisible="not is_residence_member">
+                    <field name="residence_order_count" widget="statinfo" string="Commandes"/>
+                </button>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- Vue liste des membres -->
+    <record id="view_partner_list_residence_members" model="ir.ui.view">
+        <field name="name">res.partner.list.residence.members</field>
+        <field name="model">res.partner</field>
+        <field name="arch" type="xml">
+            <list string="Membres The Residence">
+                <field name="name"/>
+                <field name="email"/>
+                <field name="phone"/>
+                <field name="residence_membership_type_id"/>
+                <field name="residence_membership_status" 
+                       decoration-success="residence_membership_status == 'active'"
+                       decoration-warning="residence_membership_status == 'pending'"
+                       decoration-danger="residence_membership_status in ('expired', 'cancelled')"
+                       widget="badge"/>
+                <field name="residence_joined_date"/>
+                <field name="residence_reservation_count" string="Réservations"/>
+                <field name="residence_order_count" string="Commandes"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- Vue recherche membres -->
+    <record id="view_partner_search_residence_members" model="ir.ui.view">
+        <field name="name">res.partner.search.residence.members</field>
+        <field name="model">res.partner</field>
+        <field name="arch" type="xml">
+            <search string="Rechercher Membres">
+                <field name="name"/>
+                <field name="email"/>
+                <field name="phone"/>
+                <field name="residence_membership_type_id"/>
+                <filter name="filter_active" string="Actifs"
+                        domain="[('residence_membership_status', '=', 'active')]"/>
+                <filter name="filter_pending" string="En attente"
+                        domain="[('residence_membership_status', '=', 'pending')]"/>
+                <filter name="filter_expired" string="Expirés"
+                        domain="[('residence_membership_status', '=', 'expired')]"/>
+                <separator/>
+                <group expand="0" string="Grouper par">
+                    <filter name="group_membership_type" string="Type d'abonnement"
+                            context="{'group_by': 'residence_membership_type_id'}"/>
+                    <filter name="group_status" string="Statut"
+                            context="{'group_by': 'residence_membership_status'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- Action: Liste des membres -->
+    <record id="action_residence_members" model="ir.actions.act_window">
+        <field name="name">Membres</field>
+        <field name="res_model">res.partner</field>
+        <field name="view_mode">list,form,kanban</field>
+        <field name="domain">[('is_residence_member', '=', True)]</field>
+        <field name="context">{'default_is_residence_member': True}</field>
+        <field name="view_ids" eval="[(5, 0, 0),
+            (0, 0, {'view_mode': 'list', 'view_id': ref('view_partner_list_residence_members')}),
+            (0, 0, {'view_mode': 'form', 'view_id': ref('base.view_partner_form')})]"/>
+        <field name="search_view_id" ref="view_partner_search_residence_members"/>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Créez votre premier membre
+            </p>
+        </field>
+    </record>
+
+</odoo>
