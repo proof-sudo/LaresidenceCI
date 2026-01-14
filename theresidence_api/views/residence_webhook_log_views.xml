@@ -81,7 +81,7 @@
         </field>
     </record>
 
-    <record id="view_residence_webhook_log_search" model="ir.ui.view">
+    <!-- <record id="view_residence_webhook_log_search" model="ir.ui.view">
         <field name="name">residence.webhook.log.search</field>
         <field name="model">residence.webhook.log</field>
         <field name="arch" type="xml">
@@ -113,7 +113,7 @@
                 </group>
             </search>
         </field>
-    </record>
+    </record> -->
 
     <record id="action_residence_webhook_logs" model="ir.actions.act_window">
         <field name="name">Logs Webhook</field>

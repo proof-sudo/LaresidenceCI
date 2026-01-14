@@ -158,7 +158,7 @@
         </field>
     </record>
 
-    <record id="view_residence_subscription_search" model="ir.ui.view">
+    <!-- <record id="view_residence_subscription_search" model="ir.ui.view">
         <field name="name">residence.member.subscription.search</field>
         <field name="model">residence.member.subscription</field>
         <field name="arch" type="xml">
@@ -183,7 +183,7 @@
                 </group>
             </search>
         </field>
-    </record>
+    </record> -->
 
     <record id="action_residence_subscriptions" model="ir.actions.act_window">
         <field name="name">Abonnements</field>

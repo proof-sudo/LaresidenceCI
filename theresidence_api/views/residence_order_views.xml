@@ -136,7 +136,7 @@
     </record>
 
     <!-- Vue recherche -->
-    <record id="view_residence_order_search" model="ir.ui.view">
+    <!-- <record id="view_residence_order_search" model="ir.ui.view">
         <field name="name">residence.order.search</field>
         <field name="model">residence.order</field>
         <field name="arch" type="xml">
@@ -176,7 +176,7 @@
                 </group>
             </search>
         </field>
-    </record>
+    </record> -->
 
     <!-- Vue Kanban (Cuisine) -->
     <record id="view_residence_order_kanban" model="ir.ui.view">

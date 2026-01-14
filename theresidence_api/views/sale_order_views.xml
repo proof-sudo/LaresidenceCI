@@ -102,7 +102,7 @@
     </record>
 
     <!-- Vue recherche réservations -->
-    <record id="view_sale_order_search_reservations" model="ir.ui.view">
+    <!-- <record id="view_sale_order_search_reservations" model="ir.ui.view">
         <field name="name">sale.order.search.reservations</field>
         <field name="model">sale.order</field>
         <field name="arch" type="xml">
@@ -134,7 +134,7 @@
                 </group>
             </search>
         </field>
-    </record>
+    </record> -->
 
     <!-- Vue calendrier réservations -->
     <record id="view_sale_order_calendar_reservations" model="ir.ui.view">

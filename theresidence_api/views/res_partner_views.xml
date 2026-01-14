@@ -92,7 +92,7 @@
     </record>
 
     <!-- Vue recherche membres -->
-    <record id="view_partner_search_residence_members" model="ir.ui.view">
+    <!-- <record id="view_partner_search_residence_members" model="ir.ui.view">
         <field name="name">res.partner.search.residence.members</field>
         <field name="model">res.partner</field>
         <field name="arch" type="xml">
@@ -116,7 +116,7 @@
                 </group>
             </search>
         </field>
-    </record>
+    </record> -->
 
     <!-- Action: Liste des membres -->
     <record id="action_residence_members" model="ir.actions.act_window">
