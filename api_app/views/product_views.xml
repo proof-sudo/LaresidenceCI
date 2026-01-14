@@ -1,0 +1,341 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- ==========================================
+         PRODUCT.TEMPLATE - EXTENSION VUES
+         ========================================== -->
+
+    <!-- Extension vue formulaire produit -->
+    <record id="view_product_template_form_residence" model="ir.ui.view">
+        <field name="name">product.template.form.residence</field>
+        <field name="model">product.template</field>
+        <field name="inherit_id" ref="product.product_template_only_form_view"/>
+        <field name="arch" type="xml">
+            <xpath expr="//notebook" position="inside">
+                <!-- Onglet Salle -->
+                <page string="The Residence - Salle" name="residence_space"
+                      invisible="not is_residence_space">
+                    <group>
+                        <group string="Informations">
+                            <field name="residence_external_id" readonly="1"/>
+                            <field name="residence_location_id"/>
+                            <field name="residence_capacity"/>
+                            <field name="residence_space_state"/>
+                        </group>
+                        <group string="Équipements">
+                            <field name="residence_equipment_ids" widget="many2many_tags"/>
+                        </group>
+                    </group>
+                    <group string="Image">
+                        <field name="residence_image_url" widget="url"/>
+                    </group>
+                </page>
+
+                <!-- Onglet Article Menu -->
+                <page string="The Residence - Menu" name="residence_menu"
+                      invisible="not is_residence_menu_item">
+                    <group>
+                        <group string="Classification">
+                            <field name="residence_external_id" readonly="1"/>
+                            <field name="residence_menu_kind_id"/>
+                            <field name="residence_menu_category_id"
+                                   domain="[('kind_id', '=', residence_menu_kind_id)]"/>
+                        </group>
+                        <group string="Disponibilité">
+                            <field name="residence_is_available"/>
+                            <field name="residence_preparation_time"/>
+                        </group>
+                    </group>
+                    <group>
+                        <group string="Informations Diététiques">
+                            <field name="residence_allergens"/>
+                            <field name="residence_is_vegetarian"/>
+                            <field name="residence_is_vegan"/>
+                            <field name="residence_is_gluten_free"/>
+                        </group>
+                        <group string="Image">
+                            <field name="residence_image_url" widget="url"/>
+                        </group>
+                    </group>
+                </page>
+            </xpath>
+
+            <!-- Ajouter les checkboxes -->
+            <xpath expr="//field[@name='sale_ok']" position="after">
+                <field name="is_residence_space"/>
+                <field name="is_residence_menu_item"/>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- ==========================================
+         EMPLACEMENTS - VUES
+         ========================================== -->
+
+    <record id="view_residence_location_form" model="ir.ui.view">
+        <field name="name">residence.location.form</field>
+        <field name="model">residence.location</field>
+        <field name="arch" type="xml">
+            <form string="Emplacement">
+                <sheet>
+                    <div class="oe_title">
+                        <h1>
+                            <field name="name" placeholder="Nom de l'emplacement"/>
+                        </h1>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="external_id" readonly="1"/>
+                            <field name="sequence"/>
+                            <field name="active"/>
+                        </group>
+                        <group>
+                            <field name="company_id" groups="base.group_multi_company"/>
+                            <field name="space_count"/>
+                        </group>
+                    </group>
+                    <group>
+                        <field name="description"/>
+                        <field name="address"/>
+                        <field name="image_url" widget="url"/>
+                    </group>
+                    <notebook>
+                        <page string="Salles" name="spaces">
+                            <field name="space_ids" readonly="1">
+                                <list>
+                                    <field name="name"/>
+                                    <field name="residence_capacity"/>
+                                    <field name="residence_space_state"/>
+                                    <field name="list_price"/>
+                                </list>
+                            </field>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_residence_location_list" model="ir.ui.view">
+        <field name="name">residence.location.list</field>
+        <field name="model">residence.location</field>
+        <field name="arch" type="xml">
+            <list string="Emplacements">
+                <field name="sequence" widget="handle"/>
+                <field name="name"/>
+                <field name="space_count"/>
+                <field name="active"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="action_residence_locations" model="ir.actions.act_window">
+        <field name="name">Emplacements</field>
+        <field name="res_model">residence.location</field>
+        <field name="view_mode">list,form</field>
+    </record>
+
+    <!-- ==========================================
+         ÉQUIPEMENTS - VUES
+         ========================================== -->
+
+    <record id="view_residence_equipment_form" model="ir.ui.view">
+        <field name="name">residence.space.equipment.form</field>
+        <field name="model">residence.space.equipment</field>
+        <field name="arch" type="xml">
+            <form string="Équipement">
+                <sheet>
+                    <group>
+                        <group>
+                            <field name="name"/>
+                            <field name="external_id" readonly="1"/>
+                            <field name="sequence"/>
+                        </group>
+                        <group>
+                            <field name="price"/>
+                            <field name="product_id"/>
+                            <field name="active"/>
+                        </group>
+                    </group>
+                    <group>
+                        <field name="description"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_residence_equipment_list" model="ir.ui.view">
+        <field name="name">residence.space.equipment.list</field>
+        <field name="model">residence.space.equipment</field>
+        <field name="arch" type="xml">
+            <list string="Équipements">
+                <field name="sequence" widget="handle"/>
+                <field name="name"/>
+                <field name="price"/>
+                <field name="active"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="action_residence_equipment" model="ir.actions.act_window">
+        <field name="name">Équipements</field>
+        <field name="res_model">residence.space.equipment</field>
+        <field name="view_mode">list,form</field>
+    </record>
+
+    <!-- ==========================================
+         TYPES MENU - VUES
+         ========================================== -->
+
+    <record id="view_residence_menu_kind_form" model="ir.ui.view">
+        <field name="name">residence.menu.kind.form</field>
+        <field name="model">residence.menu.kind</field>
+        <field name="arch" type="xml">
+            <form string="Type de Menu">
+                <sheet>
+                    <div class="oe_title">
+                        <h1>
+                            <field name="name" placeholder="Ex: Restaurant, Bar"/>
+                        </h1>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="external_id" readonly="1"/>
+                            <field name="sequence"/>
+                            <field name="active"/>
+                        </group>
+                        <group>
+                            <field name="company_id" groups="base.group_multi_company"/>
+                            <field name="category_count"/>
+                        </group>
+                    </group>
+                    <group>
+                        <field name="description"/>
+                        <field name="image_url" widget="url"/>
+                    </group>
+                    <notebook>
+                        <page string="Catégories" name="categories">
+                            <field name="category_ids">
+                                <list>
+                                    <field name="sequence" widget="handle"/>
+                                    <field name="name"/>
+                                    <field name="item_count"/>
+                                </list>
+                            </field>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_residence_menu_kind_list" model="ir.ui.view">
+        <field name="name">residence.menu.kind.list</field>
+        <field name="model">residence.menu.kind</field>
+        <field name="arch" type="xml">
+            <list string="Types de Menu">
+                <field name="sequence" widget="handle"/>
+                <field name="name"/>
+                <field name="category_count"/>
+                <field name="active"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="action_residence_menu_kinds" model="ir.actions.act_window">
+        <field name="name">Types de Menu</field>
+        <field name="res_model">residence.menu.kind</field>
+        <field name="view_mode">list,form</field>
+    </record>
+
+    <!-- ==========================================
+         CATÉGORIES MENU - VUES
+         ========================================== -->
+
+    <record id="view_residence_menu_category_form" model="ir.ui.view">
+        <field name="name">residence.menu.category.form</field>
+        <field name="model">residence.menu.category</field>
+        <field name="arch" type="xml">
+            <form string="Catégorie de Menu">
+                <sheet>
+                    <div class="oe_title">
+                        <h1>
+                            <field name="name" placeholder="Ex: Entrées, Plats"/>
+                        </h1>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="kind_id"/>
+                            <field name="external_id" readonly="1"/>
+                            <field name="sequence"/>
+                        </group>
+                        <group>
+                            <field name="company_id" groups="base.group_multi_company"/>
+                            <field name="item_count"/>
+                            <field name="active"/>
+                        </group>
+                    </group>
+                    <group>
+                        <field name="description"/>
+                        <field name="image_url" widget="url"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_residence_menu_category_list" model="ir.ui.view">
+        <field name="name">residence.menu.category.list</field>
+        <field name="model">residence.menu.category</field>
+        <field name="arch" type="xml">
+            <list string="Catégories de Menu">
+                <field name="sequence" widget="handle"/>
+                <field name="kind_id"/>
+                <field name="name"/>
+                <field name="item_count"/>
+                <field name="active"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="action_residence_menu_categories" model="ir.actions.act_window">
+        <field name="name">Catégories de Menu</field>
+        <field name="res_model">residence.menu.category</field>
+        <field name="view_mode">list,form</field>
+    </record>
+
+    <!-- ==========================================
+         SALLES - ACTION SPÉCIFIQUE
+         ========================================== -->
+
+    <record id="action_residence_spaces" model="ir.actions.act_window">
+        <field name="name">Salles</field>
+        <field name="res_model">product.template</field>
+        <field name="view_mode">list,form,kanban</field>
+        <field name="domain">[('is_residence_space', '=', True)]</field>
+        <field name="context">{'default_is_residence_space': True, 'default_type': 'service', 'default_rent_ok': True}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Créez votre première salle
+            </p>
+        </field>
+    </record>
+
+    <!-- ==========================================
+         ARTICLES MENU - ACTION SPÉCIFIQUE
+         ========================================== -->
+
+    <record id="action_residence_menu_items" model="ir.actions.act_window">
+        <field name="name">Articles Menu</field>
+        <field name="res_model">product.template</field>
+        <field name="view_mode">list,form,kanban</field>
+        <field name="domain">[('is_residence_menu_item', '=', True)]</field>
+        <field name="context">{'default_is_residence_menu_item': True, 'default_type': 'consu'}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Créez votre premier article de menu
+            </p>
+        </field>
+    </record>
+
+</odoo>

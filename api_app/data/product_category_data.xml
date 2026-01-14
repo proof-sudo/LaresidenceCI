@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- ==========================================
+         CATÉGORIES DE PRODUITS
+         ========================================== -->
+
+    <!-- Catégorie principale The Residence -->
+    <record id="product_category_residence" model="product.category">
+        <field name="name">The Residence</field>
+        <field name="parent_id" ref="product.product_category_all"/>
+    </record>
+
+    <!-- Sous-catégorie: Salles -->
+    <record id="product_category_spaces" model="product.category">
+        <field name="name">Salles &amp; Espaces</field>
+        <field name="parent_id" ref="product_category_residence"/>
+    </record>
+
+    <!-- Sous-catégorie: Équipements -->
+    <record id="product_category_equipment" model="product.category">
+        <field name="name">Équipements</field>
+        <field name="parent_id" ref="product_category_residence"/>
+    </record>
+
+    <!-- Sous-catégorie: Menu Restaurant -->
+    <record id="product_category_menu" model="product.category">
+        <field name="name">Menu Restaurant</field>
+        <field name="parent_id" ref="product_category_residence"/>
+    </record>
+
+    <!-- Sous-catégories Menu -->
+    <record id="product_category_menu_entrees" model="product.category">
+        <field name="name">Entrées</field>
+        <field name="parent_id" ref="product_category_menu"/>
+    </record>
+
+    <record id="product_category_menu_plats" model="product.category">
+        <field name="name">Plats</field>
+        <field name="parent_id" ref="product_category_menu"/>
+    </record>
+
+    <record id="product_category_menu_desserts" model="product.category">
+        <field name="name">Desserts</field>
+        <field name="parent_id" ref="product_category_menu"/>
+    </record>
+
+    <record id="product_category_menu_boissons" model="product.category">
+        <field name="name">Boissons</field>
+        <field name="parent_id" ref="product_category_menu"/>
+    </record>
+
+    <!-- Sous-catégorie: Abonnements -->
+    <record id="product_category_subscriptions" model="product.category">
+        <field name="name">Abonnements</field>
+        <field name="parent_id" ref="product_category_residence"/>
+    </record>
+
+</odoo>
