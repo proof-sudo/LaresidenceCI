@@ -70,7 +70,7 @@ Auteur: Neurones Technologies
         'security/ir.model.access.csv',
         # Data
         'data/sequence_data.xml',
-        'data/product_category_data.xml',
+        # 'data/product_category_data.xml',
         'data/membership_data.xml',
         # Views
         'views/residence_config_views.xml',
