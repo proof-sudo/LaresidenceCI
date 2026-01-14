@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
     <!-- ==========================================
-         CATÉGORIE DE MODULE
+         PRIVILEGE (remplace CATÉGORIE DE MODULE)
          ========================================== -->
-    <record id="module_category_residence" model="ir.module.category">
+    <record id="privilege_residence" model="res.groups.privilege">
         <field name="name">The Residence</field>
         <field name="description">Gestion de The Residence - Club privé</field>
         <field name="sequence">100</field>
@@ -16,35 +16,35 @@
     <!-- Groupe: Utilisateur (lecture seule) -->
     <record id="group_residence_user" model="res.groups">
         <field name="name">Utilisateur</field>
-        <field name="category_id" ref="module_category_residence"/>
+        <field name="privilege_id" ref="privilege_residence"/>
         <field name="implied_ids" eval="[(4, ref('base.group_user'))]"/>
     </record>
 
     <!-- Groupe: Gestionnaire -->
     <record id="group_residence_manager" model="res.groups">
         <field name="name">Gestionnaire</field>
-        <field name="category_id" ref="module_category_residence"/>
+        <field name="privilege_id" ref="privilege_residence"/>
         <field name="implied_ids" eval="[(4, ref('group_residence_user'))]"/>
     </record>
 
     <!-- Groupe: Administrateur -->
     <record id="group_residence_admin" model="res.groups">
         <field name="name">Administrateur</field>
-        <field name="category_id" ref="module_category_residence"/>
+        <field name="privilege_id" ref="privilege_residence"/>
         <field name="implied_ids" eval="[(4, ref('group_residence_manager'))]"/>
     </record>
 
     <!-- Groupe: Personnel Cuisine -->
     <record id="group_residence_kitchen" model="res.groups">
         <field name="name">Personnel Cuisine</field>
-        <field name="category_id" ref="module_category_residence"/>
+        <field name="privilege_id" ref="privilege_residence"/>
         <field name="implied_ids" eval="[(4, ref('base.group_user'))]"/>
     </record>
 
     <!-- Groupe: Personnel Accueil -->
     <record id="group_residence_reception" model="res.groups">
         <field name="name">Personnel Accueil</field>
-        <field name="category_id" ref="module_category_residence"/>
+        <field name="privilege_id" ref="privilege_residence"/>
         <field name="implied_ids" eval="[(4, ref('base.group_user'))]"/>
     </record>
 
