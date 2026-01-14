@@ -128,7 +128,6 @@
         <field name="view_ids" eval="[(5, 0, 0),
             (0, 0, {'view_mode': 'list', 'view_id': ref('view_partner_list_residence_members')}),
             (0, 0, {'view_mode': 'form', 'view_id': ref('base.view_partner_form')})]"/>
-        <!-- <field name="search_view_id" ref="view_partner_search_residence_members"/> -->
         <field name="help" type="html">
             <p class="o_view_nocontent_smiling_face">
                 Créez votre premier membre

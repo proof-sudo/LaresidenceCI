@@ -233,7 +233,7 @@
         <field name="name">Commandes Restaurant</field>
         <field name="res_model">residence.order</field>
         <field name="view_mode">list,kanban,form</field>
-        <field name="search_view_id" ref="view_residence_order_search"/>
+        <!-- <field name="search_view_id" ref="view_residence_order_search"/> -->
         <field name="help" type="html">
             <p class="o_view_nocontent_smiling_face">
                 Aucune commande
@@ -248,7 +248,7 @@
         <field name="view_mode">kanban,list,form</field>
         <field name="domain">[('state', 'in', ('pending', 'confirmed', 'preparing', 'ready'))]</field>
         <field name="context">{'search_default_filter_active': 1}</field>
-        <field name="search_view_id" ref="view_residence_order_search"/>
+        <!-- <field name="search_view_id" ref="view_residence_order_search"/> -->
     </record>
 
 </odoo>
