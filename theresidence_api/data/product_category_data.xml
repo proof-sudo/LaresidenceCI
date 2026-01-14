@@ -7,7 +7,7 @@
     <!-- Catégorie principale The Residence -->
     <record id="product_category_residence" model="product.category">
         <field name="name">The Residence</field>
-        <field name="parent_id" ref="product.product_category_all"/>
+        <field name="parent_id" ref="product.list"/>
     </record>
 
     <!-- Sous-catégorie: Salles -->
