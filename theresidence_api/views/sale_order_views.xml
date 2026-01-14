@@ -162,7 +162,7 @@
             (0, 0, {'view_mode': 'list', 'view_id': ref('view_sale_order_list_reservations')}),
             (0, 0, {'view_mode': 'calendar', 'view_id': ref('view_sale_order_calendar_reservations')}),
             (0, 0, {'view_mode': 'form', 'view_id': ref('sale.view_order_form')})]"/>
-        <field name="search_view_id" ref="view_sale_order_search_reservations"/>
+        <!-- <field name="search_view_id" ref="view_sale_order_search_reservations"/> -->
         <field name="help" type="html">
             <p class="o_view_nocontent_smiling_face">
                 Aucune réservation
