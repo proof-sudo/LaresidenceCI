@@ -1,0 +1,15 @@
+<odoo>
+    <record id="view_product_template_form_pos_room" model="ir.ui.view">
+        <field name="name">product.template.form.pos.room</field>
+        <field name="model">product.template</field>
+        <field name="inherit_id" ref="product.product_template_form_view"/>
+        <field name="arch" type="xml">
+            <xpath expr="//group[@name='sales']" position="after">
+                <group string="Salle POS">
+                    <field name="est_disponible_comme_salle"/>
+                    <field name="pos_floor_id" readonly="1"/>
+                </group>
+            </xpath>
+        </field>
+    </record>
+</odoo>

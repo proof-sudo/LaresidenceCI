@@ -1,0 +1,5 @@
+<odoo>
+    <record id="group_pos_room_manager" model="res.groups">
+        <field name="name">Gestionnaire salles POS</field>
+    </record>
+</odoo>
