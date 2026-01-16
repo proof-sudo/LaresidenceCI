@@ -13,6 +13,10 @@ class SaleOrder(models.Model):
                 if not product.est_disponible_comme_salle:
                     continue
 
+                # 🔐 Sécurité Sale Renting
+                if not hasattr(line, 'rental_start_date') or not line.rental_start_date:
+                    continue
+
                 floor = product.pos_floor_id
                 if not floor:
                     continue
@@ -25,13 +29,13 @@ class SaleOrder(models.Model):
                 if not tables:
                     continue
 
-                reservation = self.env['pos.room.reservation'].create({
+                self.env['pos.room.reservation'].create({
                     'partner_id': order.partner_id.id,
                     'sale_order_id': order.id,
                     'floor_id': floor.id,
                     'table_ids': [(6, 0, tables.ids)],
-                    'date_start': line.start_date,
-                    'date_end': line.end_date,
+                    'date_start': line.rental_start_date,
+                    'date_end': line.rental_end_date,
                 })
 
                 tables.write({'is_reserved': True})
