@@ -3,14 +3,14 @@
         <field name="name">pos.room.reservation.tree</field>
         <field name="model">pos.room.reservation</field>
         <field name="arch" type="xml">
-            <tree>
+            <list>
                 <field name="name"/>
                 <field name="partner_id"/>
                 <field name="floor_id"/>
                 <field name="date_start"/>
                 <field name="date_end"/>
                 <field name="state"/>
-            </tree>
+            </list>
         </field>
     </record>
 
