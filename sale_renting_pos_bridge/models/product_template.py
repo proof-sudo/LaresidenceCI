@@ -17,22 +17,35 @@ class ProductTemplate(models.Model):
     def create(self, vals_list):
         products = super().create(vals_list)
         for product in products:
-            product._sync_pos_floor()
+            if product.est_disponible_comme_salle:
+                product._sync_pos_floor()
         return products
 
     def write(self, vals):
         res = super().write(vals)
-        for product in self:
-            product._sync_pos_floor()
+
+        # 🔐 On ne resynchronise QUE si le flag ou le nom change
+        if 'est_disponible_comme_salle' in vals or 'name' in vals:
+            for product in self:
+                if product.est_disponible_comme_salle:
+                    product._sync_pos_floor()
+
         return res
 
     def _sync_pos_floor(self):
         for product in self:
+
+            # Sécurité
             if not product.est_disponible_comme_salle:
                 continue
 
+            # Éviter les writes inutiles
+            if product.pos_floor_id:
+                continue
+
             floor = self.env['restaurant.floor'].search(
-                [('name', '=', product.name)], limit=1
+                [('name', '=', product.name)],
+                limit=1
             )
 
             if not floor:
@@ -40,4 +53,7 @@ class ProductTemplate(models.Model):
                     'name': product.name,
                 })
 
-            product.pos_floor_id = floor.id
+            # ⚠️ write explicite (pas assignment direct)
+            product.with_context(skip_pos_sync=True).write({
+                'pos_floor_id': floor.id
+            })
