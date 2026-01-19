@@ -38,7 +38,7 @@
     <record id="view_product_template_list_inherit_theresidence" model="ir.ui.view">
         <field name="name">product.template.list.inherit.theresidence</field>
         <field name="model">product.template</field>
-        <field name="inherit_id" ref="product.product_template_list_view"/>
+        <field name="inherit_id" ref="product.product_template_tree_view"/>
         <field name="arch" type="xml">
             <xpath expr="//field[@name='list_price']" position="after">
                 <field name="x_tr_is_space" optional="hide"/>

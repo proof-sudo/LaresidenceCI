@@ -102,7 +102,7 @@
     <record id="view_sale_order_list_inherit_theresidence" model="ir.ui.view">
         <field name="name">sale.order.list.inherit.theresidence</field>
         <field name="model">sale.order</field>
-        <field name="inherit_id" ref="sale.view_order_list"/>
+        <field name="inherit_id" ref="sale.view_order_tree"/>
         <field name="arch" type="xml">
             <xpath expr="//field[@name='state']" position="after">
                 <field name="x_tr_is_reservation" column_invisible="1"/>
