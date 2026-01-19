@@ -39,7 +39,7 @@
     <record id="view_partner_list_inherit_theresidence" model="ir.ui.view">
         <field name="name">res.partner.list.inherit.theresidence</field>
         <field name="model">res.partner</field>
-        <field name="inherit_id" ref="base.view_partner_list"/>
+        <field name="inherit_id" ref="base.view_partner_tree"/>
         <field name="arch" type="xml">
             <xpath expr="//field[@name='email']" position="after">
                 <field name="x_tr_is_member" optional="hide"/>
