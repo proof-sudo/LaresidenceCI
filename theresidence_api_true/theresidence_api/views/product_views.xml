@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ===================== -->
+    <!-- PRODUCT.TEMPLATE      -->
+    <!-- ===================== -->
+
+    <!-- Inherit Form View -->
+    <record id="view_product_template_form_inherit_theresidence" model="ir.ui.view">
+        <field name="name">product.template.form.inherit.theresidence</field>
+        <field name="model">product.template</field>
+        <field name="inherit_id" ref="product.product_template_only_form_view"/>
+        <field name="arch" type="xml">
+            <xpath expr="//notebook" position="inside">
+                <page string="The Residence" name="theresidence">
+                    <group>
+                        <group string="Configuration Espace">
+                            <field name="x_tr_is_space"/>
+                            <field name="x_tr_space_uuid" readonly="1" invisible="not x_tr_is_space"/>
+                            <field name="x_tr_space_type_id" invisible="not x_tr_is_space"/>
+                            <field name="x_tr_space_capacity" invisible="not x_tr_is_space"/>
+                        </group>
+                        <group string="Configuration Plan d'abonnement">
+                            <field name="x_tr_is_subscription_plan"/>
+                            <field name="x_tr_membership_type_id" invisible="not x_tr_is_subscription_plan"/>
+                            <field name="x_tr_duration_months" invisible="not x_tr_is_subscription_plan"/>
+                        </group>
+                    </group>
+                    <group invisible="not x_tr_is_space">
+                        <field name="x_tr_space_description" placeholder="Description détaillée de l'espace..."/>
+                    </group>
+                </page>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- Inherit list View -->
+    <record id="view_product_template_list_inherit_theresidence" model="ir.ui.view">
+        <field name="name">product.template.list.inherit.theresidence</field>
+        <field name="model">product.template</field>
+        <field name="inherit_id" ref="product.product_template_list_view"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='list_price']" position="after">
+                <field name="x_tr_is_space" optional="hide"/>
+                <field name="x_tr_space_type_id" optional="hide"/>
+                <field name="x_tr_space_capacity" optional="hide"/>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- Search View -->
+    <record id="view_product_template_search_inherit_theresidence" model="ir.ui.view">
+        <field name="name">product.template.search.inherit.theresidence</field>
+        <field name="model">product.template</field>
+        <field name="inherit_id" ref="product.product_template_search_view"/>
+        <field name="arch" type="xml">
+            <xpath expr="//filter[@name='inactive']" position="after">
+                <separator/>
+                <filter string="Espaces TR" name="tr_spaces" domain="[('x_tr_is_space', '=', True)]"/>
+                <filter string="Plans abonnement TR" name="tr_subscription_plans" domain="[('x_tr_is_subscription_plan', '=', True)]"/>
+            </xpath>
+            <xpath expr="//group" position="inside">
+                <filter string="Type d'espace" name="group_space_type" context="{'group_by': 'x_tr_space_type_id'}"/>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- Action pour les espaces -->
+    <record id="action_theresidence_spaces" model="ir.actions.act_window">
+        <field name="name">Espaces</field>
+        <field name="res_model">product.template</field>
+        <field name="view_mode">list,form</field>
+        <field name="domain">[('x_tr_is_space', '=', True)]</field>
+        <field name="context">{'default_x_tr_is_space': True, 'default_type': 'service', 'default_rent_ok': True}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Ajouter un nouvel espace
+            </p>
+        </field>
+    </record>
+
+    <!-- Action pour les plans d'abonnement -->
+    <record id="action_theresidence_subscription_plans" model="ir.actions.act_window">
+        <field name="name">Plans d'abonnement</field>
+        <field name="res_model">product.template</field>
+        <field name="view_mode">list,form</field>
+        <field name="domain">[('x_tr_is_subscription_plan', '=', True)]</field>
+        <field name="context">{'default_x_tr_is_subscription_plan': True, 'default_type': 'service'}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Ajouter un nouveau plan d'abonnement
+            </p>
+        </field>
+    </record>
+
+    <menuitem id="menu_theresidence_spaces"
+        name="Espaces"
+        parent="menu_theresidence_root"
+        action="action_theresidence_spaces"
+        sequence="6"/>
+
+    <menuitem id="menu_theresidence_subscription_plans"
+        name="Plans d'abonnement"
+        parent="menu_theresidence_root"
+        action="action_theresidence_subscription_plans"
+        sequence="7"/>
+
+</odoo>

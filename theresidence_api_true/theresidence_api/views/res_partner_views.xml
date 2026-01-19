@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ===================== -->
+    <!-- RES.PARTNER INHERIT   -->
+    <!-- ===================== -->
+
+    <!-- Inherit Form View -->
+    <record id="view_partner_form_inherit_theresidence" model="ir.ui.view">
+        <field name="name">res.partner.form.inherit.theresidence</field>
+        <field name="model">res.partner</field>
+        <field name="inherit_id" ref="base.view_partner_form"/>
+        <field name="arch" type="xml">
+            <!-- Ajouter un onglet The Residence -->
+            <xpath expr="//notebook" position="inside">
+                <page string="The Residence" name="theresidence" invisible="not x_tr_is_member">
+                    <group>
+                        <group string="Informations membre">
+                            <field name="x_tr_is_member"/>
+                            <field name="x_tr_uuid" readonly="1"/>
+                            <field name="x_tr_qr_token" readonly="1"/>
+                        </group>
+                        <group string="Adhésion">
+                            <field name="x_tr_membership_type_id"/>
+                            <field name="x_tr_member_status"/>
+                            <field name="x_tr_joined_at"/>
+                        </group>
+                    </group>
+                </page>
+            </xpath>
+            <!-- Ajouter checkbox "Est membre" dans la section principale -->
+            <xpath expr="//field[@name='category_id']" position="after">
+                <field name="x_tr_is_member"/>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- Inherit list View -->
+    <record id="view_partner_list_inherit_theresidence" model="ir.ui.view">
+        <field name="name">res.partner.list.inherit.theresidence</field>
+        <field name="model">res.partner</field>
+        <field name="inherit_id" ref="base.view_partner_list"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='email']" position="after">
+                <field name="x_tr_is_member" optional="hide"/>
+                <field name="x_tr_membership_type_id" optional="hide"/>
+                <field name="x_tr_member_status" optional="hide"/>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- Search View -->
+    <record id="view_partner_search_inherit_theresidence" model="ir.ui.view">
+        <field name="name">res.partner.search.inherit.theresidence</field>
+        <field name="model">res.partner</field>
+        <field name="inherit_id" ref="base.view_res_partner_filter"/>
+        <field name="arch" type="xml">
+            <xpath expr="//filter[@name='inactive']" position="after">
+                <separator/>
+                <filter string="Membres TR" name="tr_members" domain="[('x_tr_is_member', '=', True)]"/>
+            </xpath>
+            <xpath expr="//group" position="inside">
+                <filter string="Type d'adhésion" name="group_membership_type" context="{'group_by': 'x_tr_membership_type_id'}"/>
+                <filter string="Statut membre" name="group_member_status" context="{'group_by': 'x_tr_member_status'}"/>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- Action pour voir les membres TR -->
+    <record id="action_theresidence_members" model="ir.actions.act_window">
+        <field name="name">Membres The Residence</field>
+        <field name="res_model">res.partner</field>
+        <field name="view_mode">list,form</field>
+        <field name="domain">[('x_tr_is_member', '=', True)]</field>
+        <field name="context">{'default_x_tr_is_member': True}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Ajouter un nouveau membre
+            </p>
+        </field>
+    </record>
+
+    <menuitem id="menu_theresidence_members"
+        name="Membres"
+        parent="menu_theresidence_root"
+        action="action_theresidence_members"
+        sequence="5"/>
+
+</odoo>

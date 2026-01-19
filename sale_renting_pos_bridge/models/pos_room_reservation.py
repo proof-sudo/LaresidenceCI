@@ -6,14 +6,14 @@ class PosRoomReservation(models.Model):
     _order = 'date_start desc'
 
     name = fields.Char(
-        required=True,
+        required=False,
         copy=False,
         default=lambda self: self.env['ir.sequence'].next_by_code('pos.room.reservation')
     )
 
     partner_id = fields.Many2one(
         'res.partner',
-        required=True
+        required=False
     )
 
     sale_order_id = fields.Many2one(
@@ -23,7 +23,7 @@ class PosRoomReservation(models.Model):
 
     floor_id = fields.Many2one(
         'restaurant.floor',
-        required=True
+        required=False
     )
 
     table_ids = fields.Many2many(
