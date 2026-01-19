@@ -67,7 +67,6 @@ class ResPartner(models.Model):
             'name': name,
             'email': data.get('email'),
             'phone': data.get('phone'),
-            'mobile': data.get('phone'),
             'function': data.get('jobTitle'),
             'company_name': data.get('companyName'),
             'x_tr_is_member': True,
