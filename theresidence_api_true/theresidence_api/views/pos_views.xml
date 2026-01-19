@@ -120,7 +120,7 @@
     <record id="view_pos_category_list_inherit_theresidence" model="ir.ui.view">
         <field name="name">pos.category.list.inherit.theresidence</field>
         <field name="model">pos.category</field>
-        <field name="inherit_id" ref="point_of_sale.pos_category_view_list"/>
+        <field name="inherit_id" ref="point_of_sale.product_pos_category_tree_view"/>
         <field name="arch" type="xml">
             <xpath expr="//field[@name='name']" position="after">
                 <field name="x_tr_menu_kind_id" optional="show"/>
