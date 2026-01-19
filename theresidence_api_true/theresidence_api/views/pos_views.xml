@@ -48,7 +48,7 @@
     <record id="view_pos_order_list_inherit_theresidence" model="ir.ui.view">
         <field name="name">pos.order.list.inherit.theresidence</field>
         <field name="model">pos.order</field>
-        <field name="inherit_id" ref="point_of_sale.view_pos_order_list"/>
+        <field name="inherit_id" ref="point_of_sale.view_pos_order_tree"/>
         <field name="arch" type="xml">
             <xpath expr="//field[@name='state']" position="after">
                 <field name="x_tr_is_mobile_order" column_invisible="1"/>
