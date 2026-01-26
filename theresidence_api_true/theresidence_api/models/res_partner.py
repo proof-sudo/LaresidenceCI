@@ -47,7 +47,7 @@ class ResPartner(models.Model):
             'firstName': name_parts[0] if name_parts else '',
             'lastName': name_parts[1] if len(name_parts) > 1 else '',
             'email': self.email or '',
-            'phone': self.phone  or '',
+            'phone': self.phone or '',
             'companyName': self.parent_id.name if self.parent_id else (self.company_name or ''),
             'jobTitle': self.function or '',
             'membershipTypeId': self.x_tr_membership_type_id.x_uuid if self.x_tr_membership_type_id else None,

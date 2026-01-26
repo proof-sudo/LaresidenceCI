@@ -17,7 +17,7 @@
                     <group>
                         <group string="Informations membre">
                             <field name="x_tr_is_member"/>
-                            <field name="mobile"/>
+                            <field name="x_tr_is_member"/>
                             <field name="x_tr_uuid" readonly="1"/>
                             <field name="x_tr_qr_token" readonly="1"/>
                         </group>
