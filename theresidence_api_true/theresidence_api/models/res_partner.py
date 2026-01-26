@@ -20,6 +20,7 @@ class ResPartner(models.Model):
     ], string='Statut membre', default='PENDING')
     x_tr_membership_type_id = fields.Many2one('theresidence.membership.type', string='Type d\'adhésion')
     x_tr_joined_at = fields.Date(string='Date d\'adhésion')
+    mobile = fields.Char(string="Mobile")
 
     @api.model_create_multi
     def create(self, vals_list):
@@ -46,7 +47,7 @@ class ResPartner(models.Model):
             'firstName': name_parts[0] if name_parts else '',
             'lastName': name_parts[1] if len(name_parts) > 1 else '',
             'email': self.email or '',
-            'phone': self.phone or self.mobile or '',
+            'phone': self.phone  or '',
             'companyName': self.parent_id.name if self.parent_id else (self.company_name or ''),
             'jobTitle': self.function or '',
             'membershipTypeId': self.x_tr_membership_type_id.x_uuid if self.x_tr_membership_type_id else None,
