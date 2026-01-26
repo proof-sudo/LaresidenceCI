@@ -20,7 +20,7 @@ class ResPartner(models.Model):
     ], string='Statut membre', default='PENDING')
     x_tr_membership_type_id = fields.Many2one('theresidence.membership.type', string='Type d\'adhésion')
     x_tr_joined_at = fields.Date(string='Date d\'adhésion')
-    mobile = fields.Char(string="Mobile")
+    # mobile = fields.Char(string="Mobile")
 
     @api.model_create_multi
     def create(self, vals_list):
