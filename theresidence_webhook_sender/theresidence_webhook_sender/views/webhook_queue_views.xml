@@ -151,7 +151,7 @@
     </record>
     
     <!-- Recherche pour la queue -->
-    <record id="view_webhook_queue_search" model="ir.ui.view">
+    <!-- <record id="view_webhook_queue_search" model="ir.ui.view">
         <field name="name">theresidence.webhook.queue.search</field>
         <field name="model">theresidence.webhook.queue</field>
         <field name="arch" type="xml">
@@ -180,7 +180,7 @@
                 </group>
             </search>
         </field>
-    </record>
+    </record> -->
     
     <!-- Action pour ouvrir la queue -->
     <record id="action_webhook_queue" model="ir.actions.act_window">
