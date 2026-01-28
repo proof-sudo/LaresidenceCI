@@ -83,11 +83,11 @@
     </record>
     
     <!-- Vue liste pour la queue -->
-    <record id="view_webhook_queue_tree" model="ir.ui.view">
-        <field name="name">theresidence.webhook.queue.tree</field>
+    <record id="view_webhook_queue_list" model="ir.ui.view">
+        <field name="name">theresidence.webhook.queue.list</field>
         <field name="model">theresidence.webhook.queue</field>
         <field name="arch" type="xml">
-            <tree string="Queue Webhooks" decoration-success="state == 'sent'" 
+            <list string="Queue Webhooks" decoration-success="state == 'sent'" 
                   decoration-danger="state == 'failed'" decoration-muted="state == 'pending'">
                 <field name="priority" widget="priority"/>
                 <field name="create_date" string="Créé le"/>
@@ -103,7 +103,7 @@
                 <field name="sent_at"/>
                 <button name="action_retry_now" type="object" string="Réessayer" 
                         icon="fa-refresh" invisible="state == 'sent'"/>
-            </tree>
+            </list>
         </field>
     </record>
     
@@ -186,7 +186,7 @@
     <record id="action_webhook_queue" model="ir.actions.act_window">
         <field name="name">Queue Webhooks</field>
         <field name="res_model">theresidence.webhook.queue</field>
-        <field name="view_mode">kanban,tree,form</field>
+        <field name="view_mode">kanban,list,form</field>
         <field name="context">{'search_default_pending': 1}</field>
         <field name="help" type="html">
             <p class="o_view_nocontent_empty_folder">
