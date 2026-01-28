@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>The Residence - Webhook Sender</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #333;
+        }
+        .container {
+            background: white;
+            border-radius: 10px;
+            padding: 40px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        h1 {
+            color: #667eea;
+            border-bottom: 3px solid #667eea;
+            padding-bottom: 10px;
+        }
+        h2 {
+            color: #764ba2;
+            margin-top: 30px;
+        }
+        .feature {
+            background: #f8f9fa;
+            padding: 15px;
+            margin: 10px 0;
+            border-left: 4px solid #667eea;
+            border-radius: 5px;
+        }
+        .badge {
+            display: inline-block;
+            padding: 5px 10px;
+            background: #667eea;
+            color: white;
+            border-radius: 3px;
+            font-size: 12px;
+            margin: 5px 5px 5px 0;
+        }
+        code {
+            background: #f4f4f4;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+        }
+        .warning {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 5px;
+        }
+        ul {
+            line-height: 1.8;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔗 The Residence - Webhook Sender</h1>
+        
+        <p style="font-size: 18px; color: #666;">
+            Module Odoo pour envoyer automatiquement des webhooks vers l'API externe de The Residence.
+        </p>
+
+        <div style="margin: 20px 0;">
+            <span class="badge">v1.0.0</span>
+            <span class="badge">Odoo 19.0</span>
+            <span class="badge">Python 3</span>
+            <span class="badge">Webhooks</span>
+            <span class="badge">API Integration</span>
+        </div>
+
+        <h2>✨ Fonctionnalités</h2>
+        
+        <div class="feature">
+            <strong>📤 Envoi automatique</strong><br>
+            Les webhooks sont envoyés automatiquement lorsque des événements se produisent dans Odoo.
+        </div>
+
+        <div class="feature">
+            <strong>🔄 Retry intelligent</strong><br>
+            En cas d'échec, le système réessaie automatiquement avec un backoff exponentiel.
+        </div>
+
+        <div class="feature">
+            <strong>📊 Monitoring complet</strong><br>
+            Suivez tous vos webhooks avec des vues Kanban, des logs détaillés et des statistiques.
+        </div>
+
+        <div class="feature">
+            <strong>⚙️ Configuration flexible</strong><br>
+            URL, API key, timeout, nombre de retries... tout est configurable.
+        </div>
+
+        <div class="feature">
+            <strong>🔒 Sécurité</strong><br>
+            La clé API est stockée de manière sécurisée et les droits d'accès sont gérés.
+        </div>
+
+        <h2>📋 Événements supportés</h2>
+        
+        <ul>
+            <li><strong>Commandes:</strong> confirmée, prête, terminée, annulée</li>
+            <li><strong>Réservations:</strong> approuvée, rejetée, annulée, check-in</li>
+            <li><strong>Abonnements:</strong> activé, en pause, repris, annulé</li>
+            <li><strong>Membres:</strong> mis à jour</li>
+        </ul>
+
+        <h2>🚀 Installation</h2>
+        
+        <ol>
+            <li>Installer la dépendance: <code>pip install requests</code></li>
+            <li>Copier le module dans le dossier addons d'Odoo</li>
+            <li>Redémarrer Odoo</li>
+            <li>Aller dans <strong>Apps > Update Apps List</strong></li>
+            <li>Rechercher "The Residence - Webhook Sender"</li>
+            <li>Cliquer sur <strong>Install</strong></li>
+        </ol>
+
+        <div class="warning">
+            <strong>⚠️ Important:</strong> Après installation, vous devez modifier votre module existant 
+            pour utiliser <code>theresidence.webhook.service</code> au lieu de <code>theresidence.webhook</code>.
+            <br><br>
+            Consultez le fichier <code>INTEGRATION_EXAMPLE.py</code> pour plus de détails.
+        </div>
+
+        <h2>🔧 Configuration</h2>
+        
+        <p>
+            Une configuration par défaut est automatiquement créée avec :
+        </p>
+        <ul>
+            <li>URL: <code>https://api.laresidence-abidjan.com</code></li>
+            <li>API Key: Pré-configurée</li>
+            <li>Timeout: 10 secondes</li>
+            <li>Max retries: 5 tentatives</li>
+            <li>Delays: 1, 2, 4, 8, 16 secondes</li>
+        </ul>
+
+        <p>
+            Vous pouvez modifier cette configuration dans :<br>
+            <strong>Webhooks The Residence > Configuration</strong>
+        </p>
+
+        <h2>📚 Documentation</h2>
+        
+        <p>
+            Consultez le fichier <code>README.md</code> pour la documentation complète incluant :
+        </p>
+        <ul>
+            <li>Guide d'intégration détaillé</li>
+            <li>Exemples de code</li>
+            <li>Dépannage</li>
+            <li>Configuration avancée</li>
+        </ul>
+
+        <h2>🎯 Accès rapide</h2>
+        
+        <p>Après installation, accédez aux fonctionnalités via le menu principal :</p>
+        <ul>
+            <li><strong>Configuration</strong> - Paramètres du webhook</li>
+            <li><strong>Queue</strong> - Webhooks en attente et traités</li>
+            <li><strong>Logs</strong> - Historique des tentatives d'envoi</li>
+        </ul>
+
+        <h2>💡 Support</h2>
+        
+        <p>
+            Pour toute question ou problème, contactez l'équipe développement The Residence.
+        </p>
+
+        <hr style="margin: 40px 0; border: none; border-top: 2px solid #eee;">
+        
+        <p style="text-align: center; color: #999; font-size: 14px;">
+            The Residence © 2026 | LGPL-3 License | Version 1.0.0
+        </p>
+    </div>
+</body>
+</html>
