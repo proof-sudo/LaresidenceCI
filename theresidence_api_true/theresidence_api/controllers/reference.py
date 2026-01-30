@@ -92,42 +92,93 @@ class ReferenceController(http.Controller):
 
     # === MENU ===
     
+    # @http.route(f'{API_PREFIX}/reference/menu-kinds', type='http', auth='public', methods=['GET'], csrf=False)
+    # @api_auth('read_menu')
+    # def list_menu_kinds(self, **kwargs):
+    #     kinds = request.env['theresidence.menu.kind'].sudo().search([('active', '=', True)], order='sequence')
+    #     return success_response([k.to_api_dict() for k in kinds])
+    
     @http.route(f'{API_PREFIX}/reference/menu-kinds', type='http', auth='public', methods=['GET'], csrf=False)
     @api_auth('read_menu')
     def list_menu_kinds(self, **kwargs):
-        kinds = request.env['theresidence.menu.kind'].sudo().search([('active', '=', True)], order='sequence')
-        return success_response([k.to_api_dict() for k in kinds])
+        kinds = request.env['pos.category'].sudo().search([
+            ('parent_id', '=', False)
+        ], order='sequence')
 
-    @http.route(f'{API_PREFIX}/reference/menu-kinds/<string:kind_id>/categories', type='http', auth='public', methods=['GET'], csrf=False)
+        return success_response([k.to_category_api_dict() for k in kinds])
+
+    # @http.route(f'{API_PREFIX}/reference/menu-kinds/<string:kind_id>/categories', type='http', auth='public', methods=['GET'], csrf=False)
+    # @api_auth('read_menu')
+    # def list_categories_by_kind(self, kind_id, **kwargs):
+    #     kind = request.env['theresidence.menu.kind'].sudo().search([
+    #         '|', ('x_uuid', '=', kind_id), ('code', '=', kind_id)
+    #     ], limit=1)
+    #     if not kind:
+    #         return error_response('Menu kind not found', 'NOT_FOUND', 404)
+    #     categories = request.env['pos.category'].sudo().search([('x_tr_menu_kind_id', '=', kind.id)], order='sequence')
+    #     return success_response([c.to_category_api_dict() for c in categories])
+    @http.route(f'{API_PREFIX}/reference/menu-kinds/<string:kind_id>/categories',
+            type='http', auth='public', methods=['GET'], csrf=False)
     @api_auth('read_menu')
     def list_categories_by_kind(self, kind_id, **kwargs):
-        kind = request.env['theresidence.menu.kind'].sudo().search([
-            '|', ('x_uuid', '=', kind_id), ('code', '=', kind_id)
+
+        kind = request.env['pos.category'].sudo().search([
+            '|',
+            ('x_tr_uuid', '=', kind_id),
+            ('id', '=', int(kind_id) if kind_id.isdigit() else 0),
+            ('parent_id', '=', False)
         ], limit=1)
+
         if not kind:
             return error_response('Menu kind not found', 'NOT_FOUND', 404)
-        categories = request.env['pos.category'].sudo().search([('x_tr_menu_kind_id', '=', kind.id)], order='sequence')
-        return success_response([c.to_category_api_dict() for c in categories])
 
+        categories = request.env['pos.category'].sudo().search([
+            ('parent_id', '=', kind.id)
+        ], order='sequence')
+
+        return success_response([c.to_category_api_dict() for c in categories])
+    
     @http.route(f'{API_PREFIX}/reference/menu-categories', type='http', auth='public', methods=['GET'], csrf=False)
     @api_auth('read_menu')
     def list_menu_categories(self, **kwargs):
         categories = request.env['pos.category'].sudo().search([], order='sequence')
         return success_response([c.to_category_api_dict() for c in categories])
 
-    @http.route(f'{API_PREFIX}/reference/menu-categories/<string:category_id>/items', type='http', auth='public', methods=['GET'], csrf=False)
+    # @http.route(f'{API_PREFIX}/reference/menu-categories/<string:category_id>/items', type='http', auth='public', methods=['GET'], csrf=False)
+    # @api_auth('read_menu')
+    # def list_items_by_category(self, category_id, **kwargs):
+    #     category = request.env['pos.category'].sudo().search([
+    #         '|', ('x_tr_uuid', '=', category_id), ('id', '=', int(category_id) if category_id.isdigit() else 0)
+    #     ], limit=1)
+    #     if not category:
+    #         return error_response('Category not found', 'NOT_FOUND', 404)
+    #     products = request.env['product.product'].sudo().search([
+    #         ('pos_categ_ids', 'in', [category.id]),
+    #         ('available_in_pos', '=', True),
+    #         ('active', '=', True)
+    #     ])
+    #     return success_response([p.to_menu_item_api_dict() for p in products])
+    
+    @http.route(f'{API_PREFIX}/reference/menu-categories/<string:category_id>/items',
+            type='http', auth='public', methods=['GET'], csrf=False)
     @api_auth('read_menu')
     def list_items_by_category(self, category_id, **kwargs):
+
         category = request.env['pos.category'].sudo().search([
-            '|', ('x_tr_uuid', '=', category_id), ('id', '=', int(category_id) if category_id.isdigit() else 0)
+            '|',
+            ('x_tr_uuid', '=', category_id),
+            ('id', '=', int(category_id) if category_id.isdigit() else 0)
         ], limit=1)
+
         if not category:
             return error_response('Category not found', 'NOT_FOUND', 404)
+
         products = request.env['product.product'].sudo().search([
             ('pos_categ_ids', 'in', [category.id]),
             ('available_in_pos', '=', True),
             ('active', '=', True)
         ])
+
         return success_response([p.to_menu_item_api_dict() for p in products])
 
     @http.route(f'{API_PREFIX}/reference/menu-items', type='http', auth='public', methods=['GET'], csrf=False)
