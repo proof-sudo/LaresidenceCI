@@ -163,7 +163,6 @@ class ReferenceController(http.Controller):
             type='http', auth='public', methods=['GET'], csrf=False)
     @api_auth('read_menu')
     def list_items_by_category(self, category_id, **kwargs):
-
         category = request.env['pos.category'].sudo().search([
             '|',
             ('x_tr_uuid', '=', category_id),
@@ -173,8 +172,17 @@ class ReferenceController(http.Controller):
         if not category:
             return error_response('Category not found', 'NOT_FOUND', 404)
 
+        # Fonction recursive pour inclure toutes les sous-catégories
+        def get_all_category_ids(cat):
+            ids = [cat.id]
+            for child in cat.child_id:
+                ids += get_all_category_ids(child)
+            return ids
+
+        category_ids = get_all_category_ids(category)
+
         products = request.env['product.product'].sudo().search([
-            ('pos_categ_ids', 'in', [category.id]),
+            ('pos_categ_ids', 'in', category_ids),
             ('available_in_pos', '=', True),
             ('active', '=', True)
         ])
