@@ -175,7 +175,7 @@ class ReferenceController(http.Controller):
         # Fonction recursive pour inclure toutes les sous-catégories
         def get_all_category_ids(cat):
             ids = [cat.id]
-            for child in cat.child_id:
+            for child in cat.child_ids:
                 ids += get_all_category_ids(child)
             return ids
 
