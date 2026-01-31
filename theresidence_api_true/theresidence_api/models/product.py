@@ -64,11 +64,33 @@ class ProductTemplate(models.Model):
             'conflictingReservations': conflicting
         }
 
+    # def to_space_api_dict(self):
+    #     self.ensure_one()
+    #     base_url = self.env['ir.config_parameter'].sudo().get_param('web.base.url')
+    #     image_url = f"{base_url}/web/image/product.template/{self.id}/image_1920" if self.image_1920 else ''
+        
+    #     return {
+    #         'id': self.x_tr_space_uuid or str(self.id),
+    #         'name': self.name or '',
+    #         'description': self.x_tr_space_description or self.description_sale or '',
+    #         'type': self.x_tr_space_type_id.code if self.x_tr_space_type_id else 'GENERAL',
+    #         'typeName': self.x_tr_space_type_id.name if self.x_tr_space_type_id else '',
+    #         'capacity': self.x_tr_space_capacity or 0,
+    #         'pricePerHour': self.list_price or 0.0,
+    #         'currency': self.currency_id.name if self.currency_id else 'XOF',
+    #         'imageUrl': image_url,
+    #         'isAvailable': self.active
+    #     }
+    
     def to_space_api_dict(self):
         self.ensure_one()
         base_url = self.env['ir.config_parameter'].sudo().get_param('web.base.url')
-        image_url = f"{base_url}/web/image/product.template/{self.id}/image_1920" if self.image_1920 else ''
-        
+
+        image_url = (
+            f"{base_url}/api/v1/spaces/{self.x_tr_space_uuid or self.id}/image"
+            if self.image_1920 else ''
+        )
+
         return {
             'id': self.x_tr_space_uuid or str(self.id),
             'name': self.name or '',
@@ -81,6 +103,7 @@ class ProductTemplate(models.Model):
             'imageUrl': image_url,
             'isAvailable': self.active
         }
+
 
     def to_subscription_plan_api_dict(self):
         self.ensure_one()

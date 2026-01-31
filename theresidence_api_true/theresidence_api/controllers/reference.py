@@ -5,9 +5,41 @@ import logging
 from odoo import http
 from odoo.http import request
 from .main import API_PREFIX, api_auth, success_response, error_response, paginated_response
+import base64
 
 _logger = logging.getLogger(__name__)
 
+
+class SpaceImageController(http.Controller):
+
+    @http.route(
+        '/api/v1/spaces/<string:space_id>/image',
+        type='http',
+        auth='public',
+        methods=['GET'],
+        csrf=False
+    )
+    def get_space_image(self, space_id, **kwargs):
+        domain = [
+            ('x_tr_is_space', '=', True),
+            '|',
+            ('x_tr_space_uuid', '=', space_id),
+            ('id', '=', int(space_id) if space_id.isdigit() else 0)
+        ]
+
+        space = request.env['product.template'].sudo().search(domain, limit=1)
+        if not space or not space.image_1920:
+            return request.not_found()
+
+        image = base64.b64decode(space.image_1920)
+
+        return request.make_response(
+            image,
+            headers=[
+                ('Content-Type', 'image/png'),
+                ('Cache-Control', 'public, max-age=86400'),
+            ]
+        )
 
 class ReferenceController(http.Controller):
     """Controller pour les données de référence."""
@@ -68,6 +100,8 @@ class ReferenceController(http.Controller):
             return error_response('startTime and endTime are required', 'INVALID_REQUEST', 400)
         
         return success_response(space.check_availability(start_time, end_time))
+    
+    
 
     # === RESERVATION OPTIONS ===
     
