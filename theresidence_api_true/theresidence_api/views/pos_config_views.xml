@@ -8,7 +8,7 @@
         <field name="arch" type="xml">
 
             <!-- Bouton dans le header -->
-            <xpath expr="//sheet" position="inside">
+            <!-- <xpath expr="//sheet" position="inside">
                 <button
                     name="action_close_all_pos_sessions"
                     type="object"
@@ -16,7 +16,7 @@
                     class="btn-danger"
                     confirm="Cette action va fermer TOUTES les sessions POS ouvertes. Continuer ?"
                 />
-            </xpath>
+            </xpath> -->
 
         </field>
     </record>
