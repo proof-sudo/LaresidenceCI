@@ -2,21 +2,23 @@
 
 from odoo import models, api
 
-class PosSession(models.Model):
-    _inherit = 'pos.session'
+class PosConfig(models.Model):
+    _inherit = 'pos.config'
 
-    @api.model
     def action_close_all_pos_sessions(self):
         """
-        Ferme toutes les sessions POS non fermées
+        Bouton UI : ferme TOUTES les sessions POS ouvertes
         """
-        sessions = self.search([('state', '!=', 'closed')])
+        sessions = self.env['pos.session'].search([
+            ('state', '!=', 'closed')
+        ])
 
         for session in sessions:
             try:
+                # Fermeture standard Odoo
                 session.action_pos_session_close()
             except Exception:
-                # fallback si la fermeture standard échoue
+                # Sécurité : forcer si bloquée
                 session.write({'state': 'closed'})
 
         return True
