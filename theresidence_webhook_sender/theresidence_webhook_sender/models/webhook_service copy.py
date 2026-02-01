@@ -42,25 +42,6 @@ class WebhookService(models.AbstractModel):
             'PAUSED': 'subscription.paused',
         },
         'SUBSCRIPTION_CANCELLED': 'subscription.cancelled',
-        'SUBSCRIPTION_CREATED': 'subscription.created',
-        'SUBSCRIPTION_UPDATED': 'subscription.updated',
-        
-        # NOUVEAUX ÉVÉNEMENTS - Espaces
-        'SPACE_CREATED': 'space.created',
-        'SPACE_UPDATED': 'space.updated',
-        'SPACE_DELETED': 'space.deleted',
-        'SPACE_AVAILABILITY_CHANGED': 'space.availability_changed',
-        
-        # NOUVEAUX ÉVÉNEMENTS - Catégories POS
-        'POS_CATEGORY_CREATED': 'pos_category.created',
-        'POS_CATEGORY_UPDATED': 'pos_category.updated',
-        'POS_CATEGORY_DELETED': 'pos_category.deleted',
-        
-        # NOUVEAUX ÉVÉNEMENTS - Membres
-        'MEMBER_CREATED': 'member.created',
-        'MEMBER_UPDATED': 'member.updated',
-        'MEMBER_DELETED': 'member.deleted',
-        'MEMBER_MEMBERSHIP_CHANGED': 'member.membership_changed',
     }
 
     # ========================================================================
@@ -68,13 +49,13 @@ class WebhookService(models.AbstractModel):
     # ========================================================================
 
     @api.model
-    def trigger_event(self, internal_event, entity_type, entity_id, data=None, old_status=None, new_status=None):
+    def trigger_event(self, internal_event, entity_type, entity_id, data, old_status, new_status):
         """
         Point d'entrée pour déclencher l'envoi d'un webhook.
         
         Args:
             internal_event (str): Type d'événement interne (ex: 'ORDER_STATUS_CHANGED')
-            entity_type (str): Type d'entité ('order', 'reservation', 'subscription', 'member', 'space', 'pos_category')
+            entity_type (str): Type d'entité ('order', 'reservation', 'subscription', 'member')
             entity_id (str): UUID de l'entité (x_tr_uuid)
             data (dict): Données additionnelles de l'événement
             old_status (str): Ancien statut (None si création)

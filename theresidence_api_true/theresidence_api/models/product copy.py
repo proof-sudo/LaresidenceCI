@@ -26,105 +26,15 @@ class ProductTemplate(models.Model):
             if vals.get('x_tr_is_space') and not vals.get('x_tr_space_uuid'):
                 vals['x_tr_space_uuid'] = str(uuid.uuid4())
                 vals['rent_ok'] = True
-        
-        records = super().create(vals_list)
-        
-        # WEBHOOK: Création d'espace
-        for record in records:
-            if record.x_tr_is_space and record.x_tr_space_uuid:
-                self.env['theresidence.webhook.service'].trigger_event(
-                    internal_event='SPACE_CREATED',
-                    entity_type='space',
-                    entity_id=record.x_tr_space_uuid,
-                    data=record.to_space_api_dict(),
-                )
-        
-        return records
+        return super().create(vals_list)
 
     def write(self, vals):
-        # Capturer les anciennes valeurs pour les espaces
-        old_values = {}
-        for product in self:
-            if product.x_tr_is_space and product.x_tr_space_uuid:
-                old_values[product.id] = {
-                    'active': product.active,
-                    'name': product.name,
-                    'list_price': product.list_price,
-                    'capacity': product.x_tr_space_capacity,
-                }
-        
-        # Générer UUID si nécessaire
         if vals.get('x_tr_is_space'):
             for product in self:
                 if not product.x_tr_space_uuid:
                     vals.setdefault('x_tr_space_uuid', str(uuid.uuid4()))
             vals.setdefault('rent_ok', True)
-        
-        result = super().write(vals)
-        
-        # WEBHOOK: Modification d'espace
-        for product in self:
-            if product.x_tr_is_space and product.x_tr_space_uuid:
-                old_val = old_values.get(product.id, {})
-                
-                # Changement de disponibilité
-                if 'active' in vals and old_val.get('active') != product.active:
-                    self.env['theresidence.webhook.service'].trigger_event(
-                        internal_event='SPACE_AVAILABILITY_CHANGED',
-                        entity_type='space',
-                        entity_id=product.x_tr_space_uuid,
-                        data=product.to_space_api_dict(),
-                        old_status='AVAILABLE' if old_val.get('active') else 'UNAVAILABLE',
-                        new_status='AVAILABLE' if product.active else 'UNAVAILABLE',
-                    )
-                
-                # Autres modifications
-                changed_fields = []
-                if 'name' in vals and old_val.get('name') != product.name:
-                    changed_fields.append('name')
-                if 'list_price' in vals and old_val.get('list_price') != product.list_price:
-                    changed_fields.append('price')
-                if 'x_tr_space_capacity' in vals and old_val.get('capacity') != product.x_tr_space_capacity:
-                    changed_fields.append('capacity')
-                if 'x_tr_space_type_id' in vals:
-                    changed_fields.append('type')
-                if 'x_tr_space_description' in vals or 'description_sale' in vals:
-                    changed_fields.append('description')
-                if 'image_1920' in vals:
-                    changed_fields.append('image')
-                
-                if changed_fields:
-                    self.env['theresidence.webhook.service'].trigger_event(
-                        internal_event='SPACE_UPDATED',
-                        entity_type='space',
-                        entity_id=product.x_tr_space_uuid,
-                        data={**product.to_space_api_dict(), 'changedFields': changed_fields},
-                    )
-        
-        return result
-
-    def unlink(self):
-        # Capturer les infos avant suppression
-        space_data = []
-        for product in self:
-            if product.x_tr_is_space and product.x_tr_space_uuid:
-                space_data.append({
-                    'uuid': product.x_tr_space_uuid,
-                    'name': product.name,
-                })
-        
-        result = super().unlink()
-        
-        # WEBHOOK: Suppression d'espace
-        for data in space_data:
-            self.env['theresidence.webhook.service'].trigger_event(
-                internal_event='SPACE_DELETED',
-                entity_type='space',
-                entity_id=data['uuid'],
-                data={'id': data['uuid'], 'name': data['name']},
-            )
-        
-        return result
+        return super().write(vals)
 
     def check_availability(self, start_time, end_time):
         self.ensure_one()
@@ -154,6 +64,8 @@ class ProductTemplate(models.Model):
             'conflictingReservations': conflicting
         }
 
+
+    
     def to_space_api_dict(self):
         self.ensure_one()
         base_url = self.env['ir.config_parameter'].sudo().get_param('web.base.url')
@@ -175,6 +87,7 @@ class ProductTemplate(models.Model):
             'imageUrl': image_url,
             'isAvailable': self.active
         }
+
 
     def to_subscription_plan_api_dict(self):
         self.ensure_one()
