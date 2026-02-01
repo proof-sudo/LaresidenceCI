@@ -23,6 +23,7 @@
     'license': 'LGPL-3',
     'depends': [
         'base',
+        'sale_subscription',
         'sale',
         'sale_renting',
         'point_of_sale',
