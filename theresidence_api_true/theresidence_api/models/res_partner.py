@@ -3,6 +3,7 @@
 import uuid
 import secrets
 from odoo import models, fields, api
+from odoo.exceptions import UserError
 
 
 class ResPartner(models.Model):
@@ -191,3 +192,65 @@ class ResPartner(models.Model):
                 return existing
         
         return self.create(vals)
+    
+    def action_generate_ceo_subscriptions(self):
+        Subscription = self.env['sale.subscription']
+        SubscriptionLine = self.env['sale.subscription.line']
+
+        # 🔹 Produit d'abonnement imposé
+        product = self.env['product.product'].search([
+            ('name', '=', 'Abonnement CEO'),
+            ('recurring_invoice', '=', True)
+        ], limit=1)
+
+        if not product:
+            raise UserError(_("Le produit 'Abonnement CEO' est introuvable ou non récurrent."))
+
+        # 🔹 Template (facultatif mais recommandé)
+        template = self.env['sale.subscription.template'].search([], limit=1)
+        if not template:
+            raise UserError(_("Aucun template d'abonnement trouvé."))
+
+        members = self.search([
+            ('x_tr_is_member', '=', True),
+            ('active', '=', True),
+        ])
+
+        created = 0
+
+        for partner in members:
+            # ⛔ éviter les doublons
+            existing = Subscription.search([
+                ('partner_id', '=', partner.id),
+                ('state', 'in', ['draft', 'open', 'pending'])
+            ], limit=1)
+
+            if existing:
+                continue
+
+            subscription = Subscription.create({
+                'partner_id': partner.id,
+                'template_id': template.id,
+                'pricelist_id': partner.property_product_pricelist.id,
+            })
+
+            SubscriptionLine.create({
+                'subscription_id': subscription.id,
+                'product_id': product.id,
+                'name': product.name,
+                'quantity': 1,
+                'price_unit': product.lst_price,
+            })
+
+            created += 1
+
+        return {
+            'type': 'ir.actions.client',
+            'tag': 'display_notification',
+            'params': {
+                'title': _("Abonnements CEO"),
+                'message': _(f"{created} abonnements CEO créés avec succès."),
+                'type': 'success',
+                'sticky': False,
+            }
+        }
