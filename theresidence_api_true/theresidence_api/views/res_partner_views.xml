@@ -33,6 +33,14 @@
             <xpath expr="//field[@name='category_id']" position="after">
                 <field name="x_tr_is_member"/>
             </xpath>
+            <xpath expr="//header" position="inside">
+                <button
+                    name="action_generate_ceo_subscriptions"
+                    type="object"
+                    string="Créer abonnements CEO"
+                    class="btn-primary"
+                    groups="base.group_system"/>
+            </xpath>
         </field>
     </record>
 
@@ -67,29 +75,7 @@
         </field>
     </record>
 
-    <record id="view_res_partner_form_inherit_ceo_subscription" model="ir.ui.view">
-        <field name="name">res.partner.form.inherit.ceo.subscription</field>
-        <field name="model">res.partner</field>
-
-        <!-- ⚠️ vue correcte -->
-        <field name="inherit_id" ref="contacts.view_partner_form"/>
-
-        <field name="arch" type="xml">
-
-            <!-- 👉 Insertion RELATIVE (safe) -->
-            <xpath expr="//form" position="inside">
-                <header>
-                    <button
-                        name="action_generate_ceo_subscriptions"
-                        type="object"
-                        string="Créer abonnements CEO"
-                        class="btn-primary"
-                        groups="base.group_system"/>
-                </header>
-            </xpath>
-
-        </field>
-    </record>
+    
 
     <!-- Action pour voir les membres TR -->
     <record id="action_theresidence_members" model="ir.actions.act_window">
