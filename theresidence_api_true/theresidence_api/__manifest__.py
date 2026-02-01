@@ -35,6 +35,7 @@
         'views/res_partner_views.xml',
         'views/product_views.xml',
         'views/sale_order_views.xml',
+        'views/pos_config_views.xml',
         # 'views/pos_views.xml',
     ],
     'installable': True,
