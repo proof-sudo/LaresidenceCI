@@ -26,7 +26,6 @@
         'sale',
         'sale_renting',
         'point_of_sale',
-        'sale_subscription',
     ],
     'data': [
         'security/ir.model.access.csv',
