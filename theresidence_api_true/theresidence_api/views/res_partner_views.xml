@@ -70,17 +70,22 @@
     <record id="view_res_partner_form_inherit_ceo_subscription" model="ir.ui.view">
         <field name="name">res.partner.form.inherit.ceo.subscription</field>
         <field name="model">res.partner</field>
-        <field name="inherit_id" ref="base.view_partner_form"/>
+
+        <!-- ⚠️ vue correcte -->
+        <field name="inherit_id" ref="contacts.view_partner_form"/>
+
         <field name="arch" type="xml">
 
-            <!-- 👉 Insertion du bouton dans le header -->
-            <xpath expr="//header" position="inside">
-                <button
-                    name="action_generate_ceo_subscriptions"
-                    type="object"
-                    string="Créer abonnements CEO"
-                    class="btn-primary"
-                    groups="base.group_system"/>
+            <!-- 👉 Insertion RELATIVE (safe) -->
+            <xpath expr="//form" position="inside">
+                <header>
+                    <button
+                        name="action_generate_ceo_subscriptions"
+                        type="object"
+                        string="Créer abonnements CEO"
+                        class="btn-primary"
+                        groups="base.group_system"/>
+                </header>
             </xpath>
 
         </field>
