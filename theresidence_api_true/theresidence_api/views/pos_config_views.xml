@@ -4,11 +4,11 @@
     <record id="view_pos_config_form_inherit_close_sessions" model="ir.ui.view">
         <field name="name">pos.config.form.close.sessions</field>
         <field name="model">pos.config</field>
-        <field name="inherit_id" ref="point_of_sale.view_pos_config_form"/>
+        <field name="inherit_id" ref="point_of_sale.pos_config_view_form"/>
         <field name="arch" type="xml">
 
             <!-- Bouton dans le header -->
-            <xpath expr="//header" position="inside">
+            <xpath expr="//sheet" position="inside">
                 <button
                     name="action_close_all_pos_sessions"
                     type="object"
