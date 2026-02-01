@@ -1,16 +1,14 @@
 from odoo import models, fields, api
-from pytz import UTC
 
 class PosConfig(models.Model):
     _inherit = 'pos.config'
 
-    @api.depends('_get_last_session')
+    @api.depends('session_ids.stop_at')  # <- dépend des sessions réelles
     def _compute_last_session(self):
         for pos_config in self:
-            session = pos_config._get_last_session()
-            if session and session[0]['stop_at']:
-                # Convertir avec timezone de l'utilisateur si possible
-                tz = self.env.user.tz or 'UTC'
-                pos_config.last_session_closing_date = session[0]['stop_at'].astimezone(UTC).date()
+            sessions = pos_config.session_ids.sorted(lambda s: s.stop_at or fields.Datetime.min, reverse=True)
+            last_session = sessions[0] if sessions else None
+            if last_session and last_session.stop_at:
+                pos_config.last_session_closing_date = last_session.stop_at.date()
             else:
                 pos_config.last_session_closing_date = False
