@@ -36,6 +36,7 @@ License: LGPL-3
         'base',
         'sale',
         'point_of_sale',
+        'sale_subscription'
     ],
     'external_dependencies': {
         'python': ['requests'],
