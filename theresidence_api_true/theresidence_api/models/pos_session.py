@@ -1,29 +1,16 @@
-# -*- coding: utf-8 -*-
-
-from odoo import models, api, fields
+from odoo import models, fields, api
+from pytz import UTC
 
 class PosConfig(models.Model):
     _inherit = 'pos.config'
 
-    def action_close_all_pos_sessions(self):
-        """
-        Ferme toutes les sessions POS ouvertes (SAFE)
-        """
-        sessions = self.env['pos.session'].search([
-            ('state', '!=', 'closed')
-        ])
-
-        now = fields.Datetime.now()
-
-        for session in sessions:
-            try:
-                # Fermeture standard Odoo (propre)
-                session.action_pos_session_close()
-            except Exception:
-                # FERMETURE FORCÉE MAIS COHÉRENTE
-                session.write({
-                    'state': 'closed',
-                    'stop_at': now,
-                })
-
-        return True
+    @api.depends('_get_last_session')
+    def _compute_last_session(self):
+        for pos_config in self:
+            session = pos_config._get_last_session()
+            if session and session[0]['stop_at']:
+                # Convertir avec timezone de l'utilisateur si possible
+                tz = self.env.user.tz or 'UTC'
+                pos_config.last_session_closing_date = session[0]['stop_at'].astimezone(UTC).date()
+            else:
+                pos_config.last_session_closing_date = False
