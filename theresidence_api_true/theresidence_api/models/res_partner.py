@@ -164,64 +164,87 @@ class ResPartner(models.Model):
         }
 
     def action_generate_ceo_subscriptions(self):
-        """Créer un abonnement CEO avec plan récurrent pour tous les membres actifs"""
-        Subscription = self.env['subscription.subscription']
-        SubscriptionLine = self.env['subscription.line']
-        Template = self.env['subscription.template']
-        Product = self.env['product.product']
-
-        # 🔹 Produit d'abonnement
-        product = Product.search([('name', '=', 'Abonnement CEO')], limit=1)
-        if not product:
-            raise UserError(_("Produit 'Abonnement CEO' introuvable"))
-
-        # 🔹 Template d'abonnement
-        template = Template.search([], limit=1)
-        if not template:
-            raise UserError(_("Aucun template d'abonnement trouvé"))
-
-        # 🔹 Membres actifs
-        members = self.search([
-            ('x_tr_is_member', '=', True),
-            ('active', '=', True),
-        ])
-
-        created = 0
-
-        for partner in members:
-            # ⛔ Vérifier si un abonnement existe déjà
-            existing = Subscription.search([
+        """
+        Fonction appelée par le bouton pour créer un abonnement 
+        "Abonnement CEO" pour les contacts membres
+        """
+        for partner in self:
+            # Vérifier si le contact est membre
+            if not partner.x_tr_is_member:
+                raise UserError(
+                    f"Le contact {partner.name} n'est pas membre "
+                    "(x_tr_is_member doit être True)."
+                )
+            
+            # Vérifier s'il existe déjà un abonnement actif
+            existing_subscription = self.env['sale.order'].search([
                 ('partner_id', '=', partner.id),
-                ('state', 'in', ['draft', 'open', 'pending'])
+                ('is_subscription', '=', True),
+                ('subscription_state', 'in', ['3_progress', '4_paused'])
             ], limit=1)
-            if existing:
-                continue
-
-            # 🔹 Créer l'abonnement
-            subscription = Subscription.create({
+            
+            if existing_subscription:
+                raise UserError(
+                    f"Le contact {partner.name} a déjà un abonnement actif "
+                    f"(Référence: {existing_subscription.name})."
+                )
+            
+            # Rechercher le produit "Abonnement CEO"
+            subscription_product = self.env['product.product'].search([
+                ('name', '=', 'Abonnement CEO'),
+                ('recurring_invoice', '=', True)
+            ], limit=1)
+            
+            if not subscription_product:
+                raise UserError(
+                    "Le produit 'Abonnement CEO' n'existe pas. "
+                    "Veuillez créer ce produit d'abonnement d'abord."
+                )
+            
+            # Récupérer le plan de récurrence mensuel
+            recurrence_plan = self.env['sale.temporal.recurrence'].search([
+                ('unit', '=', 'month'),
+                ('duration', '=', 1)
+            ], limit=1)
+            
+            if not recurrence_plan:
+                raise UserError(
+                    "Aucun plan de récurrence mensuel trouvé. "
+                    "Veuillez configurer les plans de récurrence."
+                )
+            
+            # Créer le bon de commande d'abonnement
+            subscription_vals = {
                 'partner_id': partner.id,
-                'template_id': template.id,
-                'pricelist_id': partner.property_product_pricelist.id,
-                'date_start': fields.Date.today(),
-            })
-
-            # 🔹 Ajouter le plan récurrent (ligne d'abonnement)
-            SubscriptionLine.create({
-                'subscription_id': subscription.id,
-                'product_id': product.id,
-                'name': product.name,
-                'quantity': 1,
-                'price_unit': product.lst_price,
-            })
-
-            created += 1
-
+                'is_subscription': True,
+                'recurrence_id': recurrence_plan.id,
+                'order_line': [(0, 0, {
+                    'product_id': subscription_product.id,
+                    'name': subscription_product.name,
+                    'product_uom_qty': 1,
+                    'product_uom': subscription_product.uom_id.id,
+                    'price_unit': subscription_product.list_price,
+                })],
+            }
+            
+            subscription = self.env['sale.order'].create(subscription_vals)
+            
+            # Confirmer l'abonnement
+            subscription.action_confirm()
+            
+            _logger.info(
+                "Abonnement créé avec succès pour %s (ID: %s)",
+                partner.name,
+                subscription.id
+            )
+        
+        # Retourner une notification de succès
         return {
             'type': 'ir.actions.client',
             'tag': 'display_notification',
             'params': {
-                'title': _("Abonnements CEO"),
-                'message': _(f"{created} abonnements CEO créés avec succès."),
+                'title': 'Succès',
+                'message': f'Abonnement(s) créé(s) avec succès pour {len(self)} contact(s).',
                 'type': 'success',
                 'sticky': False,
             }
