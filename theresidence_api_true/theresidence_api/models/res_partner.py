@@ -164,31 +164,56 @@ class ResPartner(models.Model):
         }
 
     def action_generate_ceo_subscriptions(self):
-        """Créer un abonnement CEO pour tous les membres actifs"""
+        """Créer un abonnement CEO avec plan récurrent pour tous les membres actifs"""
+        Subscription = self.env['subscription.subscription']
+        SubscriptionLine = self.env['subscription.line']
+        Template = self.env['subscription.template']
         Product = self.env['product.product']
-        SaleOrder = self.env['sale.order']
 
+        # 🔹 Produit d'abonnement
         product = Product.search([('name', '=', 'Abonnement CEO')], limit=1)
         if not product:
             raise UserError(_("Produit 'Abonnement CEO' introuvable"))
 
-        # Tous les membres actifs
+        # 🔹 Template d'abonnement
+        template = Template.search([], limit=1)
+        if not template:
+            raise UserError(_("Aucun template d'abonnement trouvé"))
+
+        # 🔹 Membres actifs
         members = self.search([
             ('x_tr_is_member', '=', True),
             ('active', '=', True),
         ])
 
         created = 0
+
         for partner in members:
-            order = SaleOrder.create({
+            # ⛔ Vérifier si un abonnement existe déjà
+            existing = Subscription.search([
+                ('partner_id', '=', partner.id),
+                ('state', 'in', ['draft', 'open', 'pending'])
+            ], limit=1)
+            if existing:
+                continue
+
+            # 🔹 Créer l'abonnement
+            subscription = Subscription.create({
                 'partner_id': partner.id,
-                'order_line': [(0, 0, {
-                    'product_id': product.id,
-                    'product_uom_qty': 1,
-                    'price_unit': product.lst_price,
-                })],
+                'template_id': template.id,
+                'pricelist_id': partner.property_product_pricelist.id,
+                'date_start': fields.Date.today(),
             })
-            order.action_confirm()
+
+            # 🔹 Ajouter le plan récurrent (ligne d'abonnement)
+            SubscriptionLine.create({
+                'subscription_id': subscription.id,
+                'product_id': product.id,
+                'name': product.name,
+                'quantity': 1,
+                'price_unit': product.lst_price,
+            })
+
             created += 1
 
         return {
