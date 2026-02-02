@@ -34,6 +34,7 @@ License: LGPL-3
     'license': 'LGPL-3',
     'depends': [
         'base',
+        'sale_subscription',
         'sale',
         'sale_subscription',
         'point_of_sale',
