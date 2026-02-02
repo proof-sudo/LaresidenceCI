@@ -196,6 +196,7 @@ class ResPartner(models.Model):
     def action_generate_ceo_subscriptions(self):
         Subscription = self.env['subscription.subscription']
         SubscriptionLine = self.env['subscription.line']
+        Template = self.env['subscription.template']
 
         # 🔹 Produit d'abonnement imposé
         product = self.env['product.product'].search([
@@ -207,10 +208,11 @@ class ResPartner(models.Model):
             raise UserError(_("Le produit 'Abonnement CEO' est introuvable ou non récurrent."))
 
         # 🔹 Template d’abonnement
-        template = self.env['subscription.template'].search([], limit=1)
+        template = Template.search([], limit=1)
         if not template:
             raise UserError(_("Aucun template d'abonnement trouvé."))
 
+        # 🔹 Membres actifs
         members = self.search([
             ('x_tr_is_member', '=', True),
             ('active', '=', True),
