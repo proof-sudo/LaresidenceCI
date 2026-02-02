@@ -2,9 +2,11 @@
 
 import uuid
 import secrets
+import logging
+
 from odoo import models, fields, api,_
 from odoo.exceptions import UserError
-
+_logger = logging.getLogger(__name__)
 
 class ResPartner(models.Model):
     _inherit = 'res.partner'
@@ -166,86 +168,121 @@ class ResPartner(models.Model):
     def action_generate_ceo_subscriptions(self):
         """
         Fonction appelée par le bouton pour créer un abonnement 
-        "Abonnement CEO" pour les contacts membres
+        "Abonnement CEO" pour TOUS les contacts membres
         """
-        for partner in self:
-            # Vérifier si le contact est membre
-            if not partner.x_tr_is_member:
-                raise UserError(
-                    f"Le contact {partner.name} n'est pas membre "
-                    "(x_tr_is_member doit être True)."
-                )
-            
-            # Vérifier s'il existe déjà un abonnement actif
-            existing_subscription = self.env['sale.order'].search([
-                ('partner_id', '=', partner.id),
-                ('is_subscription', '=', True),
-                ('subscription_state', 'in', ['3_progress', '4_paused'])
-            ], limit=1)
-            
-            if existing_subscription:
-                raise UserError(
-                    f"Le contact {partner.name} a déjà un abonnement actif "
-                    f"(Référence: {existing_subscription.name})."
-                )
-            
-            # Rechercher le produit "Abonnement CEO"
-            subscription_product = self.env['product.product'].search([
-                ('name', '=', 'Abonnement CEO'),
-                ('recurring_invoice', '=', True)
-            ], limit=1)
-            
-            if not subscription_product:
-                raise UserError(
-                    "Le produit 'Abonnement CEO' n'existe pas. "
-                    "Veuillez créer ce produit d'abonnement d'abord."
-                )
-            
-            # Récupérer le plan de récurrence mensuel
-            recurrence_plan = self.env['sale.temporal.recurrence'].search([
-                ('unit', '=', 'month'),
-                ('duration', '=', 1)
-            ], limit=1)
-            
-            if not recurrence_plan:
-                raise UserError(
-                    "Aucun plan de récurrence mensuel trouvé. "
-                    "Veuillez configurer les plans de récurrence."
-                )
-            
-            # Créer le bon de commande d'abonnement
-            subscription_vals = {
-                'partner_id': partner.id,
-                'is_subscription': True,
-                'recurrence_id': recurrence_plan.id,
-                'order_line': [(0, 0, {
-                    'product_id': subscription_product.id,
-                    'name': subscription_product.name,
-                    'product_uom_qty': 1,
-                    'product_uom': subscription_product.uom_id.id,
-                    'price_unit': subscription_product.list_price,
-                })],
-            }
-            
-            subscription = self.env['sale.order'].create(subscription_vals)
-            
-            # Confirmer l'abonnement
-            subscription.action_confirm()
-            
-            _logger.info(
-                "Abonnement créé avec succès pour %s (ID: %s)",
-                partner.name,
-                subscription.id
+        # Rechercher TOUS les contacts avec x_tr_is_member == True
+        all_members = self.env['res.partner'].search([
+            ('x_tr_is_member', '=', True)
+        ])
+        
+        if not all_members:
+            raise UserError(
+                "Aucun contact membre trouvé (x_tr_is_member == True)."
             )
+        
+        # Rechercher le produit "Abonnement CEO"
+        subscription_product = self.env['product.product'].search([
+            ('name', '=', 'Abonnement CEO'),
+            ('recurring_invoice', '=', True)
+        ], limit=1)
+        
+        if not subscription_product:
+            raise UserError(
+                "Le produit 'Abonnement CEO' n'existe pas. "
+                "Veuillez créer ce produit d'abonnement d'abord."
+            )
+        
+        # Récupérer un plan d'abonnement (sale.subscription.plan)
+        subscription_plan = self.env['sale.subscription.plan'].search([
+            ('name', 'ilike', 'mensuel')
+        ], limit=1)
+        
+        if not subscription_plan:
+            # Prendre le premier plan disponible
+            subscription_plan = self.env['sale.subscription.plan'].search([], limit=1)
+        
+        if not subscription_plan:
+            raise UserError(
+                "Aucun plan d'abonnement trouvé. "
+                "Veuillez configurer au moins un plan d'abonnement."
+            )
+        
+        # Compteurs
+        created_count = 0
+        skipped_count = 0
+        error_list = []
+        
+        # Parcourir TOUS les membres
+        for partner in all_members:
+            try:
+                # Vérifier s'il existe déjà un abonnement actif
+                existing_subscription = self.env['sale.order'].search([
+                    ('partner_id', '=', partner.id),
+                    ('is_subscription', '=', True),
+                    ('subscription_state', 'in', ['3_progress', '4_paused'])
+                ], limit=1)
+                
+                if existing_subscription:
+                    skipped_count += 1
+                    _logger.info(
+                        f"Contact {partner.name} ignoré : abonnement actif existant "
+                        f"(Référence: {existing_subscription.name})"
+                    )
+                    continue
+                
+                # Créer le bon de commande d'abonnement
+                subscription_vals = {
+                    'partner_id': partner.id,
+                    'is_subscription': True,
+                    'plan_id': subscription_plan.id,
+                    'order_line': [(0, 0, {
+                        'product_id': subscription_product.id,
+                        'name': subscription_product.name,
+                        'product_uom_qty': 1,
+                        'product_uom': subscription_product.uom_id.id,
+                        'price_unit': subscription_product.list_price,
+                    })],
+                }
+                
+                subscription = self.env['sale.order'].create(subscription_vals)
+                
+                # Confirmer l'abonnement
+                subscription.action_confirm()
+                
+                created_count += 1
+                _logger.info(
+                    f"Abonnement créé avec succès pour {partner.name} (ID: {subscription.id})"
+                )
+                
+            except Exception as e:
+                error_list.append(f"{partner.name}: {str(e)}")
+                _logger.error(
+                    f"Erreur lors de la création de l'abonnement pour {partner.name}: {str(e)}"
+                )
+        
+        # Préparer le message de résultat
+        message_parts = [
+            f"✅ {created_count} abonnement(s) créé(s)",
+            f"⏭️ {skipped_count} contact(s) ignoré(s) (abonnement existant)",
+        ]
+        
+        if error_list:
+            message_parts.append(f"❌ {len(error_list)} erreur(s)")
+            message_parts.append("\nDétails des erreurs:")
+            message_parts.extend([f"  - {err}" for err in error_list[:5]])  # Afficher max 5 erreurs
+            if len(error_list) > 5:
+                message_parts.append(f"  ... et {len(error_list) - 5} autre(s) erreur(s)")
+        
+        message = "\n".join(message_parts)
         
         # Retourner une notification de succès
         return {
             'type': 'ir.actions.client',
             'tag': 'display_notification',
             'params': {
-                'title': 'Succès',
-                'message': f'Abonnement(s) créé(s) avec succès pour {len(self)} contact(s).',
-                'type': 'success',
-                'sticky': False,
+                'title': 'Génération des abonnements terminée',
+                'message': message,
+                'type': 'success' if created_count > 0 else 'warning',
+                'sticky': True,  # Afficher plus longtemps pour lire les détails
             }
         }
