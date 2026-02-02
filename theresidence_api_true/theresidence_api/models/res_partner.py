@@ -164,55 +164,17 @@ class ResPartner(models.Model):
         }
 
     @api.model
-    def create_member_from_api(self, data):
-        first_name = data.get('firstName', '')
-        last_name = data.get('lastName', '')
-        name = f"{first_name} {last_name}".strip() or data.get('email', 'Unknown')
-        
-        vals = {
-            'name': name,
-            'email': data.get('email'),
-            'phone': data.get('phone'),
-            'function': data.get('jobTitle'),
-            'company_name': data.get('companyName'),
-            'x_tr_is_member': True,
-            'x_tr_member_status': data.get('status', 'ACTIVE'),
-            'x_tr_joined_at': data.get('joinedAt') or fields.Date.today(),
-        }
-        
-        if data.get('membershipTypeCode'):
-            mtype = self.env['theresidence.membership.type'].search([('code', '=', data['membershipTypeCode'])], limit=1)
-            if mtype:
-                vals['x_tr_membership_type_id'] = mtype.id
-        
-        if data.get('email'):
-            existing = self.search([('email', '=', data['email'])], limit=1)
-            if existing:
-                existing.write(vals)
-                return existing
-        
-        return self.create(vals)
-    
-    def action_generate_ceo_subscriptions(self):
-        Subscription = self.env['subscription.subscription']
-        SubscriptionLine = self.env['subscription.line']
-        Template = self.env['subscription.template']
+    def creer_abonnements_ceo(self):
+        """Créer un abonnement CEO pour tous les membres actifs"""
+        Product = self.env['product.product']
+        SaleOrder = self.env['sale.order']
 
-        # 🔹 Produit d'abonnement imposé
-        product = self.env['product.product'].search([
-            ('name', '=', 'Abonnement CEO'),
-            ('recurring_invoice', '=', True)
-        ], limit=1)
-
+        # 🔹 Rechercher le produit d'abonnement
+        product = Product.search([('name', '=', 'Abonnement CEO')], limit=1)
         if not product:
-            raise UserError(_("Le produit 'Abonnement CEO' est introuvable ou non récurrent."))
+            raise UserError(_("Produit 'Abonnement CEO' introuvable"))
 
-        # 🔹 Template d’abonnement
-        template = Template.search([], limit=1)
-        if not template:
-            raise UserError(_("Aucun template d'abonnement trouvé."))
-
-        # 🔹 Membres actifs
+        # 🔹 Récupérer tous les membres actifs
         members = self.search([
             ('x_tr_is_member', '=', True),
             ('active', '=', True),
@@ -221,29 +183,16 @@ class ResPartner(models.Model):
         created = 0
 
         for partner in members:
-            # ⛔ éviter les doublons
-            existing = Subscription.search([
-                ('partner_id', '=', partner.id),
-                ('state', 'in', ['draft', 'open', 'pending'])
-            ], limit=1)
-
-            if existing:
-                continue
-
-            subscription = Subscription.create({
+            # Créer la commande d'abonnement
+            order = SaleOrder.create({
                 'partner_id': partner.id,
-                'template_id': template.id,
-                'pricelist_id': partner.property_product_pricelist.id,
+                'order_line': [(0, 0, {
+                    'product_id': product.id,
+                    'product_uom_qty': 1,
+                    'price_unit': product.lst_price,
+                })],
             })
-
-            SubscriptionLine.create({
-                'subscription_id': subscription.id,
-                'product_id': product.id,
-                'name': product.name,
-                'quantity': 1,
-                'price_unit': product.lst_price,
-            })
-
+            order.action_confirm()
             created += 1
 
         return {
