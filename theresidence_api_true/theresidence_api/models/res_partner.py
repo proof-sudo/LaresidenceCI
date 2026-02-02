@@ -164,7 +164,7 @@ class ResPartner(models.Model):
         }
 
     @api.model
-    def creer_abonnements_ceo(self):
+    def action_generate_ceo_subscriptions(self):
         """Créer un abonnement CEO pour tous les membres actifs"""
         Product = self.env['product.product']
         SaleOrder = self.env['sale.order']
