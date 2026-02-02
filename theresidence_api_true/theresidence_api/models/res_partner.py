@@ -163,27 +163,23 @@ class ResPartner(models.Model):
             'qrToken': self.x_tr_qr_token or ''
         }
 
-    @api.model
     def action_generate_ceo_subscriptions(self):
         """Créer un abonnement CEO pour tous les membres actifs"""
         Product = self.env['product.product']
         SaleOrder = self.env['sale.order']
 
-        # 🔹 Rechercher le produit d'abonnement
         product = Product.search([('name', '=', 'Abonnement CEO')], limit=1)
         if not product:
             raise UserError(_("Produit 'Abonnement CEO' introuvable"))
 
-        # 🔹 Récupérer tous les membres actifs
+        # Tous les membres actifs
         members = self.search([
             ('x_tr_is_member', '=', True),
             ('active', '=', True),
         ])
 
         created = 0
-
         for partner in members:
-            # Créer la commande d'abonnement
             order = SaleOrder.create({
                 'partner_id': partner.id,
                 'order_line': [(0, 0, {
