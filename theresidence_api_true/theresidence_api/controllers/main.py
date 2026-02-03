@@ -27,14 +27,38 @@ def error_response(message, error_code, status=400):
         'timestamp': datetime.utcnow().isoformat() + 'Z'
     }, status=status)
 
-
-def success_response(data, status=200):
-    """Retourne une réponse de succès JSON."""
-    return json_response({
+def success_response(data, status=200, headers=None):
+    payload = {
         'success': True,
         'data': data,
         'timestamp': datetime.utcnow().isoformat() + 'Z'
-    }, status=status)
+    }
+
+    response = Response(
+        json.dumps(payload, ensure_ascii=False),
+        status=status,
+        content_type='application/json; charset=utf-8'
+    )
+
+    # 🔥 Headers ANTI-CACHE (critiques pour mobile & Postman)
+    response.headers.update({
+        'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0',
+        'Pragma': 'no-cache',
+        'Expires': '0'
+    })
+
+    # Headers custom si besoin
+    if headers:
+        response.headers.update(headers)
+
+    return response
+# def success_response(data, status=200):
+#     """Retourne une réponse de succès JSON."""
+#     return json_response({
+#         'success': True,
+#         'data': data,
+#         'timestamp': datetime.utcnow().isoformat() + 'Z'
+#     }, status=status)
 
 
 def paginated_response(items, total, page, size):

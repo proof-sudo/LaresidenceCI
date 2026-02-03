@@ -155,8 +155,9 @@ class ReferenceController(http.Controller):
             type='http', auth='public', methods=['GET'], csrf=False)
     @api_auth('read_menu')
     def list_categories_by_kind(self, kind_id, **kwargs):
+        env = self._fresh_env()
 
-        kind = request.env['pos.category'].sudo().search([
+        kind = env['pos.category'].sudo().search([
             '|',
             ('x_tr_uuid', '=', kind_id),
             ('id', '=', int(kind_id) if kind_id.isdigit() else 0),
@@ -166,38 +167,55 @@ class ReferenceController(http.Controller):
         if not kind:
             return error_response('Menu kind not found', 'NOT_FOUND', 404)
 
-        categories = request.env['pos.category'].sudo().search([
-            ('parent_id', '=', kind.id)
-        ], order='sequence')
+        categories = env['pos.category'].sudo().search(
+            [('parent_id', '=', kind.id)],
+            order='sequence'
+        )
 
         return success_response([c.to_category_api_dict() for c in categories])
+    # def list_categories_by_kind(self, kind_id, **kwargs):
+
+    #     kind = request.env['pos.category'].sudo().search([
+    #         '|',
+    #         ('x_tr_uuid', '=', kind_id),
+    #         ('id', '=', int(kind_id) if kind_id.isdigit() else 0),
+    #         ('parent_id', '=', False)
+    #     ], limit=1)
+
+    #     if not kind:
+    #         return error_response('Menu kind not found', 'NOT_FOUND', 404)
+
+    #     categories = request.env['pos.category'].sudo().search([
+    #         ('parent_id', '=', kind.id)
+    #     ], order='sequence')
+
+    #     return success_response([c.to_category_api_dict() for c in categories])
     
     @http.route(f'{API_PREFIX}/reference/menu-categories', type='http', auth='public', methods=['GET'], csrf=False)
     @api_auth('read_menu')
     def list_menu_categories(self, **kwargs):
-        categories = request.env['pos.category'].sudo().search([], order='sequence')
-        return success_response([c.to_category_api_dict() for c in categories])
+        env = self._fresh_env()
 
-    # @http.route(f'{API_PREFIX}/reference/menu-categories/<string:category_id>/items', type='http', auth='public', methods=['GET'], csrf=False)
-    # @api_auth('read_menu')
-    # def list_items_by_category(self, category_id, **kwargs):
-    #     category = request.env['pos.category'].sudo().search([
-    #         '|', ('x_tr_uuid', '=', category_id), ('id', '=', int(category_id) if category_id.isdigit() else 0)
-    #     ], limit=1)
-    #     if not category:
-    #         return error_response('Category not found', 'NOT_FOUND', 404)
-    #     products = request.env['product.product'].sudo().search([
-    #         ('pos_categ_ids', 'in', [category.id]),
-    #         ('available_in_pos', '=', True),
-    #         ('active', '=', True)
-    #     ])
-    #     return success_response([p.to_menu_item_api_dict() for p in products])
+        categories = env['pos.category'].sudo().search([], order='sequence')
+        return success_response([c.to_category_api_dict() for c in categories])
+    # def list_menu_categories(self, **kwargs):
+    #     categories = request.env['pos.category'].sudo().search([], order='sequence')
+    #     return success_response([c.to_category_api_dict() for c in categories])
+
+    def _fresh_env(self):
+        env = request.env
+        env.cr.commit()          # force visibilité DB inter-workers
+        env.invalidate_all()     # vide cache ORM
+        env.clear()              # reset environnement
+        return env
     
     @http.route(f'{API_PREFIX}/reference/menu-categories/<string:category_id>/items',
             type='http', auth='public', methods=['GET'], csrf=False)
     @api_auth('read_menu')
     def list_items_by_category(self, category_id, **kwargs):
-        category = request.env['pos.category'].sudo().search([
+        env = self._fresh_env()
+
+        category = env['pos.category'].sudo().search([
             '|',
             ('x_tr_uuid', '=', category_id),
             ('id', '=', int(category_id) if category_id.isdigit() else 0)
@@ -206,31 +224,66 @@ class ReferenceController(http.Controller):
         if not category:
             return error_response('Category not found', 'NOT_FOUND', 404)
 
-        # Fonction recursive pour inclure toutes les sous-catégories
-        def get_all_category_ids(cat):
-            ids = [cat.id]
-            for child in cat.child_ids:
-                ids += get_all_category_ids(child)
-            return ids
+        # toutes les sous-catégories SQL (fiable en prod)
+        category_ids = env['pos.category'].sudo().search([
+            ('id', 'child_of', category.id)
+        ]).ids
 
-        category_ids = get_all_category_ids(category)
+        env['product.product'].flush()
 
-        products = request.env['product.product'].sudo().search([
+        products = env['product.product'].sudo().search([
             ('pos_categ_ids', 'in', category_ids),
             ('available_in_pos', '=', True),
             ('active', '=', True)
-        ])
+        ], order='sequence')
 
         return success_response([p.to_menu_item_api_dict() for p in products])
+    # def list_items_by_category(self, category_id, **kwargs):
+    #     category = request.env['pos.category'].sudo().search([
+    #         '|',
+    #         ('x_tr_uuid', '=', category_id),
+    #         ('id', '=', int(category_id) if category_id.isdigit() else 0)
+    #     ], limit=1)
+
+    #     if not category:
+    #         return error_response('Category not found', 'NOT_FOUND', 404)
+
+    #     # Fonction recursive pour inclure toutes les sous-catégories
+    #     def get_all_category_ids(cat):
+    #         ids = [cat.id]
+    #         for child in cat.child_ids:
+    #             ids += get_all_category_ids(child)
+    #         return ids
+
+    #     category_ids = get_all_category_ids(category)
+
+    #     products = request.env['product.product'].sudo().search([
+    #         ('pos_categ_ids', 'in', category_ids),
+    #         ('available_in_pos', '=', True),
+    #         ('active', '=', True)
+    #     ])
+
+    #     return success_response([p.to_menu_item_api_dict() for p in products])
 
     @http.route(f'{API_PREFIX}/reference/menu-items', type='http', auth='public', methods=['GET'], csrf=False)
     @api_auth('read_menu')
     def list_menu_items(self, **kwargs):
-        products = request.env['product.product'].sudo().search([
+        env = self._fresh_env()
+
+        env['product.product'].flush()
+
+        products = env['product.product'].sudo().search([
             ('available_in_pos', '=', True),
             ('active', '=', True)
         ], order='sequence')
+
         return success_response([p.to_menu_item_api_dict() for p in products])
+    # def list_menu_items(self, **kwargs):
+    #     products = request.env['product.product'].sudo().search([
+    #         ('available_in_pos', '=', True),
+    #         ('active', '=', True)
+    #     ], order='sequence')
+    #     return success_response([p.to_menu_item_api_dict() for p in products])
 
     @http.route(f'{API_PREFIX}/reference/menu-items/<string:item_id>', type='http', auth='public', methods=['GET'], csrf=False)
     @api_auth('read_menu')
