@@ -196,8 +196,32 @@ class ReferenceController(http.Controller):
     def list_menu_categories(self, **kwargs):
         env = self._fresh_env()
 
-        categories = env['pos.category'].sudo().search([], order='sequence')
-        return success_response([c.to_category_api_dict() for c in categories])
+        # 🔥 TOUTES les catégories (parents + enfants)
+        categories = env['pos.category'].sudo().search([
+            ('active', '=', True),
+            ('company_id', 'in', [False, env.company.id])
+        ], order='sequence')
+
+        def get_root_category(cat):
+            """Remonte jusqu'à la catégorie racine (kind)."""
+            while cat.parent_id:
+                cat = cat.parent_id
+            return cat
+
+        result = []
+        for cat in categories:
+            root = get_root_category(cat)
+
+            result.append({
+                'id': cat.x_tr_uuid or str(cat.id),
+                'kindId': root.x_tr_uuid or str(root.id),
+                'kindName': root.name,
+                'name': cat.name,
+                'imageUrl': cat.image_1920 or '',
+                'sortOrder': cat.sequence or 0,
+            })
+
+        return success_response(result)
     # def list_menu_categories(self, **kwargs):
     #     categories = request.env['pos.category'].sudo().search([], order='sequence')
     #     return success_response([c.to_category_api_dict() for c in categories])
