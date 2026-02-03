@@ -224,12 +224,10 @@ class ReferenceController(http.Controller):
         if not category:
             return error_response('Category not found', 'NOT_FOUND', 404)
 
-        # toutes les sous-catégories SQL (fiable en prod)
+        # 🔥 SQL natif, pas de cache Python
         category_ids = env['pos.category'].sudo().search([
             ('id', 'child_of', category.id)
         ]).ids
-
-        env['product.product'].flush()
 
         products = env['product.product'].sudo().search([
             ('pos_categ_ids', 'in', category_ids),
