@@ -204,9 +204,9 @@ class ReferenceController(http.Controller):
 
     def _fresh_env(self):
         env = request.env
-        env.cr.commit()          # force visibilité DB inter-workers
-        env.invalidate_all()     # vide cache ORM
-        env.clear()              # reset environnement
+        env.cr.commit()          # 🔥 rend visibles les écritures
+        env.invalidate_all()     # 🔥 purge cache ORM
+        env.clear()              # 🔥 reset environnement
         return env
     
     @http.route(f'{API_PREFIX}/reference/menu-categories/<string:category_id>/items',
