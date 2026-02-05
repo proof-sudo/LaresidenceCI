@@ -14,42 +14,31 @@ class PosCategory(models.Model):
         """
         Appelé au démarrage du module pour envoyer toutes les catégories existantes
         via webhook (utile pour la synchronisation initiale)
-        
-        NOTE: Temporairement désactivé pour éviter les erreurs au démarrage.
-        Les webhooks seront déclenchés lors de la création/modification normale des catégories.
         """
         super()._register_hook()
         
-        # 🔥 DÉSACTIVÉ: Causer des problèmes au démarrage du module
-        # La synchronisation initiale peut être faite manuellement si nécessaire
-        return
+        # Vérifier si les webhooks sont activés pour les catégories POS
+        webhook_service = self.env['theresidence.webhook.service'].sudo()
+        if not webhook_service.is_event_enabled('POS_CATEGORY_CREATED'):
+            return
         
-        # # Vérifier si les webhooks sont activés pour les catégories POS
-        # webhook_service = self.env['theresidence.webhook.service'].sudo()
-        # if not webhook_service.is_event_enabled('POS_CATEGORY_CREATED'):
-        #     return
-        # 
-        # # Récupérer toutes les catégories POS existantes
-        # existing_categories = self.search([])
-        # 
-        # for category in existing_categories:
-        #     # S'assurer que la catégorie a un UUID
-        #     if not category.x_tr_uuid:
-        #         category.with_context(skip_webhook=True).write({
-        #             'x_tr_uuid': str(uuid.uuid4())
-        #         })
-        #     
-        #     # Déclencher l'événement de création pour synchronisation
-        #     try:
-        #         webhook_service.trigger_event(
-        #             internal_event='POS_CATEGORY_CREATED',
-        #             entity_type='pos_category',
-        #             entity_id=category.x_tr_uuid,
-        #             data=category.to_category_api_dict(),
-        #         )
-        #     except Exception:
-        #         # En cas d'erreur, on continue sans bloquer
-        #         pass
+        # Récupérer toutes les catégories POS existantes
+        existing_categories = self.search([])
+        
+        for category in existing_categories:
+            # S'assurer que la catégorie a un UUID
+            if not category.x_tr_uuid:
+                category.with_context(skip_webhook=True).write({
+                    'x_tr_uuid': str(uuid.uuid4())
+                })
+            
+            # Déclencher l'événement de création pour synchronisation
+            webhook_service.trigger_event(
+                internal_event='POS_CATEGORY_CREATED',
+                entity_type='pos_category',
+                entity_id=category.x_tr_uuid,
+                data=category.to_category_api_dict(),
+            )
 
     @api.model_create_multi
     def create(self, vals_list):
@@ -93,9 +82,6 @@ class PosCategory(models.Model):
                 }
         
         result = super().write(vals)
-        
-        # 🔥 CORRECTION: Invalider le cache après l'écriture
-        self.invalidate_recordset()
         
         # WEBHOOK: Modification de catégorie POS
         webhook_service = self.env['theresidence.webhook.service']
@@ -157,21 +143,15 @@ class PosCategory(models.Model):
         return result
 
     def to_category_api_dict(self):
-        """
-        🔥 CORRECTION: Force le rechargement des données depuis la DB
-        pour éviter les problèmes de cache
-        """
         self.ensure_one()
-        
-        # 🔥 Force un refresh depuis la base de données
-        self.invalidate_recordset(['name', 'parent_id', 'sequence', 'image_128'])
-        self.env.cr.execute("""
-            SELECT id, name, parent_id, sequence 
-            FROM pos_category 
-            WHERE id = %s
-        """, (self.id,))
-        fresh_data = self.env.cr.dictfetchone()
-        
+
+        # 🔥 force lecture DB (évite anciens noms après write)
+        self.flush_recordset(['name', 'parent_id', 'sequence', 'image_128', 'active'])
+        self.invalidate_recordset()
+
+        if not self.active:
+            return None
+
         base_url = self.env['ir.config_parameter'].sudo().get_param('web.base.url')
 
         image_url = (
@@ -179,40 +159,19 @@ class PosCategory(models.Model):
             if self.image_128 else ''
         )
 
-        # 🔥 Trouver la catégorie racine avec des données fraîches
-        root_id = fresh_data['id']
-        root_name = fresh_data['name']
-        current_parent_id = fresh_data['parent_id']
-        
-        # Remonter jusqu'à la racine
-        while current_parent_id:
-            self.env.cr.execute("""
-                SELECT id, name, parent_id 
-                FROM pos_category 
-                WHERE id = %s
-            """, (current_parent_id,))
-            parent_data = self.env.cr.dictfetchone()
-            if parent_data:
-                root_id = parent_data['id']
-                root_name = parent_data['name']
-                current_parent_id = parent_data['parent_id']
-            else:
-                break
-        
-        # Récupérer l'UUID de la racine
-        self.env.cr.execute("""
-            SELECT x_tr_uuid 
-            FROM pos_category 
-            WHERE id = %s
-        """, (root_id,))
-        root_uuid_data = self.env.cr.dictfetchone()
-        root_uuid = root_uuid_data['x_tr_uuid'] if root_uuid_data and root_uuid_data['x_tr_uuid'] else str(root_id)
+        # 🔥 sécurisation remontée racine
+        root = self
+        visited = set()
+
+        while root.parent_id and root.id not in visited:
+            visited.add(root.id)
+            root = root.parent_id.sudo()
 
         return {
             'id': self.x_tr_uuid or str(self.id),
-            'kindId': root_uuid,
-            'kindName': root_name or '',
-            'name': fresh_data['name'] or '',
+            'kindId': root.x_tr_uuid or str(root.id),
+            'kindName': root.name or '',
+            'name': self.name or '',
             'imageUrl': image_url,
-            'sortOrder': fresh_data['sequence'] or 0
+            'sortOrder': self.sequence or 0
         }

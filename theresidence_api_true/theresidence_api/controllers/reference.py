@@ -189,41 +189,68 @@ class ReferenceController(http.Controller):
 
         return success_response(kind.to_category_api_dict())
 
+    @http.route(f'{API_PREFIX}/reference/menu-kinds/<string:kind_id>/categories', type='http', auth='public', methods=['GET'], csrf=False)
+    @api_auth('read_menu')
+    def list_categories_by_kind(self, kind_id, **kwargs):
+        """
+        Liste les sous-catégories d'un menu kind.
+        
+        GET /api/v1/reference/menu-kinds/{kind_id}/categories
+        
+        Retourne toutes les catégories enfants directes d'une catégorie racine.
+        Par exemple: pour "Boissons", retourne ["Boissons chaudes", "Boissons froides", etc.]
+        
+        Paramètres:
+            kind_id: UUID ou ID numérique de la catégorie racine
+        """
+        env = self._fresh_env()
+
+        kind = env['pos.category'].sudo().search([
+            '|',
+            ('x_tr_uuid', '=', kind_id),
+            ('id', '=', int(kind_id) if kind_id.isdigit() else 0),
+            ('parent_id', '=', False)
+        ], limit=1)
+
+        if not kind:
+            return error_response('Menu kind not found', 'NOT_FOUND', 404)
+
+        categories = env['pos.category'].sudo().search(
+            [('parent_id', '=', kind.id)],
+            order='sequence'
+        )
+
+        return success_response([
+                    d for d in (c.to_category_api_dict() for c in categories) if d
+                ])
+
     @http.route(f'{API_PREFIX}/reference/menu-categories', type='http', auth='public', methods=['GET'], csrf=False)
     @api_auth('read_menu')
     def list_menu_categories(self, **kwargs):
-        """
-        Liste toutes les catégories de menu (tous niveaux).
-        
-        GET /api/v1/reference/menu-categories
-        
-        🔥 CORRECTION: Utilisation de _fresh_env() pour éviter le cache
-        
-        Retourne toutes les catégories POS, qu'elles soient racines ou sous-catégories.
-        """
-        # 🔥 CORRECTION: Rafraîchir l'environnement
-        env = self._fresh_env()
-        
-        categories = env['pos.category'].sudo().search([], order='sequence')
-        
-        return success_response([c.to_category_api_dict() for c in categories])
 
+        env = self._fresh_env()
+
+        # IMPORTANT : flush ORM pour récupérer les écritures récentes
+        env['pos.category'].flush()
+
+        categories = env['pos.category'].sudo().search([
+            ('active', 'in', [True, False])  # inclut toutes les catégories existantes
+        ], order='sequence, id')
+
+        return success_response([c.to_category_api_dict() for c in categories])
     @http.route(f'{API_PREFIX}/reference/menu-categories/<string:category_id>', type='http', auth='public', methods=['GET'], csrf=False)
     @api_auth('read_menu')
     def get_menu_category(self, category_id, **kwargs):
         """
-        Récupère une catégorie de menu spécifique.
+        Récupère une catégorie spécifique (parent ou enfant).
         
         GET /api/v1/reference/menu-categories/{category_id}
-        
-        🔥 CORRECTION: Utilisation de _fresh_env() pour éviter le cache
         
         Paramètres:
             category_id: UUID ou ID numérique de la catégorie
         """
-        # 🔥 CORRECTION: Rafraîchir l'environnement
         env = self._fresh_env()
-        
+
         category = env['pos.category'].sudo().search([
             '|',
             ('x_tr_uuid', '=', category_id),
