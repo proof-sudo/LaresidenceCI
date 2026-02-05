@@ -231,7 +231,7 @@ class ReferenceController(http.Controller):
         env = self._fresh_env()
 
         # IMPORTANT : flush ORM pour récupérer les écritures récentes
-        env['pos.category'].flush()
+        env['pos.category'].flush_model()
 
         categories = env['pos.category'].sudo().search([
             ('active', 'in', [True, False])  # inclut toutes les catégories existantes
@@ -315,7 +315,7 @@ class ReferenceController(http.Controller):
         Retourne tous les produits actifs et disponibles dans le point de vente.
         """
         env = self._fresh_env()
-        env['product.product'].flush()
+        env['product.product'].flush_model()
 
         products = env['product.product'].sudo().search([
             ('available_in_pos', '=', True),
