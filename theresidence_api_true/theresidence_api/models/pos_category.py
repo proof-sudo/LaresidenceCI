@@ -215,7 +215,6 @@ class PosCategory(models.Model):
     def to_category_api_dict(self):
         self.ensure_one()
 
-        # Suppression de invalidate_recordset() qui causait des pertes de données
         # On force juste la lecture fraîche des champs nécessaires
         self.flush_recordset(['name', 'parent_id', 'sequence', 'image_128'])
 

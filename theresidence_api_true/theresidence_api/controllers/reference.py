@@ -47,13 +47,16 @@ class ReferenceController(http.Controller):
 
     def _fresh_env(self):
         """
-        Force la synchronisation complète avec la DB.
+        Force la synchronisation complète avec la DB et définit la langue.
         """
-        # On force l'écriture de tout ce qui est en RAM vers la DB
-        self.env.flush_all()
-        # On invalide tout le cache pour forcer un SELECT propre
-        self.env.invalidate_all()
-        return self.env
+        # On force l'écriture globale (Odoo 17 style)
+        request.env.flush_all()
+        # On vide le cache pour forcer un SELECT propre
+        request.env.invalidate_all()
+        
+        # IMPORTANT : On force le contexte en 'fr_FR'. 
+        # Sans cela, l'API lit les noms en 'en_US' (les anciennes valeurs).
+        return request.env(context={'lang': 'fr_FR'}).sudo()
 
     # === MEMBERSHIP TYPES ===
     
