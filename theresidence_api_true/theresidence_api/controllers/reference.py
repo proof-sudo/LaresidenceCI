@@ -230,75 +230,34 @@ class ReferenceController(http.Controller):
 
         env = self._fresh_env()
 
-        # IMPORTANT : flush ORM pour récupérer les écritures récentes
-        env['pos.category'].flush_model()
-
         categories = env['pos.category'].sudo().search([], order='sequence, id')
 
-        return success_response([c.to_category_api_dict() for c in categories])
-    @http.route(f'{API_PREFIX}/reference/menu-categories/<string:category_id>', type='http', auth='public', methods=['GET'], csrf=False)
-    @api_auth('read_menu')
-    def get_menu_category(self, category_id, **kwargs):
-        """
-        Récupère une catégorie spécifique (parent ou enfant).
-        
-        GET /api/v1/reference/menu-categories/{category_id}
-        
-        Paramètres:
-            category_id: UUID ou ID numérique de la catégorie
-        """
-        env = self._fresh_env()
+        # 🔥 LOG COMPLET DB
+        _logger.info("===== POS CATEGORIES RAW FROM DB =====")
+        for c in categories:
+            _logger.info(
+                "ID=%s | UUID=%s | NAME=%s | PARENT_ID=%s | PARENT_NAME=%s | SEQUENCE=%s",
+                c.id,
+                c.x_tr_uuid,
+                c.name,
+                c.parent_id.id if c.parent_id else None,
+                c.parent_id.name if c.parent_id else None,
+                c.sequence
+            )
 
-        category = env['pos.category'].sudo().search([
-            '|',
-            ('x_tr_uuid', '=', category_id),
-            ('id', '=', int(category_id) if category_id.isdigit() else 0)
-        ], limit=1)
+        # 🔥 LOG APRES MAPPING API
+        result = []
+        _logger.info("===== POS CATEGORIES AFTER API MAPPING =====")
+        for c in categories:
+            try:
+                data = c.to_category_api_dict()
+                _logger.info("API_CATEGORY=%s", data)
+                if data:
+                    result.append(data)
+            except Exception as e:
+                _logger.error("ERROR MAPPING CATEGORY ID %s : %s", c.id, str(e))
 
-        if not category:
-            return error_response('Category not found', 'NOT_FOUND', 404)
-
-        return success_response(category.to_category_api_dict())
-
-    @http.route(f'{API_PREFIX}/reference/menu-categories/<string:category_id>/items', type='http', auth='public', methods=['GET'], csrf=False)
-    @api_auth('read_menu')
-    def list_items_by_category(self, category_id, **kwargs):
-        """
-        Liste tous les produits d'une catégorie (inclut les sous-catégories).
-        
-        GET /api/v1/reference/menu-categories/{category_id}/items
-        
-        Utilise l'opérateur 'child_of' pour inclure automatiquement tous les produits
-        des sous-catégories. Par exemple: demander les items de "Boissons" retournera
-        aussi les items de "Boissons chaudes" et "Boissons froides".
-        
-        Paramètres:
-            category_id: UUID ou ID numérique de la catégorie
-        """
-        env = self._fresh_env()
-
-        category = env['pos.category'].sudo().search([
-            '|',
-            ('x_tr_uuid', '=', category_id),
-            ('id', '=', int(category_id) if category_id.isdigit() else 0)
-        ], limit=1)
-
-        if not category:
-            return error_response('Category not found', 'NOT_FOUND', 404)
-
-        # Récupère la catégorie et toutes ses sous-catégories (récursif)
-        category_ids = env['pos.category'].sudo().search([
-            ('id', 'child_of', category.id)
-        ]).ids
-
-        # Récupère tous les produits disponibles en POS dans ces catégories
-        products = env['product.product'].sudo().search([
-            ('pos_categ_ids', 'in', category_ids),
-            ('available_in_pos', '=', True),
-            ('active', '=', True)
-        ], order='sequence')
-
-        return success_response([p.to_menu_item_api_dict() for p in products])
+        return success_response(result)
 
     # === MENU ITEMS (PRODUCTS) ===
 
