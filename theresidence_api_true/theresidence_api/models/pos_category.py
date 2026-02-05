@@ -216,7 +216,7 @@ class PosCategory(models.Model):
         self.ensure_one()
 
         # force cohérence ORM
-        self.flush_recordset(['name', 'parent_id', 'sequence', 'image_128', 'active'])
+        self.flush_recordset(['name', 'parent_id', 'sequence', 'image_128'])
         self.invalidate_recordset()
 
         # if not self.active:
