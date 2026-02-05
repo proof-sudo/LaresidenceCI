@@ -7,145 +7,215 @@ from odoo import models, fields, api
 class PosCategory(models.Model):
     _inherit = 'pos.category'
 
-    x_tr_uuid = fields.Char(string='UUID', readonly=True, copy=False, default=lambda self: str(uuid.uuid4()))
-    x_tr_menu_kind_id = fields.Many2one('theresidence.menu.kind', string='Type de menu')
+    x_tr_uuid = fields.Char(
+        string='UUID',
+        readonly=True,
+        copy=False,
+        default=lambda self: str(uuid.uuid4())
+    )
+
+    x_tr_menu_kind_id = fields.Many2one(
+        'theresidence.menu.kind',
+        string='Type de menu'
+    )
+
+    # =========================================================
+    # SAFE WEBHOOK ACCESSOR
+    # =========================================================
+
+    def _get_webhook_service(self):
+        """
+        Récupère le service webhook de manière SAFE.
+        Évite tout crash si module non chargé.
+        """
+        service = self.env.get('theresidence.webhook.service')
+        if not service:
+            return None
+
+        service = service.sudo()
+
+        # sécurisation des méthodes
+        if not hasattr(service, 'is_event_enabled'):
+            return None
+        if not hasattr(service, 'trigger_event'):
+            return None
+
+        return service
+
+    # =========================================================
+    # REGISTER HOOK (SYNC INITIALE SAFE)
+    # =========================================================
 
     def _register_hook(self):
         """
-        Appelé au démarrage du module pour envoyer toutes les catégories existantes
-        via webhook (utile pour la synchronisation initiale)
+        Synchronisation initiale des catégories POS au démarrage.
+        SAFE : ne crash jamais si webhook indisponible.
         """
         super()._register_hook()
-        
-        # Vérifier si les webhooks sont activés pour les catégories POS
-        webhook_service = self.env['theresidence.webhook.service'].sudo()
+
+        webhook_service = self._get_webhook_service()
+        if not webhook_service:
+            return
+
         if not webhook_service.is_event_enabled('POS_CATEGORY_CREATED'):
             return
-        
-        # Récupérer toutes les catégories POS existantes
-        existing_categories = self.search([])
-        
-        for category in existing_categories:
-            # S'assurer que la catégorie a un UUID
+
+        categories = self.search([])
+
+        for category in categories:
+            # garantir UUID
             if not category.x_tr_uuid:
                 category.with_context(skip_webhook=True).write({
                     'x_tr_uuid': str(uuid.uuid4())
                 })
-            
-            # Déclencher l'événement de création pour synchronisation
-            webhook_service.trigger_event(
-                internal_event='POS_CATEGORY_CREATED',
-                entity_type='pos_category',
-                entity_id=category.x_tr_uuid,
-                data=category.to_category_api_dict(),
-            )
+
+            try:
+                webhook_service.trigger_event(
+                    internal_event='POS_CATEGORY_CREATED',
+                    entity_type='pos_category',
+                    entity_id=category.x_tr_uuid,
+                    data=category.to_category_api_dict(),
+                )
+            except Exception:
+                # ne jamais casser le boot Odoo
+                pass
+
+    # =========================================================
+    # CREATE
+    # =========================================================
 
     @api.model_create_multi
     def create(self, vals_list):
         for vals in vals_list:
             if not vals.get('x_tr_uuid'):
                 vals['x_tr_uuid'] = str(uuid.uuid4())
-        
+
         records = super().create(vals_list)
-        
-        # Éviter les webhooks si contexte skip_webhook
+
         if self.env.context.get('skip_webhook'):
             return records
-        
-        # WEBHOOK: Création de catégorie POS
-        webhook_service = self.env['theresidence.webhook.service']
+
+        webhook_service = self._get_webhook_service()
+        if not webhook_service:
+            return records
+
         if webhook_service.is_event_enabled('POS_CATEGORY_CREATED'):
             for record in records:
-                if record.x_tr_uuid:
+                try:
                     webhook_service.trigger_event(
                         internal_event='POS_CATEGORY_CREATED',
                         entity_type='pos_category',
                         entity_id=record.x_tr_uuid,
                         data=record.to_category_api_dict(),
                     )
-        
+                except Exception:
+                    pass
+
         return records
 
+    # =========================================================
+    # WRITE
+    # =========================================================
+
     def write(self, vals):
-        # Éviter les webhooks si contexte skip_webhook
+
         if self.env.context.get('skip_webhook'):
             return super().write(vals)
-        
-        # Capturer les anciennes valeurs
+
         old_values = {}
         for record in self:
-            if record.x_tr_uuid:
-                old_values[record.id] = {
-                    'name': record.name,
-                    'parent_id': record.parent_id.id if record.parent_id else None,
-                    'sequence': record.sequence,
-                }
-        
+            old_values[record.id] = {
+                'name': record.name,
+                'parent_id': record.parent_id.id if record.parent_id else None,
+                'sequence': record.sequence,
+            }
+
         result = super().write(vals)
-        
-        # WEBHOOK: Modification de catégorie POS
-        webhook_service = self.env['theresidence.webhook.service']
+
+        webhook_service = self._get_webhook_service()
+        if not webhook_service:
+            return result
+
         if webhook_service.is_event_enabled('POS_CATEGORY_UPDATED'):
             for record in self:
-                if record.x_tr_uuid:
-                    old_val = old_values.get(record.id, {})
-                    
-                    changed_fields = []
-                    if 'name' in vals and old_val.get('name') != record.name:
-                        changed_fields.append('name')
-                    if 'parent_id' in vals:
-                        changed_fields.append('parent')
-                    if 'sequence' in vals and old_val.get('sequence') != record.sequence:
-                        changed_fields.append('sequence')
-                    if 'image_128' in vals or 'image_1920' in vals:
-                        changed_fields.append('image')
-                    
-                    if changed_fields:
-                        webhook_service.trigger_event(
-                            internal_event='POS_CATEGORY_UPDATED',
-                            entity_type='pos_category',
-                            entity_id=record.x_tr_uuid,
-                            data={**record.to_category_api_dict(), 'changedFields': changed_fields},
-                        )
-        
+                old_val = old_values.get(record.id, {})
+
+                changed_fields = []
+
+                if 'name' in vals and old_val.get('name') != record.name:
+                    changed_fields.append('name')
+
+                if 'parent_id' in vals:
+                    changed_fields.append('parent')
+
+                if 'sequence' in vals and old_val.get('sequence') != record.sequence:
+                    changed_fields.append('sequence')
+
+                if 'image_128' in vals or 'image_1920' in vals:
+                    changed_fields.append('image')
+
+                if not changed_fields:
+                    continue
+
+                try:
+                    webhook_service.trigger_event(
+                        internal_event='POS_CATEGORY_UPDATED',
+                        entity_type='pos_category',
+                        entity_id=record.x_tr_uuid,
+                        data={
+                            **record.to_category_api_dict(),
+                            'changedFields': changed_fields
+                        },
+                    )
+                except Exception:
+                    pass
+
         return result
 
+    # =========================================================
+    # DELETE
+    # =========================================================
+
     def unlink(self):
-        # Éviter les webhooks si contexte skip_webhook
+
         if self.env.context.get('skip_webhook'):
             return super().unlink()
-        
-        # Capturer les infos avant suppression
+
+        webhook_service = self._get_webhook_service()
+        send_webhook = webhook_service and webhook_service.is_event_enabled('POS_CATEGORY_DELETED')
+
         category_data = []
-        webhook_service = self.env['theresidence.webhook.service']
-        send_webhook = webhook_service.is_event_enabled('POS_CATEGORY_DELETED')
-        
         if send_webhook:
             for record in self:
-                if record.x_tr_uuid:
-                    category_data.append({
-                        'uuid': record.x_tr_uuid,
-                        'name': record.name,
-                    })
-        
+                category_data.append({
+                    'uuid': record.x_tr_uuid,
+                    'name': record.name,
+                })
+
         result = super().unlink()
-        
-        # WEBHOOK: Suppression de catégorie POS
+
         if send_webhook:
             for data in category_data:
-                webhook_service.trigger_event(
-                    internal_event='POS_CATEGORY_DELETED',
-                    entity_type='pos_category',
-                    entity_id=data['uuid'],
-                    data={'id': data['uuid'], 'name': data['name']},
-                )
-        
+                try:
+                    webhook_service.trigger_event(
+                        internal_event='POS_CATEGORY_DELETED',
+                        entity_type='pos_category',
+                        entity_id=data['uuid'],
+                        data={'id': data['uuid'], 'name': data['name']},
+                    )
+                except Exception:
+                    pass
+
         return result
+
+    # =========================================================
+    # API MAPPING
+    # =========================================================
 
     def to_category_api_dict(self):
         self.ensure_one()
 
-        # 🔥 force lecture DB (évite anciens noms après write)
+        # force cohérence ORM
         self.flush_recordset(['name', 'parent_id', 'sequence', 'image_128', 'active'])
         self.invalidate_recordset()
 
@@ -159,7 +229,7 @@ class PosCategory(models.Model):
             if self.image_128 else ''
         )
 
-        # 🔥 sécurisation remontée racine
+        # sécurisation racine
         root = self
         visited = set()
 
@@ -169,6 +239,7 @@ class PosCategory(models.Model):
 
         return {
             'id': self.x_tr_uuid or str(self.id),
+            'parentId': self.parent_id.x_tr_uuid if self.parent_id else None,
             'kindId': root.x_tr_uuid or str(root.id),
             'kindName': root.name or '',
             'name': self.name or '',
