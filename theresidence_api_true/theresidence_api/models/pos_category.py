@@ -215,12 +215,9 @@ class PosCategory(models.Model):
     def to_category_api_dict(self):
         self.ensure_one()
 
-        # force cohérence ORM
+        # Suppression de invalidate_recordset() qui causait des pertes de données
+        # On force juste la lecture fraîche des champs nécessaires
         self.flush_recordset(['name', 'parent_id', 'sequence', 'image_128'])
-        self.invalidate_recordset()
-
-        # if not self.active:
-        #     return None
 
         base_url = self.env['ir.config_parameter'].sudo().get_param('web.base.url')
 
@@ -229,13 +226,11 @@ class PosCategory(models.Model):
             if self.image_128 else ''
         )
 
-        # sécurisation racine
+        # Calcul sécurisé du Kind (Racine)
         root = self
-        visited = set()
-
-        while root.parent_id and root.id not in visited:
-            visited.add(root.id)
-            root = root.parent_id.sudo()
+        # On remonte jusqu'au parent sans parent_id
+        while root.parent_id:
+            root = root.parent_id
 
         return {
             'id': self.x_tr_uuid or str(self.id),

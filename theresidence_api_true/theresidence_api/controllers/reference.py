@@ -47,14 +47,13 @@ class ReferenceController(http.Controller):
 
     def _fresh_env(self):
         """
-        Rafraîchit l'environnement Odoo pour éviter les problèmes de cache.
-        Critique pour garantir que les données retournées sont à jour.
+        Force la synchronisation complète avec la DB.
         """
-        env = request.env
-        env.cr.commit()          # Rend visibles les écritures en attente
-        env.invalidate_all()     # Purge le cache ORM
-        env.clear()              # Reset l'environnement
-        return env
+        # On force l'écriture de tout ce qui est en RAM vers la DB
+        self.env.flush_all()
+        # On invalide tout le cache pour forcer un SELECT propre
+        self.env.invalidate_all()
+        return self.env
 
     # === MEMBERSHIP TYPES ===
     
