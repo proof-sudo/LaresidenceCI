@@ -219,8 +219,8 @@ class PosCategory(models.Model):
         self.flush_recordset(['name', 'parent_id', 'sequence', 'image_128', 'active'])
         self.invalidate_recordset()
 
-        if not self.active:
-            return None
+        # if not self.active:
+        #     return None
 
         base_url = self.env['ir.config_parameter'].sudo().get_param('web.base.url')
 

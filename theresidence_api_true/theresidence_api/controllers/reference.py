@@ -233,9 +233,7 @@ class ReferenceController(http.Controller):
         # IMPORTANT : flush ORM pour récupérer les écritures récentes
         env['pos.category'].flush_model()
 
-        categories = env['pos.category'].sudo().search([
-            ('active', 'in', [True, False])  # inclut toutes les catégories existantes
-        ], order='sequence, id')
+        categories = env['pos.category'].sudo().search([], order='sequence, id')
 
         return success_response([c.to_category_api_dict() for c in categories])
     @http.route(f'{API_PREFIX}/reference/menu-categories/<string:category_id>', type='http', auth='public', methods=['GET'], csrf=False)
