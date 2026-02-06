@@ -17,5 +17,18 @@ class SaleOrder(models.Model):
 
                 if order.state in mapping:
                     order._queue_webhook(mapping[order.state], "order")
+            if "x_tr_subscription_status" in vals:
+                mapping = {
+                    "ACTIVE": "subscription.activated",
+                    "PAUSED": "subscription.paused",
+                    "CANCELLED": "subscription.cancelled",
+                    "EXPIRED": "subscription.expired",
+                }
+
+                event = mapping.get(vals["x_tr_subscription_status"])
+
+                if event:
+                    order._queue_webhook(event, "subscription")
+
 
         return res
