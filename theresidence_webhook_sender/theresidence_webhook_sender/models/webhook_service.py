@@ -397,7 +397,21 @@ class WebhookService(models.AbstractModel):
     # ========================================================================
     # MÉTHODES UTILITAIRES
     # ========================================================================
-
+    # Dans webhook_service.py
+    
+    @api.model
+    def is_event_enabled(self, internal_event):
+        """Vérifie si un événement est actif dans la config."""
+        config = self.env['theresidence.webhook.config'].get_active_config()
+        if not config or not config.is_active:
+            return False
+            
+        # On vérifie si l'événement de création est autorisé
+        if internal_event.endswith('_CREATED') and not config.send_created_events:
+            return False
+            
+        return internal_event in self.EVENT_MAPPING
+    
     @api.model
     def get_statistics(self):
         """Retourne des statistiques sur les webhooks."""
