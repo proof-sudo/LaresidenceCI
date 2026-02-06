@@ -286,3 +286,33 @@ class ResPartner(models.Model):
                 'sticky': True,  # Afficher plus longtemps pour lire les détails
             }
         }
+        
+    @api.model
+    def create_member_from_api(self, data):
+        first_name = data.get('firstName', '')
+        last_name = data.get('lastName', '')
+        name = f"{first_name} {last_name}".strip() or data.get('email', 'Unknown')
+        
+        vals = {
+            'name': name,
+            'email': data.get('email'),
+            'phone': data.get('phone'),
+            'function': data.get('jobTitle'),
+            'company_name': data.get('companyName'),
+            'x_tr_is_member': True,
+            'x_tr_member_status': data.get('status', 'ACTIVE'),
+            'x_tr_joined_at': data.get('joinedAt') or fields.Date.today(),
+        }
+        
+        if data.get('membershipTypeCode'):
+            mtype = self.env['theresidence.membership.type'].search([('code', '=', data['membershipTypeCode'])], limit=1)
+            if mtype:
+                vals['x_tr_membership_type_id'] = mtype.id
+        
+        if data.get('email'):
+            existing = self.search([('email', '=', data['email'])], limit=1)
+            if existing:
+                existing.write(vals)
+                return existing
+        
+        return self.create(vals)
