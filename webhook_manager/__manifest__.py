@@ -1,27 +1,35 @@
 # -*- coding: utf-8 -*-
 {
-    'name': 'Webhook Manager',
-    'version': '19.0.1',
+    'name': 'The Residence Webhook Manager',
+    'version': '19.0.1.1',
     'category': 'Technical',
-    'summary': 'Système de webhooks CRUD pour Odoo',
+    'summary': 'Intégration Webhook pour The Residence API',
     'description': """
-        Système de webhooks pour envoyer des notifications HTTP
-        lors des opérations CRUD sur les modèles Odoo.
+        Système de webhooks synchronisant Odoo avec l'API The Residence.
         
-        Fonctionnalités:
-        - Configuration des webhooks par modèle
-        - Suivi des champs modifiés
-        - Support des relations Many2many
-        - Authentification API
+        Modèles supportés :
+        - Membres (Contacts)
+        - Commandes (Ventes)
+        - Abonnements (Subscriptions)
+        - Réservations (Hôtel/Restaurant)
+        - Factures et Stocks
+        
+        Fonctionnalités :
+        - Authentification via X-API-Key
+        - Structure de payload conforme (event_id, timestamp, entity_type)
+        - Détection intelligente des changements de statuts métiers
     """,
     'author': 'Votre Entreprise',
-    'website': 'https://www.votresite.com',
+    'website': 'https://api.laresidence-abidjan.com',
     'license': 'LGPL-3',
     'depends': [
         'base',
         'product',
         'sale_management',
+        'stock',
+        'account',
         'point_of_sale',
+        # 'sale_subscription', # Décommentez si le module Subscriptions est installé
     ],
     'data': [
         'security/ir.model.access.csv',

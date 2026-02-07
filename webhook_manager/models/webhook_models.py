@@ -1,67 +1,27 @@
 # -*- coding: utf-8 -*-
-from odoo import models, logging
+from odoo import models
 
-_logger = logging.getLogger(__name__)
-
-class SaleOrderWebhook(models.Model):
-    """
-    Entité: order
-    Événements: order.confirmed, order.completed, order.cancelled
-    """
+class SaleOrder(models.Model):
+    _inherit = "sale.order"
     _inherit = ["sale.order", "webhook.mixin"]
 
-
-class ResPartnerWebhook(models.Model):
-    """
-    Entité: member
-    Événements: member.updated
-    """
+class ResPartner(models.Model):
+    _inherit = "res.partner"
     _inherit = ["res.partner", "webhook.mixin"]
 
-
-class SaleSubscriptionWebhook(models.Model):
-    """
-    Entité: subscription
-    Événements: subscription.activated, subscription.paused, subscription.cancelled, etc.
-    Note: Nécessite le module Odoo Subscriptions (sale_subscription)
-    """
+class SaleSubscription(models.Model):
+    _inherit = "sale.subscription"
     _inherit = ["sale.subscription", "webhook.mixin"]
 
-
-# class HotelReservationWebhook(models.Model):
-#     """
-#     Entité: reservation
-#     Événements: reservation.approved, reservation.rejected, reservation.cancelled, reservation.checked_in
-#     """
-#     # Note: Remplacez 'hotel.reservation' par le nom technique exact de votre module de réservation
-#     _inherit = ["hotel.reservation", "webhook.mixin"]
-
-
-class ProductProductWebhook(models.Model):
-    """Héritage conservé de votre version initiale"""
+# Pour les modèles de votre version initiale :
+class ProductProduct(models.Model):
+    _inherit = "product.product"
     _inherit = ["product.product", "webhook.mixin"]
 
-
-class ProductCategoryWebhook(models.Model):
-    """Héritage conservé de votre version initiale"""
-    _inherit = ["product.category", "webhook.mixin"]
-
-
-class PosCategoryWebhook(models.Model):
-    """Héritage conservé de votre version initiale"""
-    _inherit = ["pos.category", "webhook.mixin"]
-
-
-class StockPickingWebhook(models.Model):
-    """Héritage conservé de votre version initiale (Livraisons)"""
+class StockPicking(models.Model):
+    _inherit = "stock.picking"
     _inherit = ["stock.picking", "webhook.mixin"]
 
-
-class AccountMoveWebhook(models.Model):
-    """Héritage conservé de votre version initiale (Factures)"""
+class AccountMove(models.Model):
+    _inherit = "account.move"
     _inherit = ["account.move", "webhook.mixin"]
-
-
-class SaleOrderLineWebhook(models.Model):
-    """Héritage conservé de votre version initiale"""
-    _inherit = ["sale.order.line", "webhook.mixin"]
