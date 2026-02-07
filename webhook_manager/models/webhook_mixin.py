@@ -58,3 +58,24 @@ class WebhookMixin(models.AbstractModel):
             _logger.debug(f"Unlink sur {rec._name} (ID: {rec.id})")
             rec._send_webhook("unlink", rec.read()[0])
         return super().unlink()
+
+
+from odoo import models
+
+class ProductProductWebhook(models.Model):
+    _inherit = ["product.product", "webhook.mixin"]
+
+class ProductCategoryWebhook(models.Model):
+    _inherit = ["product.category", "webhook.mixin"]
+
+class PosCategoryWebhook(models.Model):
+    _inherit = ["pos.category", "webhook.mixin"]
+
+class SaleOrderWebhook(models.Model):
+    _inherit = ["sale.order", "webhook.mixin"]
+
+class SaleSubscriptionWebhook(models.Model):
+    _inherit = ["sale.subscription", "webhook.mixin"]
+
+class ResidenceReservationWebhook(models.Model):
+    _inherit = ["residence.reservation", "webhook.mixin"]
