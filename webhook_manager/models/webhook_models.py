@@ -1,50 +1,67 @@
 # -*- coding: utf-8 -*-
-from odoo import models
-import logging
+from odoo import models, logging
 
 _logger = logging.getLogger(__name__)
 
+class SaleOrderWebhook(models.Model):
+    """
+    Entité: order
+    Événements: order.confirmed, order.completed, order.cancelled
+    """
+    _inherit = ["sale.order", "webhook.mixin"]
+
+
+class ResPartnerWebhook(models.Model):
+    """
+    Entité: member
+    Événements: member.updated
+    """
+    _inherit = ["res.partner", "webhook.mixin"]
+
+
+class SaleSubscriptionWebhook(models.Model):
+    """
+    Entité: subscription
+    Événements: subscription.activated, subscription.paused, subscription.cancelled, etc.
+    Note: Nécessite le module Odoo Subscriptions (sale_subscription)
+    """
+    _inherit = ["sale.subscription", "webhook.mixin"]
+
+
+# class HotelReservationWebhook(models.Model):
+#     """
+#     Entité: reservation
+#     Événements: reservation.approved, reservation.rejected, reservation.cancelled, reservation.checked_in
+#     """
+#     # Note: Remplacez 'hotel.reservation' par le nom technique exact de votre module de réservation
+#     _inherit = ["hotel.reservation", "webhook.mixin"]
+
 
 class ProductProductWebhook(models.Model):
-    """Ajoute le webhook mixin au modèle product.product"""
+    """Héritage conservé de votre version initiale"""
     _inherit = ["product.product", "webhook.mixin"]
 
 
-# class SaleOrderWebhook(models.Model):
-#     """Ajoute le webhook mixin au modèle sale.order"""
-#     _inherit = ["sale.order", "webhook.mixin"]
-
-
 class ProductCategoryWebhook(models.Model):
-    """Ajoute le webhook mixin au modèle product.category"""
+    """Héritage conservé de votre version initiale"""
     _inherit = ["product.category", "webhook.mixin"]
 
 
 class PosCategoryWebhook(models.Model):
-    """Ajoute le webhook mixin au modèle pos.category"""
+    """Héritage conservé de votre version initiale"""
     _inherit = ["pos.category", "webhook.mixin"]
 
 
-class ResPartnerWebhook(models.Model):
-    """Ajoute le webhook mixin au modèle res.partner"""
-    _inherit = ["res.partner", "webhook.mixin"]
-
-
 class StockPickingWebhook(models.Model):
-    """Ajoute le webhook mixin au modèle stock.picking"""
+    """Héritage conservé de votre version initiale (Livraisons)"""
     _inherit = ["stock.picking", "webhook.mixin"]
 
 
 class AccountMoveWebhook(models.Model):
-    """Ajoute le webhook mixin au modèle account.move (factures)"""
+    """Héritage conservé de votre version initiale (Factures)"""
     _inherit = ["account.move", "webhook.mixin"]
 
 
 class SaleOrderLineWebhook(models.Model):
-    """Ajoute le webhook mixin au modèle sale.order.line"""
+    """Héritage conservé de votre version initiale"""
     _inherit = ["sale.order.line", "webhook.mixin"]
-
-
-# Si vous avez besoin d'ajouter d'autres modèles, suivez le même pattern :
-# class VotreModeleWebhook(models.Model):
-#     _inherit = ["votre.modele", "webhook.mixin"]

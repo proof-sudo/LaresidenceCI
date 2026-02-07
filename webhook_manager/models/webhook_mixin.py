@@ -1,192 +1,154 @@
 # -*- coding: utf-8 -*-
-from odoo import models, api
+from odoo import models, api, fields
 import requests
 import json
 import logging
+import uuid
 from datetime import datetime
 
 _logger = logging.getLogger(__name__)
 
-
 class WebhookMixin(models.AbstractModel):
     _name = "webhook.mixin"
-    _description = "Mixin pour déclencher des webhooks CRUD avec suivi des champs modifiés"
+    _description = "Mixin pour The Residence API - Gestion des événements métiers"
 
-    def _get_webhook_configs(self, event_type):
-        """Récupère les configurations de webhook actives pour ce modèle et cet événement"""
-        model_name = self._name
-        domain = [
-            ('model_id.model', '=', model_name),
-            ('active', '=', True)
-        ]
+    def _get_entity_type(self):
+        """Mappe le nom technique Odoo vers le type d'entité de la SPEC"""
+        mapping = {
+            'sale.order': 'order',
+            'res.partner': 'member',
+            'sale.subscription': 'subscription',
+            'hotel.reservation': 'reservation',
+            'restaurant.reservation': 'reservation'
+        }
+        return mapping.get(self._name, self._name)
+
+    def _prepare_residence_payload(self, event_type, record):
+        """Prépare le payload JSON restreint selon la SPEC"""
+        entity_type = self._get_entity_type()
         
-        # Filtre par type d'événement
-        if event_type == 'create':
-            domain.append(('listen_create', '=', True))
-        elif event_type == 'write':
-            domain.append(('listen_write', '=', True))
-        elif event_type == 'unlink':
-            domain.append(('listen_unlink', '=', True))
+        # Génération d'un event_id unique pour l'idempotence côté API
+        event_unique_id = f"evt_{datetime.now().strftime('%Y%m%d')}_{uuid.uuid4().hex[:8]}"
         
-        return self.env['webhook.config'].search(domain)
-
-    def _prepare_webhook_payload(self, record, changed_fields=None):
-        """Prépare le payload avec gestion des types de champs complexes"""
-        try:
-            data = record.read()[0]
-            
-            # Convertir les objets non-sérialisables
-            for key, value in data.items():
-                if isinstance(value, (datetime,)):
-                    data[key] = value.isoformat()
-                elif isinstance(value, tuple) and len(value) == 2:
-                    # Many2one: (id, name)
-                    data[key] = {'id': value[0], 'name': value[1]}
-                elif isinstance(value, list):
-                    # Many2many ou One2many
-                    data[key] = value
-            
-            return data
-        except Exception as e:
-            _logger.error(f"Erreur lors de la préparation du payload pour {record._name}: {e}")
-            return {'id': record.id, 'error': str(e)}
-
-    def _send_webhook(self, event_type, payload, changed_fields=None):
-        """Envoie le webhook aux URLs configurées"""
-        configs = self._get_webhook_configs(event_type)
-        
-        if not configs:
-            _logger.debug(f"Aucun webhook actif configuré pour {self._name} ({event_type})")
-            return
-
-        for config in configs:
-            self._send_single_webhook(config, event_type, payload, changed_fields)
-
-    def _send_single_webhook(self, config, event_type, payload, changed_fields=None):
-        """Envoie un webhook unique à une URL"""
-        url = config.url
-        headers = {'Content-Type': 'application/json'}
-        
-        if config.api_key:
-            headers['Authorization'] = f'Bearer {config.api_key}'
-
-        webhook_data = {
-            "event": event_type,
-            "model": self._name,
-            "timestamp": datetime.now().isoformat(),
-            "data": payload,
-            "webhook_config": {
-                "id": config.id,
-                "name": config.name
+        return {
+            "event_type": f"{entity_type}.{event_type}",
+            "event_id": event_unique_id,
+            "timestamp": datetime.now().isoformat() + "Z", # Format ISO 8601 UTC
+            "entity_type": entity_type,
+            "entity_id": str(record.id), # L'ID Odoo doit correspondre à odoo_id en face
+            "data": {
+                "display_name": record.display_name,
+                "state": getattr(record, 'state', False),
+                "last_update": record.write_date.isoformat() if hasattr(record, 'write_date') else None
             }
         }
-        
-        if changed_fields:
-            webhook_data["changed_fields"] = changed_fields
 
-        _logger.info(f"Envoi webhook [{event_type}] pour {self._name} à {url}")
-        _logger.debug(f"Payload: {webhook_data}")
+    def _send_to_residence(self, event_type, record):
+        """Recherche la configuration et envoie le webhook"""
+        configs = self.env['webhook.config'].search([
+            ('model_id.model', '=', self._name),
+            ('active', '=', True)
+        ])
 
-        try:
-            response = requests.post(
-                url,
-                headers=headers,
-                data=json.dumps(webhook_data, default=str),
-                timeout=config.timeout
-            )
+        if not configs:
+            return
+
+        payload = self._prepare_residence_payload(event_type, record)
+
+        for config in configs:
+            # Header X-API-Key requis par la spécification
+            headers = {
+                'Content-Type': 'application/json',
+                'X-API-Key': config.api_key or ''
+            }
             
-            if response.status_code >= 200 and response.status_code < 300:
-                _logger.info(f"Webhook envoyé avec succès à {url}, statut: {response.status_code}")
-            else:
-                _logger.warning(f"Webhook à {url} a retourné le statut: {response.status_code}")
+            try:
+                _logger.info(f"Envoi Webhook {payload['event_type']} (ID: {payload['event_id']}) vers {config.url}")
+                response = requests.post(
+                    config.url,
+                    headers=headers,
+                    json=payload,
+                    timeout=config.timeout
+                )
                 
-        except requests.exceptions.Timeout:
-            _logger.error(f"Timeout lors de l'envoi du webhook à {url} (timeout: {config.timeout}s)")
-        except requests.exceptions.ConnectionError:
-            _logger.error(f"Erreur de connexion lors de l'envoi du webhook à {url}")
-        except Exception as e:
-            _logger.error(f"Erreur lors de l'envoi du webhook à {url}: {e}", exc_info=True)
+                # Succès si 202 Accepted selon la SPEC
+                if response.status_code == 202:
+                    _logger.info(f"Webhook {payload['event_id']} accepté avec succès.")
+                else:
+                    _logger.warning(f"Réponse API inattendue ({response.status_code}): {response.text}")
+                    
+            except Exception as e:
+                _logger.error(f"Échec de connexion au webhook à {config.url}: {str(e)}")
 
     @api.model_create_multi
     def create(self, vals_list):
-        """Override create pour envoyer des webhooks à la création"""
-        records = super().create(vals_list)
-        
+        """Déclenchement lors de la création d'un enregistrement"""
+        records = super(WebhookMixin, self).create(vals_list)
         for record in records:
-            try:
-                payload = self._prepare_webhook_payload(record)
-                record._send_webhook("create", payload)
-            except Exception as e:
-                _logger.error(f"Erreur webhook create pour {record._name}[{record.id}]: {e}")
-        
+            # On considère la création comme un événement 'updated' ou spécifique
+            event_type = "created"
+            if record._name == 'res.partner':
+                event_type = "updated" # SPEC: member.updated
+            
+            record._send_to_residence(event_type, record)
         return records
 
     def write(self, vals):
-        """Override write pour envoyer des webhooks avec les champs modifiés"""
-        # Capturer l'état avant modification pour les champs complexes
-        old_values = {}
+        """Logique de détection des changements de statut métier"""
+        # Capture de l'état avant modification
+        old_states = {rec.id: getattr(rec, 'state', None) for rec in self}
+        
+        res = super(WebhookMixin, self).write(vals)
+        
         for rec in self:
-            old_values[rec.id] = {}
-            for field in vals:
-                if field in rec._fields:
-                    field_type = rec._fields[field].type
-                    if field_type == 'many2many':
-                        old_values[rec.id][field] = rec[field].ids
-                    elif field_type == 'one2many':
-                        old_values[rec.id][field] = rec[field].ids
-                    elif field_type == 'many2one':
-                        old_values[rec.id][field] = rec[field].id if rec[field] else False
-        
-        # Exécuter le write
-        res = super().write(vals)
-        
-        # Envoyer les webhooks avec les changements
-        for rec in self:
-            try:
-                changed_data = {}
-                for field in vals:
-                    if field in rec._fields:
-                        field_type = rec._fields[field].type
-                        
-                        if field_type == 'many2many':
-                            changed_data[field] = {
-                                'old': old_values[rec.id].get(field, []),
-                                'new': rec[field].ids,
-                                'type': 'many2many'
-                            }
-                        elif field_type == 'one2many':
-                            changed_data[field] = {
-                                'old': old_values[rec.id].get(field, []),
-                                'new': rec[field].ids,
-                                'type': 'one2many'
-                            }
-                        elif field_type == 'many2one':
-                            changed_data[field] = {
-                                'old': old_values[rec.id].get(field),
-                                'new': rec[field].id if rec[field] else False,
-                                'type': 'many2one'
-                            }
-                        else:
-                            changed_data[field] = {
-                                'value': vals[field],
-                                'type': field_type
-                            }
-                
-                payload = self._prepare_webhook_payload(rec)
-                rec._send_webhook("write", payload, changed_fields=changed_data)
-                
-            except Exception as e:
-                _logger.error(f"Erreur webhook write pour {rec._name}[{rec.id}]: {e}")
-        
+            new_state = getattr(rec, 'state', None)
+            old_state = old_states.get(rec.id)
+            event_to_send = None
+
+            # 1. Gestion des Ventes (Sale Order)
+            if rec._name == 'sale.order' and old_state != new_state:
+                mapping = {
+                    'sale': 'confirmed',
+                    'done': 'completed',
+                    'cancel': 'cancelled'
+                }
+                event_to_send = mapping.get(new_state)
+
+            # 2. Gestion des Réservations
+            elif rec._name in ['hotel.reservation', 'restaurant.reservation'] and old_state != new_state:
+                mapping = {
+                    'confirmed': 'approved',
+                    'refused': 'rejected',
+                    'cancelled': 'cancelled',
+                    'checked_in': 'checked_in'
+                }
+                event_to_send = mapping.get(new_state)
+
+            # 3. Gestion des Abonnements (Subscription)
+            elif rec._name == 'sale.subscription' and old_state != new_state:
+                mapping = {
+                    'open': 'activated',
+                    'pending': 'paused',
+                    'close': 'expired',
+                    'cancel': 'cancelled'
+                }
+                event_to_send = mapping.get(new_state)
+
+            # 4. Gestion des Membres (Partner) - Toujours 'updated'
+            elif rec._name == 'res.partner':
+                event_to_send = "updated"
+
+            # Envoi si un événement métier est identifié ou si c'est une mise à jour générique
+            if event_to_send:
+                rec._send_to_residence(event_to_send, rec)
+            elif any(f in vals for f in ['name', 'email', 'phone', 'active']):
+                # Pour les autres cas, on envoie un 'updated' générique
+                rec._send_to_residence("updated", rec)
+
         return res
 
     def unlink(self):
-        """Override unlink pour envoyer des webhooks avant suppression"""
+        """Notification avant suppression"""
         for rec in self:
-            try:
-                payload = self._prepare_webhook_payload(rec)
-                rec._send_webhook("unlink", payload)
-            except Exception as e:
-                _logger.error(f"Erreur webhook unlink pour {rec._name}[{rec.id}]: {e}")
-        
-        return super().unlink()
+            rec._send_to_residence("cancelled", rec)
+        return super(WebhookMixin, self).unlink()
