@@ -85,7 +85,7 @@ class WebhookMixin(models.AbstractModel):
         for config in configs:
             try:
                 payload_json = json.dumps(payload, indent=2)
-                _logger.info(f"[WEBHOOK SEND] {payload['event_type']} | ID {record.id}")
+                _logger.info(f"[WEBHOOK SEND] header : url {config.url}, apikey { config.api_key} {payload['event_type']} | ID {record.id}")
                 
                 response = requests.post(
                     config.url, 
