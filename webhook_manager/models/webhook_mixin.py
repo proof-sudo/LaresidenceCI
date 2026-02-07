@@ -10,50 +10,56 @@ _logger = logging.getLogger(__name__)
 
 class WebhookMixin(models.AbstractModel):
     _name = "webhook.mixin"
-    _description = "Mixin The Residence - Gestion CRUD & Membres"
+    _description = "Mixin Final The Residence - CRUD Universel (Membres, Produits, POS)"
 
     def _get_entity_type(self):
-        """Mapping des entités selon la spécification TR"""
+        """Mapping dynamique vers la spécification API"""
         if self._name == 'sale.order':
             if getattr(self, 'x_tr_is_reservation', False): return 'reservation'
             if getattr(self, 'x_tr_is_subscription', False): return 'subscription'
             return 'order'
         
+        if self._name == 'product.template':
+            if getattr(self, 'x_tr_is_space', False): return 'space'
+            if getattr(self, 'x_tr_is_subscription_plan', False): return 'subscription_plan'
+            return 'product' # Standard pour le POS
+            
         mapping = {
             'res.partner': 'member',
             'pos.order': 'order',
             'pos.category': 'pos_category',
-            'product.template': 'product'
         }
         return mapping.get(self._name, self._name)
 
     def _format_field_value(self, value):
-        """Transforme les objets Odoo complexes en JSON sérialisable"""
+        """Séreilisation sécurisée des types Odoo (Dates, Relations)"""
         if isinstance(value, models.BaseModel):
-            # Pour les relations, on renvoie les IDs
             return value.ids if len(value) > 1 else (value.id if value else False)
         if isinstance(value, (datetime, date)):
             return value.isoformat()
         return value
 
     def _prepare_residence_payload(self, event_type, record, include_image=False):
-        """Construction du payload avec champs TR et champs standards essentiels"""
+        """Construction du JSON avec champs TR et champs standards (POS/Contact)"""
         entity_type = self._get_entity_type()
         custom_data = {}
         
-        # 1. Extraction automatique de tous les champs x_tr_*
+        # 1. Extraction de tous les champs préfixés x_tr_
         for name, field in record._fields.items():
             if name.startswith('x_tr_'):
                 val = getattr(record, name)
                 custom_data[name] = self._format_field_value(val)
 
-        # 2. Ajout des champs standards critiques (Nom, Contact, etc.)
-        standard_fields = ['name', 'display_name', 'email', 'phone', 'mobile']
-        for field_name in standard_fields:
-            if field_name in record._fields:
-                custom_data[field_name] = getattr(record, field_name)
+        # 2. Champs standards critiques (Membres & Catalogue POS)
+        standard_fields = [
+            'name', 'display_name', 'email', 'phone', 'mobile', 
+            'list_price', 'available_in_pos', 'barcode', 'default_code', 'active'
+        ]
+        for f in standard_fields:
+            if f in record._fields:
+                custom_data[f] = getattr(record, f)
 
-        # 3. Gestion de l'URL de l'image
+        # 3. Lien vers l'image Odoo
         if include_image and hasattr(record, 'image_1920') and record.image_1920:
             custom_data['image_url'] = f"/web/image/{record._name}/{record.id}/image_1920"
 
@@ -67,35 +73,27 @@ class WebhookMixin(models.AbstractModel):
         }
 
     def _send_to_residence(self, event_type, record, include_image=False):
-        """Envoi HTTP et archivage des logs"""
+        """Envoi HTTP avec logging complet en base"""
         configs = self.env['webhook.config'].search([
             ('model_id.model', '=', self._name),
             ('active', '=', True)
         ])
-
-        if not configs:
-            return
+        if not configs: return
 
         payload = self._prepare_residence_payload(event_type, record, include_image)
 
         for config in configs:
-            headers = {
-                'Content-Type': 'application/json',
-                'X-API-Key': config.api_key or ''
-            }
-            
             try:
                 payload_json = json.dumps(payload, indent=2)
-                _logger.info(f"[WEBHOOK SEND] {payload['event_type']} ID {record.id}")
-
+                _logger.info(f"[WEBHOOK SEND] {payload['event_type']} | ID {record.id}")
+                
                 response = requests.post(
                     config.url, 
-                    headers=headers, 
+                    headers={'Content-Type': 'application/json', 'X-API-Key': config.api_key or ''}, 
                     data=payload_json, 
                     timeout=config.timeout or 5
                 )
                 
-                # Création du log en base de données
                 self.env['webhook.log'].create({
                     'name': payload['event_id'],
                     'model_name': self._name,
@@ -105,29 +103,38 @@ class WebhookMixin(models.AbstractModel):
                     'response_body': response.text,
                     'success': response.status_code == 202
                 })
-
             except Exception as e:
-                _logger.error(f"[WEBHOOK FATAL] Erreur sur {self._name}: {str(e)}")
+                _logger.error(f"[WEBHOOK ERROR] {str(e)}")
+
+    @api.model_create_multi
+    def create(self, vals_list):
+        """Déclenchement automatique à la création"""
+        records = super().create(vals_list)
+        for rec in records:
+            # Sécurité Membres
+            if rec._name == 'res.partner' and not getattr(rec, 'x_tr_is_member', False):
+                continue
+            
+            _logger.info(f"[WEBHOOK CREATE] Nouveau record {rec._name} ID {rec.id}")
+            rec._send_to_residence("created", rec, include_image=True)
+        return records
 
     def write(self, vals):
-        """Déclenchement sur modification (Nom, Photo, Email, etc.)"""
+        """Déclenchement sur modification (Nom, Prix, Photo, Statut...)"""
         res = super().write(vals)
-        
-        # Ignorer les mises à jour purement techniques
         ignored = ['write_date', 'write_uid', '__last_update', 'message_ids', 'activity_ids']
         relevant_fields = [k for k in vals.keys() if k not in ignored]
         
         if relevant_fields:
             for rec in self:
-                # FILTRE : Si res.partner, envoyer UNIQUEMENT si c'est un membre TR
+                # Sécurité Membres : n'envoyer que si c'est un membre TR
                 if rec._name == 'res.partner' and not getattr(rec, 'x_tr_is_member', False):
                     continue
 
                 event = "updated"
-                # Déclenchement de l'image si un champ image est dans vals
                 include_image = any(img in vals for img in ['image_1920', 'image_128', 'image_512'])
                 
-                # Mapping des statuts TR
+                # Mapping intelligent des statuts pour les events
                 if rec._name == 'sale.order':
                     if getattr(rec, 'x_tr_is_reservation', False):
                         event = rec.x_tr_reservation_status.lower() if rec.x_tr_reservation_status else "updated"
@@ -135,23 +142,16 @@ class WebhookMixin(models.AbstractModel):
                         event = rec.x_tr_subscription_status.lower() if rec.x_tr_subscription_status else "updated"
                 elif rec._name == 'res.partner':
                     event = rec.x_tr_member_status.lower() if rec.x_tr_member_status else "updated"
-                
-                _logger.info(f"[WEBHOOK TRIGGER] {rec._name} modif sur: {relevant_fields}")
+
                 rec._send_to_residence(event, rec, include_image=include_image)
-        
         return res
 
     def unlink(self):
-        """Déclenchement sur suppression"""
+        """Déclenchement sur suppression (Archivage API externe)"""
         for rec in self:
-            # On ne notifie la suppression que pour les membres TR
             if rec._name == 'res.partner' and not getattr(rec, 'x_tr_is_member', False):
                 continue
             
             _logger.info(f"[WEBHOOK DELETE] Notification pour {rec._name} ID {rec.id}")
-            try:
-                rec._send_to_residence("deleted", rec)
-            except Exception as e:
-                _logger.error(f"Erreur lors de la notification de suppression: {e}")
-                
+            rec._send_to_residence("deleted", rec)
         return super().unlink()
