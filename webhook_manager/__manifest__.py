@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 {
-    'name': 'The Residence Webhook Manager',
-    'version': '19.0.1.1',
+    'name': 'Webhook Manager',
+    'version': '19.0.1',
     'category': 'Technical',
     'summary': 'Intégration Webhook pour The Residence API',
     'description': """
