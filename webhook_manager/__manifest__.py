@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 {
-    'name': 'Webhook System',
+    'name': 'Webhook Manager',
     'version': '19.0.1',
     'category': 'Technical',
     'summary': 'Système de webhooks CRUD pour Odoo',
