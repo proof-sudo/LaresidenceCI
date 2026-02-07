@@ -1,0 +1,8 @@
+<odoo>
+    <record id="webhook_demo_product" model="webhook.config">
+        <field name="name">Produit Webhook</field>
+        <field name="model_id" ref="product.model_product_product"/>
+        <field name="url">https://api.externe.com/webhook</field>
+        <field name="api_key">VOTRE_CLE_API</field>
+    </record>
+</odoo>

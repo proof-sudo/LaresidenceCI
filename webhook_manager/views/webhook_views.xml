@@ -1,0 +1,50 @@
+<odoo>
+    <!-- Action pour accéder à la configuration des webhooks -->
+    <record id="action_webhook_config" model="ir.actions.act_window">
+        <field name="name">Webhooks</field>
+        <field name="res_model">webhook.config</field>
+        <field name="view_mode">tree,form</field>
+        <field name="help" type="html">
+            <p class="oe_view_nocontent_create">
+                Cliquez sur "Créer" pour ajouter un nouveau webhook.
+            </p>
+        </field>
+    </record>
+
+    <!-- Menu -->
+    <menuitem id="menu_webhook_root" name="Webhooks" sequence="10"/>
+    <menuitem id="menu_webhook_config" name="Configuration"
+              parent="menu_webhook_root" action="action_webhook_config" sequence="10"/>
+
+    <!-- Vue liste -->
+    <record id="view_webhook_config_tree" model="ir.ui.view">
+        <field name="name">webhook.config.tree</field>
+        <field name="model">webhook.config</field>
+        <field name="arch" type="xml">
+            <list string="Webhooks">
+                <field name="name"/>
+                <field name="model_id"/>
+                <field name="url"/>
+                <field name="api_key"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- Vue formulaire -->
+    <record id="view_webhook_config_form" model="ir.ui.view">
+        <field name="name">webhook.config.form</field>
+        <field name="model">webhook.config</field>
+        <field name="arch" type="xml">
+            <form string="Webhook Configuration">
+                <sheet>
+                    <group>
+                        <field name="name"/>
+                        <field name="model_id"/>
+                        <field name="url"/>
+                        <field name="api_key"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+</odoo>
