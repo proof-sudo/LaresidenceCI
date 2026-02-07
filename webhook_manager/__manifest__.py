@@ -1,6 +1,6 @@
 {
     "name": "Webhook Manager",
-    "version": "1.1",
+    "version": "1.2",
     "summary": "Gestion de webhooks pour envoyer les datas CRUD à une API externe",
     "author": "Votre Nom",
     "category": "Tools",
@@ -14,4 +14,5 @@
     ],
     "installable": True,
     "application": False,
+    "post_init_hook": "post_init_hook"
 }

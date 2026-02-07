@@ -10,7 +10,6 @@ class WebhookMixin(models.AbstractModel):
     _description = "Mixin pour déclencher des webhooks sur CRUD avec suivi des champs modifiés"
 
     def _send_webhook(self, event_type, payload, changed_fields=None):
-        """Envoie les données à l'API configurée"""
         model_name = self._name
         configs = self.env['webhook.config'].search([('model_id.model', '=', model_name)])
         if not configs:
