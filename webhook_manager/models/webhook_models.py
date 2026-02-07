@@ -11,7 +11,7 @@ class ResPartner(models.Model):
 
 class ProductProduct(models.Model):
     _name = 'product.product'
-    _inherit = ['product.product', 'webhook.mixin']
+    _inherit = ['product.template', 'webhook.mixin']
 
 class StockPicking(models.Model):
     _name = 'stock.picking'
