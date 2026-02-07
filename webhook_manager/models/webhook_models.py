@@ -9,9 +9,9 @@ class ResPartner(models.Model):
     _inherit = "res.partner"
     _inherit = ["res.partner", "webhook.mixin"]
 
-class SaleSubscription(models.Model):
-    _inherit = "sale.subscription"
-    _inherit = ["sale.subscription", "webhook.mixin"]
+# class SaleSubscription(models.Model):
+#     _inherit = "sale.subscription"
+#     _inherit = ["sale.subscription", "webhook.mixin"]
 
 # Pour les modèles de votre version initiale :
 class ProductProduct(models.Model):
