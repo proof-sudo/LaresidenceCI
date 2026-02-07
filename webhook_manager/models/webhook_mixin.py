@@ -77,5 +77,5 @@ class SaleOrderWebhook(models.Model):
 # class SaleSubscriptionWebhook(models.Model):
 #     _inherit = ["sale.subscription", "webhook.mixin"]
 
-class ResidenceReservationWebhook(models.Model):
-    _inherit = ["residence.reservation", "webhook.mixin"]
+# class ResidenceReservationWebhook(models.Model):
+#     _inherit = ["residence.reservation", "webhook.mixin"]
