@@ -30,14 +30,14 @@ class ProductTemplate(models.Model):
         records = super().create(vals_list)
         
         # WEBHOOK: Création d'espace
-        for record in records:
-            if record.x_tr_is_space and record.x_tr_space_uuid:
-                self.env['theresidence.webhook.service'].trigger_event(
-                    internal_event='SPACE_CREATED',
-                    entity_type='space',
-                    entity_id=record.x_tr_space_uuid,
-                    data=record.to_space_api_dict(),
-                )
+        # for record in records:
+        #     if record.x_tr_is_space and record.x_tr_space_uuid:
+        #         self.env['theresidence.webhook.service'].trigger_event(
+        #             internal_event='SPACE_CREATED',
+        #             entity_type='space',
+        #             entity_id=record.x_tr_space_uuid,
+        #             data=record.to_space_api_dict(),
+        #         )
         
         return records
 
@@ -63,43 +63,43 @@ class ProductTemplate(models.Model):
         result = super().write(vals)
         
         # WEBHOOK: Modification d'espace
-        for product in self:
-            if product.x_tr_is_space and product.x_tr_space_uuid:
-                old_val = old_values.get(product.id, {})
+        # for product in self:
+        #     if product.x_tr_is_space and product.x_tr_space_uuid:
+        #         old_val = old_values.get(product.id, {})
                 
-                # Changement de disponibilité
-                if 'active' in vals and old_val.get('active') != product.active:
-                    self.env['theresidence.webhook.service'].trigger_event(
-                        internal_event='SPACE_AVAILABILITY_CHANGED',
-                        entity_type='space',
-                        entity_id=product.x_tr_space_uuid,
-                        data=product.to_space_api_dict(),
-                        old_status='AVAILABLE' if old_val.get('active') else 'UNAVAILABLE',
-                        new_status='AVAILABLE' if product.active else 'UNAVAILABLE',
-                    )
+        #         # Changement de disponibilité
+        #         if 'active' in vals and old_val.get('active') != product.active:
+        #             self.env['theresidence.webhook.service'].trigger_event(
+        #                 internal_event='SPACE_AVAILABILITY_CHANGED',
+        #                 entity_type='space',
+        #                 entity_id=product.x_tr_space_uuid,
+        #                 data=product.to_space_api_dict(),
+        #                 old_status='AVAILABLE' if old_val.get('active') else 'UNAVAILABLE',
+        #                 new_status='AVAILABLE' if product.active else 'UNAVAILABLE',
+        #             )
                 
-                # Autres modifications
-                changed_fields = []
-                if 'name' in vals and old_val.get('name') != product.name:
-                    changed_fields.append('name')
-                if 'list_price' in vals and old_val.get('list_price') != product.list_price:
-                    changed_fields.append('price')
-                if 'x_tr_space_capacity' in vals and old_val.get('capacity') != product.x_tr_space_capacity:
-                    changed_fields.append('capacity')
-                if 'x_tr_space_type_id' in vals:
-                    changed_fields.append('type')
-                if 'x_tr_space_description' in vals or 'description_sale' in vals:
-                    changed_fields.append('description')
-                if 'image_1920' in vals:
-                    changed_fields.append('image')
+        #         # Autres modifications
+        #         changed_fields = []
+        #         if 'name' in vals and old_val.get('name') != product.name:
+        #             changed_fields.append('name')
+        #         if 'list_price' in vals and old_val.get('list_price') != product.list_price:
+        #             changed_fields.append('price')
+        #         if 'x_tr_space_capacity' in vals and old_val.get('capacity') != product.x_tr_space_capacity:
+        #             changed_fields.append('capacity')
+        #         if 'x_tr_space_type_id' in vals:
+        #             changed_fields.append('type')
+        #         if 'x_tr_space_description' in vals or 'description_sale' in vals:
+        #             changed_fields.append('description')
+        #         if 'image_1920' in vals:
+        #             changed_fields.append('image')
                 
-                if changed_fields:
-                    self.env['theresidence.webhook.service'].trigger_event(
-                        internal_event='SPACE_UPDATED',
-                        entity_type='space',
-                        entity_id=product.x_tr_space_uuid,
-                        data={**product.to_space_api_dict(), 'changedFields': changed_fields},
-                    )
+        #         if changed_fields:
+        #             self.env['theresidence.webhook.service'].trigger_event(
+        #                 internal_event='SPACE_UPDATED',
+        #                 entity_type='space',
+        #                 entity_id=product.x_tr_space_uuid,
+        #                 data={**product.to_space_api_dict(), 'changedFields': changed_fields},
+        #             )
         
         return result
 
@@ -116,13 +116,13 @@ class ProductTemplate(models.Model):
         result = super().unlink()
         
         # WEBHOOK: Suppression d'espace
-        for data in space_data:
-            self.env['theresidence.webhook.service'].trigger_event(
-                internal_event='SPACE_DELETED',
-                entity_type='space',
-                entity_id=data['uuid'],
-                data={'id': data['uuid'], 'name': data['name']},
-            )
+        # for data in space_data:
+        #     self.env['theresidence.webhook.service'].trigger_event(
+        #         internal_event='SPACE_DELETED',
+        #         entity_type='space',
+        #         entity_id=data['uuid'],
+        #         data={'id': data['uuid'], 'name': data['name']},
+        #     )
         
         return result
 
