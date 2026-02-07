@@ -34,6 +34,7 @@
     'data': [
         'security/ir.model.access.csv',
         'views/webhook_config_views.xml',
+        'views/webhook_views.xml',
     ],
     'installable': True,
     'application': False,

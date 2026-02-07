@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from odoo import models
+from odoo import models,fields
 
 class SaleOrder(models.Model):
     _name = 'sale.order'
@@ -28,3 +28,16 @@ class PosCategory(models.Model):
 # class SaleSubscription(models.Model):
 #     _name = 'sale.subscription'
 #     _inherit = ['sale.subscription', 'webhook.mixin']
+
+class WebhookLog(models.Model):
+    _name = "webhook.log"
+    _description = "Historique des Webhooks"
+    _order = "create_date desc"
+
+    name = fields.Char("ID Événement")
+    model_name = fields.Char("Modèle Odoo")
+    res_id = fields.Integer("ID Enregistrement")
+    status_code = fields.Char("Code HTTP")
+    success = fields.Boolean("Succès")
+    request_payload = fields.Text("Payload Envoyé")
+    response_body = fields.Text("Réponse API")
