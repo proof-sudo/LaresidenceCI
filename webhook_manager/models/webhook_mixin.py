@@ -74,8 +74,8 @@ class PosCategoryWebhook(models.Model):
 class SaleOrderWebhook(models.Model):
     _inherit = ["sale.order", "webhook.mixin"]
 
-class SaleSubscriptionWebhook(models.Model):
-    _inherit = ["sale.subscription", "webhook.mixin"]
+# class SaleSubscriptionWebhook(models.Model):
+#     _inherit = ["sale.subscription", "webhook.mixin"]
 
 class ResidenceReservationWebhook(models.Model):
     _inherit = ["residence.reservation", "webhook.mixin"]
