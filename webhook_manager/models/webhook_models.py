@@ -10,9 +10,9 @@ class ProductProductWebhook(models.Model):
     _inherit = ["product.product", "webhook.mixin"]
 
 
-class SaleOrderWebhook(models.Model):
-    """Ajoute le webhook mixin au modèle sale.order"""
-    _inherit = ["sale.order", "webhook.mixin"]
+# class SaleOrderWebhook(models.Model):
+#     """Ajoute le webhook mixin au modèle sale.order"""
+#     _inherit = ["sale.order", "webhook.mixin"]
 
 
 class ProductCategoryWebhook(models.Model):
