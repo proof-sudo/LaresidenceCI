@@ -10,7 +10,7 @@ class ResPartner(models.Model):
     _inherit = ['res.partner', 'webhook.mixin']
 
 class ProductProduct(models.Model):
-    _name = 'product.product'
+    _name = 'product.template'
     _inherit = ['product.template', 'webhook.mixin']
 
 class StockPicking(models.Model):
