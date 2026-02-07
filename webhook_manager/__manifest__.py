@@ -1,18 +1,33 @@
+# -*- coding: utf-8 -*-
 {
-    "name": "Webhook Manager",
-    "version": "1.2",
-    "summary": "Gestion de webhooks pour envoyer les datas CRUD à une API externe",
-    "author": "Votre Nom",
-    "category": "Tools",
-    "depends": [
-        "base", "sale", "product", "pos_sale", "sale_subscription"
+    'name': 'Webhook System',
+    'version': '19.0.1',
+    'category': 'Technical',
+    'summary': 'Système de webhooks CRUD pour Odoo',
+    'description': """
+        Système de webhooks pour envoyer des notifications HTTP
+        lors des opérations CRUD sur les modèles Odoo.
+        
+        Fonctionnalités:
+        - Configuration des webhooks par modèle
+        - Suivi des champs modifiés
+        - Support des relations Many2many
+        - Authentification API
+    """,
+    'author': 'Votre Entreprise',
+    'website': 'https://www.votresite.com',
+    'license': 'LGPL-3',
+    'depends': [
+        'base',
+        'product',
+        'sale_management',
+        'point_of_sale',
     ],
-    "data": [
-        "security/ir.model.access.csv",
-        "views/webhook_views.xml",
-        "data/webhook_demo.xml"
+    'data': [
+        'security/ir.model.access.csv',
+        'views/webhook_config_views.xml',
     ],
-    "installable": True,
-    "application": False,
-    "post_init_hook": "post_init_hook"
+    'installable': True,
+    'application': False,
+    'auto_install': False,
 }

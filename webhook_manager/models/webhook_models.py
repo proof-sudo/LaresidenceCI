@@ -1,45 +1,50 @@
-from odoo import models,api
+# -*- coding: utf-8 -*-
+from odoo import models
 import logging
 
 _logger = logging.getLogger(__name__)
-# Modèles simples – pas de conflit Many2many
+
+
 class ProductProductWebhook(models.Model):
+    """Ajoute le webhook mixin au modèle product.product"""
     _inherit = ["product.product", "webhook.mixin"]
 
-class SaleOrderWebhookProxy(models.Model):
-    _name = "sale.order.webhook.proxy"
-    _inherit = "sale.order"
-    _description = "Proxy pour webhooks Sale Order"
 
-    @api.model
-    def create(self, vals):
-        record = super().create(vals)
-        _logger.info(f"[Webhook Proxy] Sale Order create: {vals}")
-        self.env['webhook.mixin']._send_webhook(record, "create", record.read()[0])
-        return record
+class SaleOrderWebhook(models.Model):
+    """Ajoute le webhook mixin au modèle sale.order"""
+    _inherit = ["sale.order", "webhook.mixin"]
 
-    def write(self, vals):
-        res = super().write(vals)
-        for rec in self:
-            _logger.info(f"[Webhook Proxy] Sale Order write: {vals}")
-            self.env['webhook.mixin']._send_webhook(rec, "write", rec.read()[0], changed_fields=vals)
-        return res
 
-    def unlink(self):
-        for rec in self:
-            _logger.info(f"[Webhook Proxy] Sale Order unlink")
-            self.env['webhook.mixin']._send_webhook(rec, "unlink", rec.read()[0])
-        return super().unlink()
+class ProductCategoryWebhook(models.Model):
+    """Ajoute le webhook mixin au modèle product.category"""
+    _inherit = ["product.category", "webhook.mixin"]
 
-# POS Category
-class PosCategoryWebhookProxy(models.Model):
-    _name = "pos.category.webhook.proxy"
-    _inherit = "pos.category"
-    _description = "Proxy pour envoyer webhook POS Category"
 
-    def write(self, vals):
-        res = super().write(vals)
-        for rec in self:
-            _logger.info(f"[Webhook Proxy] POS Category write: {vals}")
-            self.env['webhook.mixin']._send_webhook(rec, "write", rec.read()[0], changed_fields=vals)
-        return res
+class PosCategoryWebhook(models.Model):
+    """Ajoute le webhook mixin au modèle pos.category"""
+    _inherit = ["pos.category", "webhook.mixin"]
+
+
+class ResPartnerWebhook(models.Model):
+    """Ajoute le webhook mixin au modèle res.partner"""
+    _inherit = ["res.partner", "webhook.mixin"]
+
+
+class StockPickingWebhook(models.Model):
+    """Ajoute le webhook mixin au modèle stock.picking"""
+    _inherit = ["stock.picking", "webhook.mixin"]
+
+
+class AccountMoveWebhook(models.Model):
+    """Ajoute le webhook mixin au modèle account.move (factures)"""
+    _inherit = ["account.move", "webhook.mixin"]
+
+
+class SaleOrderLineWebhook(models.Model):
+    """Ajoute le webhook mixin au modèle sale.order.line"""
+    _inherit = ["sale.order.line", "webhook.mixin"]
+
+
+# Si vous avez besoin d'ajouter d'autres modèles, suivez le même pattern :
+# class VotreModeleWebhook(models.Model):
+#     _inherit = ["votre.modele", "webhook.mixin"]

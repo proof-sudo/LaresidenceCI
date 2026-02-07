@@ -1,46 +1,156 @@
+<?xml version="1.0" encoding="utf-8"?>
 <odoo>
-    <record id="action_webhook_config" model="ir.actions.act_window">
-        <field name="name">Webhooks</field>
-        <field name="res_model">webhook.config</field>
-        <field name="view_mode">list,form</field>
-        <field name="help" type="html">
-            <p class="oe_view_nocontent_create">
-                Cliquez sur "Créer" pour ajouter un nouveau webhook.
-            </p>
-        </field>
-    </record>
-
-    <menuitem id="menu_webhook_root" name="Webhooks" sequence="10"/>
-    <menuitem id="menu_webhook_config" name="Configuration"
-              parent="menu_webhook_root" action="action_webhook_config" sequence="10"/>
-
-    <record id="view_webhook_config_tree" model="ir.ui.view">
+    <!-- Vue list -->
+    <record id="view_webhook_config_list" model="ir.ui.view">
         <field name="name">webhook.config.list</field>
         <field name="model">webhook.config</field>
         <field name="arch" type="xml">
             <list string="Webhooks">
+                <field name="sequence" widget="handle"/>
+                <field name="active" widget="boolean_toggle"/>
                 <field name="name"/>
                 <field name="model_id"/>
                 <field name="url"/>
-                <field name="api_key"/>
+                <field name="listen_create" widget="boolean_toggle"/>
+                <field name="listen_write" widget="boolean_toggle"/>
+                <field name="listen_unlink" widget="boolean_toggle"/>
             </list>
         </field>
     </record>
 
+    <!-- Vue Form -->
     <record id="view_webhook_config_form" model="ir.ui.view">
         <field name="name">webhook.config.form</field>
         <field name="model">webhook.config</field>
         <field name="arch" type="xml">
-            <form string="Webhook Configuration">
+            <form string="Configuration Webhook">
                 <sheet>
+                    <div class="oe_button_box" name="button_box">
+                        <widget name="web_ribbon" title="Archivé" bg_color="text-bg-danger" invisible="active"/>
+                    </div>
+                    
                     <group>
-                        <field name="name"/>
-                        <field name="model_id"/>
-                        <field name="url"/>
-                        <field name="api_key"/>
+                        <group>
+                            <field name="active" invisible="1"/>
+                            <field name="name" placeholder="ex: Webhook Produits vers API externe"/>
+                            <field name="model_id" options="{'no_create': True, 'no_open': True}"/>
+                            <field name="sequence"/>
+                        </group>
+                        <group>
+                            <field name="url" placeholder="https://api.exemple.com/webhook"/>
+                            <field name="api_key" password="True" placeholder="Clé Bearer (optionnel)"/>
+                            <field name="timeout"/>
+                        </group>
                     </group>
+                    
+                    <group string="Événements à écouter">
+                        <group>
+                            <field name="listen_create"/>
+                            <field name="listen_write"/>
+                        </group>
+                        <group>
+                            <field name="listen_unlink"/>
+                        </group>
+                    </group>
+                    
+                    <notebook>
+                        <page string="Documentation">
+                            <group>
+                                <div class="alert alert-info" role="alert">
+                                    <h4>Format du webhook envoyé:</h4>
+                                    <pre>{
+    "event": "create|write|unlink",
+    "model": "nom.du.modele",
+    "timestamp": "2024-02-07T10:30:00",
+    "data": {
+        "id": 123,
+        "name": "...",
+        ...
+    },
+    "changed_fields": {  // Uniquement pour 'write'
+        "field_name": {
+            "value": "nouvelle_valeur",
+            "type": "char"
+        },
+        "many2one_field": {
+            "old": 5,
+            "new": 10,
+            "type": "many2one"
+        },
+        "many2many_field": {
+            "old": [1, 2, 3],
+            "new": [1, 2, 3, 4],
+            "type": "many2many"
+        }
+    },
+    "webhook_config": {
+        "id": 1,
+        "name": "Mon Webhook"
+    }
+}</pre>
+                                    <h4>Headers HTTP envoyés:</h4>
+                                    <pre>Content-Type: application/json
+Authorization: Bearer VOTRE_CLE_API  // Si configurée</pre>
+                                </div>
+                            </group>
+                        </page>
+                    </notebook>
                 </sheet>
             </form>
         </field>
     </record>
+
+    <!-- Vue Search -->
+    <!-- <record id="view_webhook_config_search" model="ir.ui.view">
+        <field name="name">webhook.config.search</field>
+        <field name="model">webhook.config</field>
+        <field name="arch" type="xml">
+            <search string="Rechercher Webhooks">
+                <field name="name"/>
+                <field name="model_id"/>
+                <field name="url"/>
+                <filter string="Actifs" name="active" domain="[('active', '=', True)]"/>
+                <filter string="Inactifs" name="inactive" domain="[('active', '=', False)]"/>
+                <separator/>
+                <filter string="Écoute CREATE" name="listen_create" domain="[('listen_create', '=', True)]"/>
+                <filter string="Écoute WRITE" name="listen_write" domain="[('listen_write', '=', True)]"/>
+                <filter string="Écoute UNLINK" name="listen_unlink" domain="[('listen_unlink', '=', True)]"/>
+                <group expand="0" string="Grouper par">
+                    <filter string="Modèle" name="group_model" context="{'group_by': 'model_id'}"/>
+                    <filter string="Actif" name="group_active" context="{'group_by': 'active'}"/>
+                </group>
+            </search>
+        </field>
+    </record> -->
+
+    <!-- Action -->
+    <record id="action_webhook_config" model="ir.actions.act_window">
+        <field name="name">Configuration Webhooks</field>
+        <field name="res_model">webhook.config</field>
+        <field name="view_mode">list,form</field>
+        <field name="context">{'search_default_active': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Créer votre premier webhook
+            </p>
+            <p>
+                Les webhooks permettent d'envoyer automatiquement des notifications HTTP
+                lors des opérations de création, modification ou suppression sur vos modèles Odoo.
+            </p>
+        </field>
+    </record>
+
+    <!-- Menu -->
+    <menuitem id="menu_webhook_root"
+              name="Webhooks"
+              sequence="100"
+              web_icon="webhook,static/description/icon.png"
+              groups="base.group_system"/>
+    
+    <menuitem id="menu_webhook_config"
+              name="Configuration"
+              parent="menu_webhook_root"
+              action="action_webhook_config"
+              sequence="10"/>
+
 </odoo>
