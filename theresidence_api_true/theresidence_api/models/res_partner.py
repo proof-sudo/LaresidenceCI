@@ -112,13 +112,13 @@ class ResPartner(models.Model):
                 if 'image_1920' in vals or 'image_128' in vals:
                     changed_fields.append('image')
                 
-                if changed_fields and 'x_tr_membership_type_id' not in vals:
-                    self.env['theresidence.webhook.service'].trigger_event(
-                        internal_event='MEMBER_UPDATED',
-                        entity_type='member',
-                        entity_id=partner.x_tr_uuid,
-                        data={**partner.to_member_api_dict(), 'changedFields': changed_fields},
-                    )
+                # if changed_fields and 'x_tr_membership_type_id' not in vals:
+                #     self.env['theresidence.webhook.service'].trigger_event(
+                #         internal_event='MEMBER_UPDATED',
+                #         entity_type='member',
+                #         entity_id=partner.x_tr_uuid,
+                #         data={**partner.to_member_api_dict(), 'changedFields': changed_fields},
+                #     )
         
         return result
 
