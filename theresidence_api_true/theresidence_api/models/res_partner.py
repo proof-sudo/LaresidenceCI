@@ -135,14 +135,7 @@ class ResPartner(models.Model):
         
         result = super().unlink()
         
-        # WEBHOOK: Suppression de membre
-        for data in member_data:
-            self.env['theresidence.webhook.service'].trigger_event(
-                internal_event='MEMBER_DELETED',
-                entity_type='member',
-                entity_id=data['uuid'],
-                data={'id': data['uuid'], 'name': data['name'], 'email': data['email']},
-            )
+
         
         return result
 
