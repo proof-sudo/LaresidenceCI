@@ -74,7 +74,10 @@ class PosOrder(models.Model):
         session = self.env['pos.session'].search([('state', '=', 'opened')], limit=1)
         if not session:
             raise ValidationError(_("Aucune session POS active."))
-        
+        amount_total = sum(
+    item.get('quantity', 1) * item.get('unitPrice', 0)
+    for item in data.get('items', [])
+)
         order = self.create({
                 'session_id': session.id,
                 'partner_id': member.id if member else False,
@@ -84,7 +87,7 @@ class PosOrder(models.Model):
                 'x_tr_delivery_address': data.get('deliveryAddress', ''),
                 'x_tr_member_id': member.id if member else False,
                 'amount_tax': 0.0,
-                'amount_total': 0.0,
+                'amount_total': amount_total,
                 'amount_paid': 0.0,
                 'amount_return': 0.0,
             })
