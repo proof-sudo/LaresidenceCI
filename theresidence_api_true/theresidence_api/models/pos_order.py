@@ -91,7 +91,7 @@ class PosOrder(models.Model):
                 'amount_paid': 0.0,
                 'amount_return': 0.0,
             })
-        order._compute_prices()
+        
 
         
         for item in data.get('items', []):
@@ -105,7 +105,7 @@ class PosOrder(models.Model):
                     'price_subtotal': item.get('quantity', 1) * item.get('unitPrice', product.lst_price),
                     'price_subtotal_incl': item.get('quantity', 1) * item.get('unitPrice', product.lst_price),
                 })
-        
+        order._compute_prices()
         self.env['theresidence.webhook'].trigger_event(
             'ORDER_CREATED', 'order', order.x_tr_uuid,
             order.to_order_api_dict(), None, 'PENDING'
