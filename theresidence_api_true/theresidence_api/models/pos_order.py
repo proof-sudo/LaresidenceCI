@@ -97,6 +97,9 @@ class PosOrder(models.Model):
         for item in data.get('items', []):
             product = self.env['product.product'].browse(int(item['menuItemId']))
             if product.exists():
+                taxes = product.taxes_id.filtered(
+            lambda t: t.company_id.id == self.env.company.id
+        )
                 self.env['pos.order.line'].create({
                     'order_id': order.id,
                     'product_id': product.id,
@@ -104,6 +107,8 @@ class PosOrder(models.Model):
                     'price_unit': item.get('unitPrice', product.lst_price),
                     'price_subtotal': item.get('quantity', 1) * item.get('unitPrice', product.lst_price),
                     'price_subtotal_incl': item.get('quantity', 1) * item.get('unitPrice', product.lst_price),
+                    'tax_ids': [(6, 0, taxes.ids)],
+                    'product_uom_id': product.uom_id.id,
                 })
         order._compute_prices()
         self.env['theresidence.webhook'].trigger_event(
