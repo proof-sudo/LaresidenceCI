@@ -232,7 +232,7 @@ class ResPartner(models.Model):
                         'product_id': subscription_product.id,
                         'name': subscription_product.name,
                         'product_uom_qty': 1,
-                        'product_uom_id': subscription_product.uom_id.id,  # Changé de product_uom à product_uom_id
+                        # 'product_uom_id': subscription_product.uom_id.id,  # Changé de product_uom à product_uom_id
                         'price_unit': subscription_product.list_price,
                     })],
                 }
