@@ -95,7 +95,7 @@ class PosOrder(models.Model):
                     'price_unit': item.get('unitPrice', product.lst_price),
                     'price_subtotal': item.get('quantity', 1) * item.get('unitPrice', product.lst_price),
                     'price_subtotal_incl': item.get('quantity', 1) * item.get('unitPrice', product.lst_price),
-                    'amount_tax':0,
+                    'amount_tax': 0.0,
                 })
         
         self.env['theresidence.webhook'].trigger_event(
