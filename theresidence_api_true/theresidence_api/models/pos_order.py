@@ -76,14 +76,20 @@ class PosOrder(models.Model):
             raise ValidationError(_("Aucune session POS active."))
         
         order = self.create({
-            'session_id': session.id,
-            'partner_id': member.id if member else False,
-            'x_tr_is_mobile_order': True,
-            'x_tr_order_status': 'PENDING',
-            'x_tr_order_mode': data.get('mode', 'PICKUP'),
-            'x_tr_delivery_address': data.get('deliveryAddress', ''),
-            'x_tr_member_id': member.id if member else False,
-        })
+                'session_id': session.id,
+                'partner_id': member.id if member else False,
+                'x_tr_is_mobile_order': True,
+                'x_tr_order_status': 'PENDING',
+                'x_tr_order_mode': data.get('mode', 'PICKUP'),
+                'x_tr_delivery_address': data.get('deliveryAddress', ''),
+                'x_tr_member_id': member.id if member else False,
+                'amount_tax': 0.0,
+                'amount_total': 0.0,
+                'amount_paid': 0.0,
+                'amount_return': 0.0,
+            })
+        order._compute_prices()
+
         
         for item in data.get('items', []):
             product = self.env['product.product'].browse(int(item['menuItemId']))
@@ -95,7 +101,6 @@ class PosOrder(models.Model):
                     'price_unit': item.get('unitPrice', product.lst_price),
                     'price_subtotal': item.get('quantity', 1) * item.get('unitPrice', product.lst_price),
                     'price_subtotal_incl': item.get('quantity', 1) * item.get('unitPrice', product.lst_price),
-                    'amount_tax': 0.0,
                 })
         
         self.env['theresidence.webhook'].trigger_event(
