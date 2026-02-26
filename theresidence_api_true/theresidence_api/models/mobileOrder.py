@@ -77,6 +77,7 @@ class MobileOrder(models.Model):
        index=True,
        tracking=True
     )
+    x_tr_is_mobile_order = fields.Boolean(string='Commande mobile TR', default=True)
 
     rejection_reason = fields.Text(string="Motif de rejet")
 
