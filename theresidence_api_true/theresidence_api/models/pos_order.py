@@ -11,13 +11,20 @@ class PosOrder(models.Model):
     x_tr_uuid = fields.Char(string='UUID TR', copy=False, readonly=True, index=True)
     x_tr_is_mobile_order = fields.Boolean(string='Commande mobile TR', default=False)
     x_tr_order_status = fields.Selection([
-        ('PENDING', 'En attente'),
-        ('CONFIRMED', 'Confirmée'),
-        ('READY', 'Prête'),
-        ('COMPLETED', 'Terminée'),
-        ('CANCELLED', 'Annulée'),
-        ('PAID', 'Payée'),
-    ], string='Statut', default='PENDING')
+        ('PENDING',     'En attente'),
+        ('CONFIRMED',   'Confirmée'),
+        ('SENT_TO_POS', 'Envoyée au POS'),
+        ('REJECTED',    'Rejetée'),
+        ('PAID',        'Payée'),
+        ('COMPLETED',   'Terminée'),
+    ], string="Statut commande mobile",
+       default='PENDING',
+       required=True,
+       index=True,
+       tracking=True,
+       compute='_compute_status_from_pos',
+       store=True,
+    )
     x_tr_order_mode = fields.Selection([
         ('PICKUP', 'Retrait'),
         ('DELIVERY', 'Livraison'),
@@ -26,6 +33,21 @@ class PosOrder(models.Model):
     x_tr_delivery_address = fields.Text(string='Adresse livraison')
     x_tr_qr_token = fields.Char(string='Token QR', copy=False)
     x_tr_member_id = fields.Many2one('res.partner', string='Membre', domain=[('x_tr_is_member', '=', True)])
+    
+    
+    @api.depends('state')
+    def _compute_status_from_pos(self):
+        mapping = {
+            'draft': 'CONFIRMED',
+            'paid': 'PAID',
+            'done': 'COMPLETED',
+            'cancel': 'REJECTED'
+        }
+        for order in self:
+            if order.pos_order_id:
+                order.x_tr_order_status = mapping.get(order.state, 'PENDING')
+            else:
+                order.x_tr_order_status = 'PENDING'
 
     @api.model_create_multi
     def create(self, vals_list):

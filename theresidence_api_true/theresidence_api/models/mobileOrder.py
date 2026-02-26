@@ -72,12 +72,14 @@ class MobileOrder(models.Model):
         ('SENT_TO_POS', 'Envoyée au POS'),
         ('REJECTED',    'Rejetée'),
         ('PAID',        'Payée'),
-        ('done',        'Terminée'),
+        ('COMPLETED',   'Terminée'),
     ], string="Statut commande mobile",
        default='PENDING',
        required=True,
        index=True,
-       tracking=True
+       tracking=True,
+       compute='_compute_status_from_pos',
+       store=True,
     )
     x_tr_is_mobile_order = fields.Boolean(string='Commande mobile TR', default=True)
 
