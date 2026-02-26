@@ -44,10 +44,7 @@ class PosOrder(models.Model):
             'cancel': 'REJECTED'
         }
         for order in self:
-            if order.pos_order_id:
-                order.x_tr_order_status = mapping.get(order.state, 'PENDING')
-            else:
-                order.x_tr_order_status = 'PENDING'
+            order.x_tr_order_status = mapping.get(order.state, 'PENDING')
 
     @api.model_create_multi
     def create(self, vals_list):
