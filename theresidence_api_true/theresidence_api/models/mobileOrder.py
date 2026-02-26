@@ -1,58 +1,262 @@
-from odoo import models, fields, api
+from odoo import models, fields, api, _
 from odoo.exceptions import ValidationError
+import uuid
+import logging
+
+_logger = logging.getLogger(__name__)
+
 
 class MobileOrder(models.Model):
     _name = "mobile.order"
-    _description = "Commande Mobile"
-    _inherit = 'pos.order'  
+    _description = "Pré-commande Mobile"
+    _order = "date_order desc"
+    _rec_name = "name"
 
-    x_tr_order_status = fields.Selection(selection_add=[
-        ('SENT_TO_POS', 'Envoyée au POS')
-    ], default='PENDING', string="Statut commande mobile")
+    # ─── Identification ───────────────────────────────────────────────────────
+
+    name = fields.Char(
+        string="Référence",
+        required=True,
+        copy=False,
+        readonly=True,
+        default=lambda self: _('Nouveau')
+    )
+    x_tr_uuid = fields.Char(
+        string='UUID Mobile',
+        copy=False,
+        index=True,
+        readonly=True
+    )
+    x_tr_qr_token = fields.Char(
+        string='Token QR',
+        copy=False,
+        readonly=True
+    )
+
+    # ─── Client & Membre ──────────────────────────────────────────────────────
+
+    partner_id = fields.Many2one('res.partner', string="Client")
+    x_tr_member_id = fields.Many2one(
+        'res.partner',
+        string='Membre',
+        domain=[('x_tr_is_member', '=', True)]
+    )
+
+    # ─── Commande ─────────────────────────────────────────────────────────────
+
+    date_order = fields.Datetime(
+        string="Date commande",
+        default=fields.Datetime.now,
+        required=True
+    )
+    x_tr_order_mode = fields.Selection([
+        ('PICKUP',   'Retrait'),
+        ('DELIVERY', 'Livraison'),
+        ('DINE_IN',  'Sur place'),
+    ], string='Mode', default='PICKUP', required=True)
+    x_tr_delivery_address = fields.Text(string='Adresse de livraison')
+    note = fields.Text(string="Notes")
+
+    lines = fields.One2many(
+        'mobile.order.line',
+        'mobile_order_id',
+        string="Lignes"
+    )
+
+    # ─── Statut ───────────────────────────────────────────────────────────────
+
+    x_tr_order_status = fields.Selection([
+        ('PENDING',     'En attente'),
+        ('CONFIRMED',   'Confirmée'),
+        ('SENT_TO_POS', 'Envoyée au POS'),
+        ('REJECTED',    'Rejetée'),
+    ], string="Statut commande mobile",
+       default='PENDING',
+       required=True,
+       index=True,
+       tracking=True
+    )
+
+    rejection_reason = fields.Text(string="Motif de rejet")
+
+    # ─── Lien vers la pos.order créée ─────────────────────────────────────────
+
+    pos_order_id = fields.Many2one(
+        'pos.order',
+        string="Commande POS",
+        readonly=True,
+        copy=False,
+        ondelete='set null'
+    )
+    pos_order_status = fields.Selection(
+        related='pos_order_id.x_tr_order_status',
+        string="Statut POS",
+        readonly=True
+    )
+
+    # ─── Montants calculés ────────────────────────────────────────────────────
+
+    amount_total = fields.Float(
+        compute='_compute_amounts',
+        store=True,
+        string="Total TTC"
+    )
+    amount_tax = fields.Float(
+        compute='_compute_amounts',
+        store=True,
+        string="Taxes"
+    )
+
+    @api.depends('lines.price_subtotal_incl', 'lines.price_subtotal')
+    def _compute_amounts(self):
+        for order in self:
+            order.amount_total = sum(order.lines.mapped('price_subtotal_incl'))
+            order.amount_tax = order.amount_total - sum(
+                order.lines.mapped('price_subtotal')
+            )
+
+    # ─── Create ───────────────────────────────────────────────────────────────
+
+    @api.model_create_multi
+    def create(self, vals_list):
+        for vals in vals_list:
+            if vals.get('name', _('Nouveau')) == _('Nouveau'):
+                vals['name'] = (
+                    self.env['ir.sequence'].next_by_code('mobile.order')
+                    or _('Nouveau')
+                )
+            if not vals.get('x_tr_uuid'):
+                vals['x_tr_uuid'] = str(uuid.uuid4())
+            if not vals.get('x_tr_qr_token'):
+                vals['x_tr_qr_token'] = f"mob-{uuid.uuid4().hex[:12]}"
+        return super().create(vals_list)
+
+    # ─── Workflow ─────────────────────────────────────────────────────────────
 
     def action_validate(self):
+        """PENDING → CONFIRMED : validation humaine."""
         for order in self:
             if order.x_tr_order_status != 'PENDING':
-                raise ValidationError("Seules les commandes PENDING peuvent être validées.")
+                raise ValidationError(
+                    _("Seules les commandes PENDING peuvent être validées.")
+                )
             order.x_tr_order_status = 'CONFIRMED'
-
+            _logger.info("MobileOrder %s confirmée.", order.name)
 
     def action_send_to_pos(self):
-        PosOrder = self.env['pos.order']
+        """CONFIRMED → SENT_TO_POS : crée la vraie pos.order."""
         for order in self:
             if order.x_tr_order_status != 'CONFIRMED':
-                raise ValidationError("Seules les commandes CONFIRME peuvent être envoyées au POS.")
+                raise ValidationError(
+                    _("Seules les commandes CONFIRMÉES peuvent être envoyées au POS.")
+                )
+            if order.pos_order_id:
+                raise ValidationError(
+                    _("Cette commande est déjà dans le POS (%s).")
+                    % order.pos_order_id.name
+                )
+
             pos_vals = order._prepare_pos_order_valeur()
-            PosOrder.create(pos_vals)
-            order.x_tr_order_status = 'SENT_TO_POS'
+            pos_order = self.env['pos.order'].create_order_from_api(pos_vals)
+
+            # Reprend l'UUID et QR token de la pré-commande pour cohérence mobile
+            pos_order.write({
+                'x_tr_uuid':     order.x_tr_uuid,
+                'x_tr_qr_token': order.x_tr_qr_token,
+            })
+
+            order.write({
+                'x_tr_order_status': 'SENT_TO_POS',
+                'pos_order_id':      pos_order.id,
+            })
+
+            _logger.info(
+                "MobileOrder %s → POS %s créée avec succès.",
+                order.name, pos_order.name
+            )
 
     def _prepare_pos_order_valeur(self):
-        lines = [(0, 0, {
-            'product_id': line.product_id.id,
-            'qty': line.qty,
-            'price_unit': line.price_unit,
-            'discount': line.discount,
-            'tax_ids': [(6, 0, line.tax_ids.ids)],
-        }) for line in self.lines]
+        """
+        Formate les données au format attendu par create_order_from_api().
+        La session est vérifiée ici pour un message d'erreur explicite.
+        """
+        self.ensure_one()
 
-        vals = {
-            'partner_id': self.partner_id.id,
-            'date_order': self.date_order,
-            'lines': lines,
-            'session_id': self.session_id.id or self.env['pos.session'].search([], limit=1).id,
-            'note': self.note or '',
-            'x_tr_order_mode': self.x_tr_order_mode or 'PICKUP',
-            'x_tr_order_status': 'PENDING',  # POS aura son statut initial
-            'x_tr_member_id': self.x_tr_member_id.id if self.x_tr_member_id else False,
-            'x_tr_uuid': self.x_tr_uuid or '',
-            'x_tr_qr_token': self.x_tr_qr_token or '',
-            'amount_total': self.amount_total,
-            'amount_tax': self.amount_tax,
+        session = self.env['pos.session'].search(
+            [('state', '=', 'opened')], limit=1
+        )
+        if not session:
+            raise ValidationError(
+                _("Aucune session POS ouverte. Veuillez ouvrir une session avant d'envoyer la commande.")
+            )
+
+        member = self.x_tr_member_id
+        return {
+            'memberId':        member.x_tr_uuid if member else '',
+            'partnerId':       self.partner_id.id if self.partner_id else False,
+            'dateOrder':       self.date_order.isoformat() if self.date_order else False,
+            'mode':            self.x_tr_order_mode or 'PICKUP',
+            'deliveryAddress': self.x_tr_delivery_address or '',
+            'notes':           self.note or '',
+            'items': [{
+                'menuItemId': str(line.product_id.id),
+                'quantity':   line.qty,
+                'unitPrice':  line.price_unit,
+            } for line in self.lines],
         }
-        return vals
+
 
 class MobileOrderLine(models.Model):
     _name = "mobile.order.line"
-    _inherit = "pos.order.line"  # Hérite directement pour avoir tous les champs POS
+    _description = "Ligne de pré-commande mobile"
 
-    mobile_order_id = fields.Many2one('mobile.order', string="Commande Mobile", required=True)
+    mobile_order_id = fields.Many2one(
+        'mobile.order',
+        string="Commande Mobile",
+        required=True,
+        ondelete='cascade',
+        index=True
+    )
+    product_id = fields.Many2one(
+        'product.product',
+        string="Produit",
+        required=True
+    )
+    qty = fields.Float(string="Quantité", default=1.0)
+    price_unit = fields.Float(string="Prix unitaire")
+    discount = fields.Float(string="Remise (%)", default=0.0)
+    tax_ids = fields.Many2many('account.tax', string="Taxes")
+
+    price_subtotal = fields.Float(
+        compute='_compute_price',
+        store=True,
+        string="Sous-total HT"
+    )
+    price_subtotal_incl = fields.Float(
+        compute='_compute_price',
+        store=True,
+        string="Sous-total TTC"
+    )
+
+    @api.depends('qty', 'price_unit', 'discount', 'tax_ids',
+                 'mobile_order_id.x_tr_member_id')
+    def _compute_price(self):
+        for line in self:
+            price = line.price_unit * (1 - line.discount / 100.0)
+            taxes = line.tax_ids.compute_all(
+                price,
+                quantity=line.qty,
+                product=line.product_id,
+                partner=line.mobile_order_id.x_tr_member_id
+            )
+            line.price_subtotal = taxes['total_excluded']
+            line.price_subtotal_incl = taxes['total_included']
+
+    @api.onchange('product_id')
+    def _onchange_product_id(self):
+        """Pré-remplit prix et taxes depuis le produit sélectionné."""
+        if self.product_id:
+            self.price_unit = self.product_id.lst_price
+            self.tax_ids = self.product_id.taxes_id.filtered(
+                lambda t: t.company_id == self.env.company
+            )

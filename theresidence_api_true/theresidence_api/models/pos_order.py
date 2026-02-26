@@ -64,58 +64,133 @@ class PosOrder(models.Model):
             'createdAt': self.create_date.isoformat() if self.create_date else '',
             'updatedAt': self.write_date.isoformat() if self.write_date else ''
         }
-
+        
     @api.model
     def create_order_from_api(self, data):
         member = None
         if data.get('memberId'):
-            member = self.env['res.partner'].search([('x_tr_uuid', '=', data['memberId'])], limit=1)
-        
-        session = self.env['pos.session'].search([('state', '=', 'opened')], limit=1)
+            member = self.env['res.partner'].search(
+                [('x_tr_uuid', '=', data['memberId'])], limit=1
+            )
+
+        # Fallback sur partner_id direct si pas de membre UUID
+        partner_id = member.id if member else data.get('partnerId', False)
+
+        session = self.env['pos.session'].search(
+            [('state', '=', 'opened')], limit=1
+        )
         if not session:
             raise ValidationError(_("Aucune session POS active."))
-        amount_total = sum(
-    item.get('quantity', 1) * item.get('unitPrice', 0)
-    for item in data.get('items', [])
-)
-        order = self.create({
-                'session_id': session.id,
-                'partner_id': member.id if member else False,
-                'x_tr_is_mobile_order': True,
-                'x_tr_order_status': 'PENDING',
-                'x_tr_order_mode': data.get('mode', 'PICKUP'),
-                'x_tr_delivery_address': data.get('deliveryAddress', ''),
-                'x_tr_member_id': member.id if member else False,
-                'amount_tax': 0.0,
-                'amount_total': amount_total,
-                'amount_paid': 0.0,
-                'amount_return': 0.0,
-            })
-        
 
-        
+        amount_total = sum(
+            item.get('quantity', 1) * item.get('unitPrice', 0)
+            for item in data.get('items', [])
+        )
+
+        order = self.create({
+            'session_id':             session.id,
+            'partner_id':             partner_id,              # ✅ corrigé
+            'date_order':             data.get('dateOrder') or fields.Datetime.now(),  # ✅ ajouté
+            'x_tr_is_mobile_order':   True,
+            'x_tr_order_status':      'PENDING',
+            'x_tr_order_mode':        data.get('mode', 'PICKUP'),
+            'x_tr_delivery_address':  data.get('deliveryAddress', ''),
+            'x_tr_member_id':         member.id if member else False,
+            'note':                   data.get('notes', ''),   # ✅ ajouté
+            'amount_tax':             0.0,
+            'amount_total':           amount_total,
+            'amount_paid':            0.0,
+            'amount_return':          0.0,
+        })
+
         for item in data.get('items', []):
             product = self.env['product.product'].browse(int(item['menuItemId']))
-            if product.exists():
-                taxes = product.taxes_id.filtered(
-            lambda t: t.company_id.id == self.env.company.id
-        )
-                self.env['pos.order.line'].create({
-                    'order_id': order.id,
-                    'product_id': product.id,
-                    'qty': item.get('quantity', 1),
-                    'price_unit': item.get('unitPrice', product.lst_price),
-                    'price_subtotal': item.get('quantity', 1) * item.get('unitPrice', product.lst_price),
-                    'price_subtotal_incl': item.get('quantity', 1) * item.get('unitPrice', product.lst_price),
-                    'tax_ids': [(6, 0, taxes.ids)],
-                    'product_uom_id': product.uom_id.id,
-                })
+            if not product.exists():
+                continue
+
+            qty        = item.get('quantity', 1)
+            price_unit = item.get('unitPrice', product.lst_price)
+            taxes      = product.taxes_id.filtered(
+                lambda t: t.company_id.id == self.env.company.id
+            )
+
+            # ✅ Calcul correct avec taxes
+            tax_result = taxes.compute_all(
+                price_unit,
+                quantity=qty,
+                product=product,
+                partner=order.partner_id
+            )
+
+            self.env['pos.order.line'].create({
+                'order_id':          order.id,
+                'product_id':        product.id,
+                'qty':               qty,
+                'price_unit':        price_unit,
+                'price_subtotal':     tax_result['total_excluded'],  # ✅ HT réel
+                'price_subtotal_incl': tax_result['total_included'], # ✅ TTC réel
+                'tax_ids':           [(6, 0, taxes.ids)],
+                'product_uom_id':    product.uom_id.id,
+            })
+
         order._compute_prices()
         self.env['theresidence.webhook'].trigger_event(
             'ORDER_CREATED', 'order', order.x_tr_uuid,
             order.to_order_api_dict(), None, 'PENDING'
         )
         return order
+
+#     @api.model
+#     def create_order_from_api(self, data):
+#         member = None
+#         if data.get('memberId'):
+#             member = self.env['res.partner'].search([('x_tr_uuid', '=', data['memberId'])], limit=1)
+        
+#         session = self.env['pos.session'].search([('state', '=', 'opened')], limit=1)
+#         if not session:
+#             raise ValidationError(_("Aucune session POS active."))
+#         amount_total = sum(
+#     item.get('quantity', 1) * item.get('unitPrice', 0)
+#     for item in data.get('items', [])
+# )
+#         order = self.create({
+#                 'session_id': session.id,
+#                 'partner_id': member.id if member else False,
+#                 'x_tr_is_mobile_order': True,
+#                 'x_tr_order_status': 'PENDING',
+#                 'x_tr_order_mode': data.get('mode', 'PICKUP'),
+#                 'x_tr_delivery_address': data.get('deliveryAddress', ''),
+#                 'x_tr_member_id': member.id if member else False,
+#                 'amount_tax': 0.0,
+#                 'amount_total': amount_total,
+#                 'amount_paid': 0.0,
+#                 'amount_return': 0.0,
+#             })
+        
+
+        
+#         for item in data.get('items', []):
+#             product = self.env['product.product'].browse(int(item['menuItemId']))
+#             if product.exists():
+#                 taxes = product.taxes_id.filtered(
+#             lambda t: t.company_id.id == self.env.company.id
+#         )
+#                 self.env['pos.order.line'].create({
+#                     'order_id': order.id,
+#                     'product_id': product.id,
+#                     'qty': item.get('quantity', 1),
+#                     'price_unit': item.get('unitPrice', product.lst_price),
+#                     'price_subtotal': item.get('quantity', 1) * item.get('unitPrice', product.lst_price),
+#                     'price_subtotal_incl': item.get('quantity', 1) * item.get('unitPrice', product.lst_price),
+#                     'tax_ids': [(6, 0, taxes.ids)],
+#                     'product_uom_id': product.uom_id.id,
+#                 })
+#         order._compute_prices()
+#         self.env['theresidence.webhook'].trigger_event(
+#             'ORDER_CREATED', 'order', order.x_tr_uuid,
+#             order.to_order_api_dict(), None, 'PENDING'
+#         )
+#         return order
 
     def action_confirm_order(self):
         for order in self:
