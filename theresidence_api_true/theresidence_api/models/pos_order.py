@@ -60,7 +60,7 @@ class PosOrder(models.Model):
             'qrToken': self.x_tr_qr_token or '',
             'deliveryAddress': self.x_tr_delivery_address or '',
             'items': items,
-            'notes': self.note or '',
+            'internal_note': self.internal_note or '',
             'createdAt': self.create_date.isoformat() if self.create_date else '',
             'updatedAt': self.write_date.isoformat() if self.write_date else ''
         }
