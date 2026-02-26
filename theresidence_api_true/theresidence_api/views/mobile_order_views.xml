@@ -280,19 +280,17 @@
 
     <!-- ─── Vue Recherche ────────────────────────────────────────────────── -->
 
-    <record id="view_mobile_order_search" model="ir.ui.view">
+    <!-- <record id="view_mobile_order_search" model="ir.ui.view">
         <field name="name">mobile.order.search</field>
         <field name="model">mobile.order</field>
         <field name="arch" type="xml">
             <search string="Rechercher une pré-commande">
 
-                <!-- Champs de recherche -->
                 <field name="name" string="Référence"/>
                 <field name="partner_id" string="Client"/>
                 <field name="x_tr_member_id" string="Membre"/>
                 <field name="x_tr_uuid" string="UUID"/>
 
-                <!-- Filtres rapides -->
                 <filter name="pending"
                         string="En attente"
                         domain="[('x_tr_order_status', '=', 'PENDING')]"/>
@@ -324,7 +322,6 @@
                         string="Aujourd'hui"
                         domain="[('date_order', '>=', datetime.datetime.combine(context_today(), datetime.time(0,0,0)))]"/>
 
-                <!-- Groupements -->
                 <group expand="0" string="Grouper par">
                     <filter name="group_status"
                             string="Statut"
@@ -342,7 +339,7 @@
 
             </search>
         </field>
-    </record>
+    </record> -->
 
     <menuitem id="menu_mobile_orders"
                   name="Pré-commandes Mobiles"
