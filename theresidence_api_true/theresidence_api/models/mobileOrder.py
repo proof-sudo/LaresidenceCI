@@ -78,8 +78,8 @@ class MobileOrder(models.Model):
        required=True,
        index=True,
        tracking=True,
-       compute='_compute_status_from_pos',
-       store=True,
+     
+       
     )
     x_tr_is_mobile_order = fields.Boolean(string='Commande mobile TR', default=True)
 

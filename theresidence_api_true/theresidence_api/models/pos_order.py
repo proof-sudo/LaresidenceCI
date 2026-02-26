@@ -24,8 +24,8 @@ class PosOrder(models.Model):
        required=True,
        index=True,
        tracking=True,
-       compute='_compute_status_from_pos',
-       store=True,
+       compute='_compute_x_tr_order_status',
+     
     )
     x_tr_order_mode = fields.Selection([
         ('PICKUP', 'Retrait'),
@@ -52,19 +52,7 @@ class PosOrder(models.Model):
     # -------------------------------
     # Surcharge write pour assurer que tous changements futurs soient pris en compte
     # -------------------------------
-    def write(self, vals):
-        res = super().write(vals)
-        if 'state' in vals:
-            mapping = {
-                'draft': 'CONFIRMED',
-                'paid': 'PAID',
-                'done': 'COMPLETED',
-                'cancel': 'REJECTED'
-            }
-            for order in self:
-                order.x_tr_order_status = mapping.get(order.state, 'PENDING')
-                _logger.info(f"[WRITE DEBUG] POS {order.name} state={order.state} -> x_tr_order_status={order.x_tr_order_status}")
-        return res
+
 
     @api.model_create_multi
     def create(self, vals_list):
