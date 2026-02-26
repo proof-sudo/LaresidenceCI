@@ -204,6 +204,20 @@ class MobileOrder(models.Model):
                 'unitPrice':  line.price_unit,
             } for line in self.lines],
         }
+    def action_reject(self):
+        self.ensure_one()
+        if self.x_tr_order_status == 'SENT_TO_POS':
+            raise ValidationError(
+                _("Impossible de rejeter une commande déjà envoyée au POS.")
+            )
+        return {
+            'type':      'ir.actions.act_window',
+            'name':      'Rejeter la commande',
+            'res_model': 'mobile.order.reject.wizard',
+            'view_mode': 'form',
+            'target':    'new',
+            'context':   {'default_order_id': self.id},
+        }
 
 
 class MobileOrderLine(models.Model):

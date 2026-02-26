@@ -15,3 +15,4 @@ access_theresidence_reservation_invitee,theresidence.reservation.invitee,model_t
 access_theresidence_reservation_option,theresidence.reservation.option,model_theresidence_reservation_option,base.group_user,1,1,1,1
 access_mobile_order,mobile_order,model_mobile_order,point_of_sale.group_pos_manager,1,1,1,1
 access_mobile_order_line,mobile_order_line,model_mobile_order_line,point_of_sale.group_pos_manager,1,1,1,1
+access_wizard_reject,mobile_order_reject_wizard,model_mobile_order_reject_wizard,point_of_sale.group_pos_manager,1,1,1,0

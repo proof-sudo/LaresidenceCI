@@ -10,3 +10,4 @@ from . import sale_order
 from . import pos_order
 from  .import  pos_session
 from . import mobileOrder
+from . import wizard_reject_order

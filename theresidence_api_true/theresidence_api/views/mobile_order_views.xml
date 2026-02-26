@@ -259,6 +259,24 @@
             </form>
         </field>
     </record>
+    <record id="view_wizard_reject_order" model="ir.ui.view">
+    <field name="name">mobile.order.reject.wizard.form</field>
+    <field name="model">mobile.order.reject.wizard</field>
+    <field name="arch" type="xml">
+        <form string="Rejeter la commande">
+            <group>
+                <field name="rejection_reason" placeholder="Expliquez le motif du rejet..."/>
+            </group>
+            <footer>
+                <button name="action_confirm_reject"
+                        string="Confirmer le rejet"
+                        type="object"
+                        class="btn-danger"/>
+                <button string="Annuler" class="btn-secondary" special="cancel"/>
+            </footer>
+        </form>
+    </field>
+</record>
 
     <!-- ─── Vue Recherche ────────────────────────────────────────────────── -->
 
