@@ -96,7 +96,7 @@ class PosOrder(models.Model):
             'x_tr_order_mode':        data.get('mode', 'PICKUP'),
             'x_tr_delivery_address':  data.get('deliveryAddress', ''),
             'x_tr_member_id':         member.id if member else False,
-            'note':                   data.get('notes', ''),   # ✅ ajouté
+            'internal_note': data.get('notes', ''),   # ✅ ajouté
             'amount_tax':             0.0,
             'amount_total':           amount_total,
             'amount_paid':            0.0,
