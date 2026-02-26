@@ -22,92 +22,90 @@
 
     <!-- ─── Vue Kanban ───────────────────────────────────────────────────── -->
 
-    <record id="view_mobile_order_kanban" model="ir.ui.view">
-        <field name="name">mobile.order.kanban</field>
-        <field name="model">mobile.order</field>
-        <field name="arch" type="xml">
-            <kanban default_group_by="x_tr_order_status" quick_create="false">
-                <field name="name"/>
-                <field name="x_tr_order_status"/>
-                <field name="x_tr_order_mode"/>
-                <field name="amount_total"/>
-                <field name="partner_id"/>
-                <field name="x_tr_member_id"/>
-                <field name="pos_order_id"/>
-                <field name="pos_order_status"/>
-                <field name="date_order"/>
+ <record id="view_mobile_order_kanban" model="ir.ui.view">
+    <field name="name">mobile.order.kanban</field>
+    <field name="model">mobile.order</field>
+    <field name="arch" type="xml">
+        <kanban default_group_by="x_tr_order_status" quick_create="false">
+            <field name="name"/>
+            <field name="x_tr_order_status"/>
+            <field name="x_tr_order_mode"/>
+            <field name="amount_total"/>
+            <field name="partner_id"/>
+            <field name="x_tr_member_id"/>
+            <field name="pos_order_id"/>
+            <field name="pos_order_status"/>
+            <field name="date_order"/>
 
-                <progressbar
-                    field="x_tr_order_status"
-                    colors='{
-                        "PENDING":     "warning",
-                        "CONFIRMED":   "info",
-                        "SENT_TO_POS": "success",
-                        "REJECTED":    "danger"
-                    }'
-                />
+            <progressbar
+                field="x_tr_order_status"
+                colors='{
+                    "PENDING":     "warning",
+                    "CONFIRMED":   "info",
+                    "SENT_TO_POS": "success",
+                    "REJECTED":    "danger"
+                }'
+            />
 
-                <templates>
-                    <t t-name="kanban-card">
-                        <div class="oe_kanban_card oe_kanban_global_click">
+            <templates>
+                <t t-name="card">   <!-- ✅ corrigé -->
+                    <div class="oe_kanban_card oe_kanban_global_click">
 
-                            <!-- En-tête -->
-                            <div class="d-flex justify-content-between align-items-center mb-1">
-                                <strong class="text-truncate">
-                                    <field name="name"/>
-                                </strong>
-                                <span t-attf-class="badge rounded-pill
-                                    #{record.x_tr_order_mode.raw_value === 'DELIVERY' ? 'bg-primary' :
-                                      record.x_tr_order_mode.raw_value === 'DINE_IN'  ? 'bg-success' :
-                                      'bg-secondary'} text-white ms-1">
-                                    <field name="x_tr_order_mode"/>
-                                </span>
-                            </div>
-
-                            <!-- Client / Membre -->
-                            <div class="text-muted small mb-1">
-                                <i class="fa fa-user me-1"/>
-                                <t t-if="record.x_tr_member_id.raw_value">
-                                    <field name="x_tr_member_id"/>
-                                </t>
-                                <t t-elif="record.partner_id.raw_value">
-                                    <field name="partner_id"/>
-                                </t>
-                                <t t-else="">
-                                    <em>Anonyme</em>
-                                </t>
-                            </div>
-
-                            <!-- Date -->
-                            <div class="text-muted small mb-1">
-                                <i class="fa fa-calendar me-1"/>
-                                <field name="date_order" widget="datetime"/>
-                            </div>
-
-                            <!-- Total -->
-                            <div class="d-flex justify-content-between align-items-center mt-2">
-                                <span class="fw-bold">
-                                    <field name="amount_total" widget="monetary"/>
-                                </span>
-
-                                <!-- Statut POS si envoyée -->
-                                <t t-if="record.pos_order_id.raw_value">
-                                    <span t-attf-class="badge rounded-pill
-                                        #{record.pos_order_status.raw_value === 'COMPLETED' ? 'bg-success' :
-                                          record.pos_order_status.raw_value === 'CANCELLED' ? 'bg-danger'  :
-                                          record.pos_order_status.raw_value === 'READY'     ? 'bg-info'    :
-                                          'bg-warning'} text-white">
-                                        POS : <field name="pos_order_status"/>
-                                    </span>
-                                </t>
-                            </div>
-
+                        <!-- En-tête -->
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <strong class="text-truncate">
+                                <field name="name"/>
+                            </strong>
+                            <span t-attf-class="badge rounded-pill
+                                #{record.x_tr_order_mode.raw_value === 'DELIVERY' ? 'bg-primary' :
+                                  record.x_tr_order_mode.raw_value === 'DINE_IN'  ? 'bg-success' :
+                                  'bg-secondary'} text-white ms-1">
+                                <field name="x_tr_order_mode"/>
+                            </span>
                         </div>
-                    </t>
-                </templates>
-            </kanban>
-        </field>
-    </record>
+
+                        <!-- Client / Membre -->
+                        <div class="text-muted small mb-1">
+                            <i class="fa fa-user me-1"/>
+                            <t t-if="record.x_tr_member_id.raw_value">
+                                <field name="x_tr_member_id"/>
+                            </t>
+                            <t t-elif="record.partner_id.raw_value">
+                                <field name="partner_id"/>
+                            </t>
+                            <t t-else="">
+                                <em>Anonyme</em>
+                            </t>
+                        </div>
+
+                        <!-- Date -->
+                        <div class="text-muted small mb-1">
+                            <i class="fa fa-calendar me-1"/>
+                            <field name="date_order" widget="datetime"/>
+                        </div>
+
+                        <!-- Total + statut POS -->
+                        <div class="d-flex justify-content-between align-items-center mt-2">
+                            <span class="fw-bold">
+                                <field name="amount_total" widget="monetary"/>
+                            </span>
+                            <t t-if="record.pos_order_id.raw_value">
+                                <span t-attf-class="badge rounded-pill
+                                    #{record.pos_order_status.raw_value === 'COMPLETED' ? 'bg-success' :
+                                      record.pos_order_status.raw_value === 'CANCELLED' ? 'bg-danger'  :
+                                      record.pos_order_status.raw_value === 'READY'     ? 'bg-info'    :
+                                      'bg-warning'} text-white">
+                                    POS : <field name="pos_order_status"/>
+                                </span>
+                            </t>
+                        </div>
+
+                    </div>
+                </t>
+            </templates>
+        </kanban>
+    </field>
+</record>
 
     <!-- ─── Vue Liste ────────────────────────────────────────────────────── -->
 
