@@ -198,6 +198,7 @@ class MobileOrder(models.Model):
             'partnerId':       self.partner_id.id if self.partner_id else False,
             'dateOrder':       self.date_order.strftime('%Y-%m-%d %H:%M:%S') if self.date_order else False,
             'mode':            self.x_tr_order_mode or 'PICKUP',
+            'x_tr_is_mobile_order': True,
             'deliveryAddress': self.x_tr_delivery_address or '',
             'internal_note':           self.note or '',
             'items': [{
