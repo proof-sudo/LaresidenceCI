@@ -11,6 +11,7 @@ class MobileOrder(models.Model):
     _description = "Pré-commande Mobile"
     _order = "date_order desc"
     _rec_name = "name"
+    _inherit = ['mail.thread', 'mail.activity.mixin']
 
     # ─── Identification ───────────────────────────────────────────────────────
 
