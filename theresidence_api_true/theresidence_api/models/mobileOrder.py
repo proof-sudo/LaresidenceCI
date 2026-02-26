@@ -195,7 +195,7 @@ class MobileOrder(models.Model):
         return {
             'memberId':        member.x_tr_uuid if member else '',
             'partnerId':       self.partner_id.id if self.partner_id else False,
-            'dateOrder':       self.date_order.isoformat() if self.date_order else False,
+            'dateOrder':       self.date_order.strftime('%Y-%m-%d %H:%M:%S') if self.date_order else False,
             'mode':            self.x_tr_order_mode or 'PICKUP',
             'deliveryAddress': self.x_tr_delivery_address or '',
             'notes':           self.note or '',

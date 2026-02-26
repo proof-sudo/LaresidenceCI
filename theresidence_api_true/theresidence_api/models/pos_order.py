@@ -86,11 +86,19 @@ class PosOrder(models.Model):
             item.get('quantity', 1) * item.get('unitPrice', 0)
             for item in data.get('items', [])
         )
+        date_raw = data.get('dateOrder')
+        date_order = fields.Datetime.now()
+        if date_raw:
+            try:
+                from datetime import datetime
+                date_order = datetime.fromisoformat(date_raw).strftime('%Y-%m-%d %H:%M:%S')
+            except (ValueError, TypeError):
+                date_order = fields.Datetime.now()
 
         order = self.create({
             'session_id':             session.id,
             'partner_id':             partner_id,              # ✅ corrigé
-            'date_order':             data.get('dateOrder') or fields.Datetime.now(),  # ✅ ajouté
+            'date_order':             date_order,  # ✅ ajouté
             'x_tr_is_mobile_order':   True,
             'x_tr_order_status':      'PENDING',
             'x_tr_order_mode':        data.get('mode', 'PICKUP'),
