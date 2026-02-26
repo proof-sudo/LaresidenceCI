@@ -35,16 +35,18 @@ class PosOrder(models.Model):
     x_tr_member_id = fields.Many2one('res.partner', string='Membre', domain=[('x_tr_is_member', '=', True)])
     
     
-    @api.depends('state')
-    def _compute_status_from_pos(self):
-        mapping = {
-            'draft': 'CONFIRMED',
-            'paid': 'PAID',
-            'done': 'COMPLETED',
-            'cancel': 'REJECTED'
-        }
-        for order in self:
-            order.x_tr_order_status = mapping.get(order.state, 'PENDING')
+    def write(self, vals):
+        res = super().write(vals)
+        if 'state' in vals:
+            mapping = {
+                'draft': 'CONFIRMED',
+                'paid': 'PAID',
+                'done': 'COMPLETED',
+                'cancel': 'REJECTED'
+            }
+            for order in self:
+                order.x_tr_order_status = mapping.get(order.state, 'PENDING')
+        return res
 
     @api.model_create_multi
     def create(self, vals_list):
