@@ -170,10 +170,10 @@
                             class="btn-danger"
                             invisible="x_tr_order_status in ('SENT_TO_POS', 'REJECTED')"/>
 
-                    <button name="action_reset_to_pending"
+                    <!-- <button name="action_reset_to_pending"
                             string="Remettre en attente"
                             type="object"
-                            invisible="x_tr_order_status != 'REJECTED'"/>
+                            invisible="x_tr_order_status != 'REJECTED'"/> -->
 
                     <!-- Barre de statut -->
                     <field name="x_tr_order_status"
