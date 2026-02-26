@@ -326,17 +326,9 @@
         </field>
     </record>
 
-    <!-- ─── Menu ──────────────────────────────────────────────────────────── -->
-
-    <!-- <menuitem id="menu_mobile_orders_root"
-              name="Commandes Mobiles"
-              sequence="50"/> -->
-
     <menuitem id="menu_mobile_orders"
-              name="Pré-commandes"
-              parent="point_of_sale.menu_point_root"
-              parent="menu_mobile_orders_root"
-              action="action_mobile_order"
-              sequence="1"/>
-
+                  name="Pré-commandes Mobiles"
+                  parent="point_of_sale.menu_point_root"
+                  action="action_mobile_order"
+                  sequence="50"/>
 </odoo>
