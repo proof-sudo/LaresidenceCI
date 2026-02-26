@@ -37,6 +37,21 @@ class PosOrder(models.Model):
     x_tr_member_id = fields.Many2one('res.partner', string='Membre', domain=[('x_tr_is_member', '=', True)])
     
     
+    @api.depends('state')
+    def _compute_x_tr_order_status(self):
+        mapping = {
+            'draft': 'CONFIRMED',
+            'paid': 'PAID',
+            'done': 'COMPLETED',
+            'cancel': 'REJECTED'
+        }
+        for order in self:
+            order.x_tr_order_status = mapping.get(order.state, 'PENDING')
+            _logger.info(f"[DEBUG] POS {order.name} state={order.state} -> x_tr_order_status={order.x_tr_order_status}")
+
+    # -------------------------------
+    # Surcharge write pour assurer que tous changements futurs soient pris en compte
+    # -------------------------------
     def write(self, vals):
         res = super().write(vals)
         if 'state' in vals:
@@ -47,8 +62,8 @@ class PosOrder(models.Model):
                 'cancel': 'REJECTED'
             }
             for order in self:
-                _logger.info(f"[DEBUG] POS {order.name} state={order.state} -> x_tr_order_status={new_status}")
                 order.x_tr_order_status = mapping.get(order.state, 'PENDING')
+                _logger.info(f"[WRITE DEBUG] POS {order.name} state={order.state} -> x_tr_order_status={order.x_tr_order_status}")
         return res
 
     @api.model_create_multi
