@@ -10,6 +10,21 @@ _logger = logging.getLogger(__name__)
 
 
 class OrdersController(http.Controller):
+    def _get_pos_order(self, order_id):
+        """Récupère une pos.order mobile par UUID ou ID."""
+        id_int = int(order_id) if order_id.isdigit() else 0
+        return request.env['pos.order'].sudo().search([
+            ('x_tr_is_mobile_order', '=', True),
+            '|', ('x_tr_uuid', '=', order_id), ('id', '=', id_int)
+        ], limit=1) or None
+
+    def _get_mobile_order(self, order_id):
+        """Récupère une mobile.order par UUID ou ID."""
+        id_int = int(order_id) if order_id.isdigit() else 0
+        return request.env['mobile.order'].sudo().search([
+            ('x_tr_is_mobile_order', '=', True),
+            '|', ('x_tr_uuid', '=', order_id), ('id', '=', id_int)
+        ], limit=1) or None
     """Controller pour les commandes restaurant."""
     @http.route(f'{API_PREFIX}/orders', type='http', auth='public', methods=['GET'], csrf=False)
     @api_auth('read_orders')
@@ -17,7 +32,7 @@ class OrdersController(http.Controller):
         page = int(kwargs.get('page', 0))
         size = min(int(kwargs.get('size', 20)), 100)
 
-        # Recherche dans POS (ajout 26/02/2026 pour inclure les commandes déjà envoyées au POS)
+        # ── POS orders (déjà envoyées) ──
         domain_pos = [('x_tr_is_mobile_order', '=', True)]
         if kwargs.get('memberId'):
             domain_pos.append(('x_tr_member_id.x_tr_uuid', '=', kwargs['memberId']))
@@ -25,31 +40,36 @@ class OrdersController(http.Controller):
             domain_pos.append(('x_tr_order_status', '=', kwargs['status']))
         if kwargs.get('mode'):
             domain_pos.append(('x_tr_order_mode', '=', kwargs['mode']))
-        
+
         orders_pos = request.env['pos.order'].sudo().search(domain_pos)
-        
-        # Recherche dans Mobile Order pour les commandes non encore envoyées au POS
+
+        # ── Mobile orders (staging — pas encore dans POS) ──
+        # Exclut celles déjà envoyées pour éviter les doublons
         domain_mobile = [('x_tr_is_mobile_order', '=', True)]
         if kwargs.get('memberId'):
-            domain_mobile.append(('partner_id.x_tr_uuid', '=', kwargs['memberId']))
+            domain_mobile.append(('x_tr_member_id.x_tr_uuid', '=', kwargs['memberId']))
         if kwargs.get('status'):
-            domain_mobile.append(('x_tr_order_status', '=', kwargs['status']))  # ici on map state ↔ status
+            domain_mobile.append(('x_tr_order_status', '=', kwargs['status']))
         if kwargs.get('mode'):
             domain_mobile.append(('x_tr_order_mode', '=', kwargs['mode']))
-        
+
         orders_mobile = request.env['mobile.order'].sudo().search(domain_mobile)
-        
-        # Fusionner les résultats et trier par date de création
-        all_orders = orders_pos + orders_mobile
-        all_orders = all_orders.sorted(key=lambda o: o.create_date, reverse=True)
+
+        # ── Fusion + tri + pagination ──
+        all_orders = list(orders_pos) + list(orders_mobile)
+        all_orders.sort(key=lambda o: o.create_date, reverse=True)
 
         total = len(all_orders)
-        # Pagination manuelle
-        start = page * size
-        end = start + size
-        paginated_orders = all_orders[start:end]
+        paginated = all_orders[page * size:(page + 1) * size]
 
-        return paginated_response([o.to_order_api_dict() for o in paginated_orders], total, page, size)
+        result = []
+        for o in paginated:
+            if hasattr(o, 'to_order_api_dict'):
+                result.append(o.to_order_api_dict())
+            elif hasattr(o, 'to_staging_api_dict'):
+                result.append(o.to_staging_api_dict())
+
+        return paginated_response(result, total, page, size)
     # @http.route(f'{API_PREFIX}/orders', type='http', auth='public', methods=['GET'], csrf=False)
     # @api_auth('read_orders')
     # def list_orders(self, **kwargs):
@@ -70,40 +90,18 @@ class OrdersController(http.Controller):
     @http.route(f'{API_PREFIX}/orders/<string:order_id>', type='http', auth='public', methods=['GET'], csrf=False)
     @api_auth('read_orders')
     def get_order(self, order_id, **kwargs):
-        # On cherche d'abord dans mobile.order
-        MobileOrder = request.env['mobile.order'].sudo()
-        PosOrder = request.env['pos.order'].sudo()
+        # Cherche d'abord en staging
+        order = self._get_mobile_order(order_id)
+        if order:
+            return success_response(order.to_staging_api_dict())
 
-        order = MobileOrder.search([
-            '|', ('x_tr_uuid', '=', order_id), ('id', '=', int(order_id) if order_id.isdigit() else 0)
-        ], limit=1)
-
-        # Si pas trouvé dans mobile.order, on cherche dans pos.order
-        if not order:
-            order = PosOrder.search([
-                ('x_tr_is_mobile_order', '=', True),
-                '|', ('x_tr_uuid', '=', order_id), ('id', '=', int(order_id) if order_id.isdigit() else 0)
-            ], limit=1)
-
+        # Sinon dans POS
+        order = self._get_pos_order(order_id)
         if not order:
             return error_response('Order not found', 'ORDER_NOT_FOUND', 404)
 
-        # On s'assure que le dict de retour est uniforme
-        if hasattr(order, 'to_order_api_dict'):
-            data = order.to_order_api_dict()
-        else:
-            # fallback si mobile.order n'a pas cette méthode
-            data = {
-                'id': getattr(order, 'x_tr_uuid', order.id),
-                'status': getattr(order, 'x_tr_order_status', 'PENDING'),
-                'partner': getattr(order, 'partner_id', False) and {
-                    'id': order.partner_id.id,
-                    'name': order.partner_id.name,
-                    'email': order.partner_id.email
-                } or {},
-            }
+        return success_response(order.to_order_api_dict())
 
-        return success_response(data)
     # @http.route(f'{API_PREFIX}/orders/<string:order_id>', type='http', auth='public', methods=['GET'], csrf=False)
     # @api_auth('read_orders')
     # def get_order(self, order_id, **kwargs):
@@ -121,10 +119,9 @@ class OrdersController(http.Controller):
         try:
             data = json.loads(request.httprequest.data)
             order = request.env['mobile.order'].sudo().create_order_from_api(data)
-            # order = request.env['pos.order'].sudo().create_order_from_api(data)
-            return success_response(order.to_order_api_dict(), 201)
+            return success_response(order.to_staging_api_dict(), 201)
         except Exception as e:
-            _logger.error(f"Error creating order: {str(e)}")
+            _logger.error("Error creating order: %s", str(e))
             return error_response(str(e), 'INVALID_REQUEST', 400)
 
     @http.route(f'{API_PREFIX}/orders/<string:order_id>', type='http', auth='public', methods=['PUT'], csrf=False)
@@ -244,13 +241,9 @@ class OrdersController(http.Controller):
     @http.route(f'{API_PREFIX}/orders/<string:order_id>/ready', type='http', auth='public', methods=['POST'], csrf=False)
     @api_auth('write_orders')
     def ready_order(self, order_id, **kwargs):
-        order = request.env['pos.order'].sudo().search([
-            ('x_tr_is_mobile_order', '=', True),
-            '|', ('x_tr_uuid', '=', order_id), ('id', '=', int(order_id) if order_id.isdigit() else 0)
-        ], limit=1)
+        order = self._get_pos_order(order_id)
         if not order:
             return error_response('Order not found', 'ORDER_NOT_FOUND', 404)
-        
         try:
             order.action_ready_order()
             return success_response(order.to_order_api_dict())
@@ -260,13 +253,9 @@ class OrdersController(http.Controller):
     @http.route(f'{API_PREFIX}/orders/<string:order_id>/complete', type='http', auth='public', methods=['POST'], csrf=False)
     @api_auth('write_orders')
     def complete_order(self, order_id, **kwargs):
-        order = request.env['pos.order'].sudo().search([
-            ('x_tr_is_mobile_order', '=', True),
-            '|', ('x_tr_uuid', '=', order_id), ('id', '=', int(order_id) if order_id.isdigit() else 0)
-        ], limit=1)
+        order = self._get_pos_order(order_id)
         if not order:
             return error_response('Order not found', 'ORDER_NOT_FOUND', 404)
-        
         try:
             order.action_complete_order()
             return success_response(order.to_order_api_dict())
@@ -294,18 +283,20 @@ class OrdersController(http.Controller):
         except Exception as e:
             return error_response(str(e), 'INVALID_STATUS_TRANSITION', 400)
 
-    @http.route(f'{API_PREFIX}/members/<string:member_id>/orders', type='http', auth='public', methods=['GET'], csrf=False)
-    @api_auth('read_orders')
-    def get_member_orders(self, member_id, **kwargs):
-        member = request.env['res.partner'].sudo().search([
-            ('x_tr_is_member', '=', True),
-            '|', ('x_tr_uuid', '=', member_id), ('id', '=', int(member_id) if member_id.isdigit() else 0)
-        ], limit=1)
-        if not member:
-            return error_response('Member not found', 'MEMBER_NOT_FOUND', 404)
-        
-        kwargs['memberId'] = member.x_tr_uuid
-        return self.list_orders(**kwargs)
+    # @http.route(f'{API_PREFIX}/members/<string:member_id>/orders', type='http', auth='public', methods=['GET'], csrf=False)
+    # @api_auth('read_orders')
+    # def get_member_orders(self, member_id, **kwargs):
+    #     member = request.env['res.partner'].sudo().search([
+    #         ('x_tr_is_member', '=', True),
+    #         '|', ('x_tr_uuid', '=', member_id),
+    #              ('id', '=', int(member_id) if member_id.isdigit() else 0)
+    #     ], limit=1)
+
+    #     if not member:
+    #         return error_response('Member not found', 'MEMBER_NOT_FOUND', 404)
+
+    #     kwargs['memberId'] = member.x_tr_uuid
+    #     return self.list_orders(**kwargs)
     # @http.route(f'{API_PREFIX}/members/<string:member_id>/orders', type='http', auth='public', methods=['GET'], csrf=False)
     # @api_auth('read_orders')
     # def get_member_orders(self, member_id, **kwargs):
