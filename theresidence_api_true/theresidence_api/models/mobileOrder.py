@@ -221,6 +221,56 @@ class MobileOrder(models.Model):
             'target':    'new',
             'context':   {'default_order_id': self.id},
         }
+    @api.model
+    def create_order_from_api(self, data):
+        """
+        Crée une pré-commande mobile depuis l'API.
+        Point d'entrée unique pour l'app mobile.
+        """
+        Partner = self.env['res.partner']
+
+        # Résolution du membre
+        member = False
+        if data.get('memberId'):
+            member = Partner.search(
+                [('x_tr_uuid', '=', data['memberId'])], limit=1
+            )
+
+        # Création de la pré-commande
+        order = self.create({
+            'partner_id':            member.id if member else False,
+            'x_tr_member_id':        member.id if member else False,
+            'x_tr_order_mode':       data.get('mode', 'PICKUP'),
+            'x_tr_delivery_address': data.get('deliveryAddress', ''),
+            'note':                  data.get('notes', ''),
+            'x_tr_order_status':     'PENDING',
+            'x_tr_is_mobile_order':  True,
+        })
+
+        # Création des lignes
+        for item in data.get('items', []):
+            try:
+                product = self.env['product.product'].browse(int(item['menuItemId']))
+            except (ValueError, KeyError):
+                continue
+
+            if not product.exists():
+                _logger.warning("Produit %s introuvable, ignoré.", item.get('menuItemId'))
+                continue
+
+            taxes = product.taxes_id.filtered(
+                lambda t: t.company_id == self.env.company
+            )
+            self.env['mobile.order.line'].create({
+                'mobile_order_id': order.id,
+                'product_id':      product.id,
+                'qty':             item.get('quantity', 1),
+                'price_unit':      item.get('unitPrice', product.lst_price),
+                'tax_ids':         [(6, 0, taxes.ids)],
+            })
+
+        _logger.info("MobileOrder %s créée depuis l'API.", order.name)
+        return order
 
 
 class MobileOrderLine(models.Model):
