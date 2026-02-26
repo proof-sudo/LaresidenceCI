@@ -4,7 +4,9 @@ import uuid
 from odoo import models, fields, api, _
 from odoo.exceptions import ValidationError
 
+import logging
 
+_logger = logging.getLogger(__name__)
 class PosOrder(models.Model):
     _inherit = 'pos.order'
 
@@ -45,6 +47,7 @@ class PosOrder(models.Model):
                 'cancel': 'REJECTED'
             }
             for order in self:
+                _logger.info(f"[DEBUG] POS {order.name} state={order.state} -> x_tr_order_status={new_status}")
                 order.x_tr_order_status = mapping.get(order.state, 'PENDING')
         return res
 
