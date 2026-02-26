@@ -16,6 +16,7 @@ class PosOrder(models.Model):
         ('READY', 'Prête'),
         ('COMPLETED', 'Terminée'),
         ('CANCELLED', 'Annulée'),
+        ('PAID', 'Payée'),
     ], string='Statut', default='PENDING')
     x_tr_order_mode = fields.Selection([
         ('PICKUP', 'Retrait'),
