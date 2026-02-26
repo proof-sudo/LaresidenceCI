@@ -198,7 +198,7 @@ class MobileOrder(models.Model):
             'dateOrder':       self.date_order.strftime('%Y-%m-%d %H:%M:%S') if self.date_order else False,
             'mode':            self.x_tr_order_mode or 'PICKUP',
             'deliveryAddress': self.x_tr_delivery_address or '',
-            'notes':           self.note or '',
+            'internal_note':           self.note or '',
             'items': [{
                 'menuItemId': str(line.product_id.id),
                 'quantity':   line.qty,
