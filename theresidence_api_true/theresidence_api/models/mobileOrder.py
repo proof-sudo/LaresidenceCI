@@ -271,6 +271,46 @@ class MobileOrder(models.Model):
 
         _logger.info("MobileOrder %s créée depuis l'API.", order.name)
         return order
+    def to_staging_api_dict(self):
+        """
+        Réponse API pour l'app mobile.
+        Format uniforme que la commande soit en staging ou envoyée au POS.
+        """
+        self.ensure_one()
+        result = {
+            'id':              self.x_tr_uuid or str(self.id),
+            'stagingId':       self.name,
+            'status':          self.x_tr_order_status,
+            'mode':            self.x_tr_order_mode or 'PICKUP',
+            'deliveryAddress': self.x_tr_delivery_address or '',
+            'notes':           self.note or '',
+            'totalAmount':     self.amount_total,
+            'currency':        self.env.company.currency_id.name or 'XOF',
+            'qrToken':         self.x_tr_qr_token or '',
+            'items': [{
+                'id':           str(line.id),
+                'menuItemId':   str(line.product_id.id),
+                'menuItemName': line.product_id.name or '',
+                'quantity':     line.qty,
+                'unitPrice':    line.price_unit,
+                'amount':       line.price_subtotal_incl,
+            } for line in self.lines],
+            'member': {
+                'id':        self.x_tr_member_id.x_tr_uuid if self.x_tr_member_id else '',
+                'firstName': (self.x_tr_member_id.name or '').split(' ')[0] if self.x_tr_member_id else '',
+                'lastName':  ' '.join((self.x_tr_member_id.name or '').split(' ')[1:]) if self.x_tr_member_id else '',
+                'email':     self.x_tr_member_id.email or '' if self.x_tr_member_id else '',
+            } if self.x_tr_member_id else {},
+            'createdAt': self.create_date.isoformat() if self.create_date else '',
+            'updatedAt': self.write_date.isoformat() if self.write_date else '',
+        }
+
+        # Si déjà envoyée au POS, ajoute le statut POS en temps réel
+        if self.pos_order_id:
+            result['posOrderId'] = self.pos_order_id.x_tr_uuid or str(self.pos_order_id.id)
+            result['posStatus']  = self.pos_order_id.x_tr_order_status or ''
+
+        return result
 
 
 class MobileOrderLine(models.Model):
