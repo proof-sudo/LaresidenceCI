@@ -50,17 +50,15 @@
             </xpath>
         </field>
     </record>
-    <record id="view_res_partner_form_inherit_ceo_subscription" model="ir.ui.view">
+    <!-- <record id="view_res_partner_form_inherit_ceo_subscription" model="ir.ui.view">
         <field name="name">res.partner.form.inherit.ceo.subscription</field>
         <field name="model">res.partner</field>
 
-        <!-- ⚠️ vue correcte -->
         <field name="inherit_id" ref="base.view_partner_form"/>
 
         <field name="arch" type="xml">
 
-            <!-- 👉 Insertion RELATIVE (safe) -->
-            <!-- <xpath expr="//form" position="inside">
+            <xpath expr="//form" position="inside">
                 <header>
                     <button
                         name="action_generate_ceo_subscriptions"
@@ -69,10 +67,10 @@
                         class="btn-primary"
                         groups="base.group_system"/>
                 </header>
-            </xpath> -->
+            </xpath>
 
         </field>
-    </record>
+    </record> -->
 
     <!-- Search View -->
     <record id="view_partner_search_inherit_theresidence" model="ir.ui.view">
