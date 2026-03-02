@@ -70,55 +70,55 @@ class ResPartner(models.Model):
         result = super().write(vals)
         
         # WEBHOOK: Modification de membre
-        for partner in self:
-            if partner.x_tr_is_member and partner.x_tr_uuid:
-                old_val = old_values.get(partner.id, {})
+        # for partner in self:
+        #     if partner.x_tr_is_member and partner.x_tr_uuid:
+        #         old_val = old_values.get(partner.id, {})
                 
-                # Changement de type d'adhésion
-                if 'x_tr_membership_type_id' in vals:
-                    old_membership_id = old_val.get('membership_type_id')
-                    new_membership_id = partner.x_tr_membership_type_id.id if partner.x_tr_membership_type_id else None
+        #         # Changement de type d'adhésion
+        #         if 'x_tr_membership_type_id' in vals:
+        #             old_membership_id = old_val.get('membership_type_id')
+        #             new_membership_id = partner.x_tr_membership_type_id.id if partner.x_tr_membership_type_id else None
                     
-                    if old_membership_id != new_membership_id:
-                        old_membership = self.env['theresidence.membership.type'].browse(old_membership_id) if old_membership_id else None
+        #             if old_membership_id != new_membership_id:
+        #                 old_membership = self.env['theresidence.membership.type'].browse(old_membership_id) if old_membership_id else None
                         
-                        self.env['theresidence.webhook.service'].trigger_event(
-                            internal_event='MEMBER_MEMBERSHIP_CHANGED',
-                            entity_type='member',
-                            entity_id=partner.x_tr_uuid,
-                            data={
-                                **partner.to_member_api_dict(),
-                                'previousMembershipType': {
-                                    'code': old_membership.code if old_membership else '',
-                                    'name': old_membership.name if old_membership else '',
-                                } if old_membership else None,
-                            },
-                            old_status=old_membership.code if old_membership else None,
-                            new_status=partner.x_tr_membership_type_id.code if partner.x_tr_membership_type_id else None,
-                        )
+        #                 self.env['theresidence.webhook.service'].trigger_event(
+        #                     internal_event='MEMBER_MEMBERSHIP_CHANGED',
+        #                     entity_type='member',
+        #                     entity_id=partner.x_tr_uuid,
+        #                     data={
+        #                         **partner.to_member_api_dict(),
+        #                         'previousMembershipType': {
+        #                             'code': old_membership.code if old_membership else '',
+        #                             'name': old_membership.name if old_membership else '',
+        #                         } if old_membership else None,
+        #                     },
+        #                     old_status=old_membership.code if old_membership else None,
+        #                     new_status=partner.x_tr_membership_type_id.code if partner.x_tr_membership_type_id else None,
+        #                 )
                 
-                # Autres modifications
-                changed_fields = []
-                if 'name' in vals and old_val.get('name') != partner.name:
-                    changed_fields.append('name')
-                if 'email' in vals and old_val.get('email') != partner.email:
-                    changed_fields.append('email')
-                if 'phone' in vals and old_val.get('phone') != partner.phone:
-                    changed_fields.append('phone')
-                if 'company_name' in vals and old_val.get('company_name') != partner.company_name:
-                    changed_fields.append('companyName')
-                if 'function' in vals and old_val.get('function') != partner.function:
-                    changed_fields.append('jobTitle')
-                if 'image_1920' in vals or 'image_128' in vals:
-                    changed_fields.append('image')
+        #         # Autres modifications
+        #         changed_fields = []
+        #         if 'name' in vals and old_val.get('name') != partner.name:
+        #             changed_fields.append('name')
+        #         if 'email' in vals and old_val.get('email') != partner.email:
+        #             changed_fields.append('email')
+        #         if 'phone' in vals and old_val.get('phone') != partner.phone:
+        #             changed_fields.append('phone')
+        #         if 'company_name' in vals and old_val.get('company_name') != partner.company_name:
+        #             changed_fields.append('companyName')
+        #         if 'function' in vals and old_val.get('function') != partner.function:
+        #             changed_fields.append('jobTitle')
+        #         if 'image_1920' in vals or 'image_128' in vals:
+        #             changed_fields.append('image')
                 
-                # if changed_fields and 'x_tr_membership_type_id' not in vals:
-                #     self.env['theresidence.webhook.service'].trigger_event(
-                #         internal_event='MEMBER_UPDATED',
-                #         entity_type='member',
-                #         entity_id=partner.x_tr_uuid,
-                #         data={**partner.to_member_api_dict(), 'changedFields': changed_fields},
-                #     )
+        #         # if changed_fields and 'x_tr_membership_type_id' not in vals:
+        #         #     self.env['theresidence.webhook.service'].trigger_event(
+        #         #         internal_event='MEMBER_UPDATED',
+        #         #         entity_type='member',
+        #         #         entity_id=partner.x_tr_uuid,
+        #         #         data={**partner.to_member_api_dict(), 'changedFields': changed_fields},
+        #         #     )
         
         return result
 
