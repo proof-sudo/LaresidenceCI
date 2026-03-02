@@ -60,7 +60,7 @@
         <field name="arch" type="xml">
 
             <!-- 👉 Insertion RELATIVE (safe) -->
-            <xpath expr="//form" position="inside">
+            <!-- <xpath expr="//form" position="inside">
                 <header>
                     <button
                         name="action_generate_ceo_subscriptions"
@@ -69,7 +69,7 @@
                         class="btn-primary"
                         groups="base.group_system"/>
                 </header>
-            </xpath>
+            </xpath> -->
 
         </field>
     </record>
