@@ -34,16 +34,16 @@ class ResPartner(models.Model):
         records = super().create(vals_list)
         
         # WEBHOOK: Création de membre
-        for record in records:
-            if record.x_tr_is_member and record.x_tr_uuid:
-                self.env['theresidence.webhook.service'].trigger_event(
-                    internal_event='MEMBER_CREATED',
-                    entity_type='member',
-                    entity_id=record.x_tr_uuid,
-                    data=record.to_member_api_dict(),
-                )
+        # for record in records:
+        #     if record.x_tr_is_member and record.x_tr_uuid:
+        #         self.env['theresidence.webhook.service'].trigger_event(
+        #             internal_event='MEMBER_CREATED',
+        #             entity_type='member',
+        #             entity_id=record.x_tr_uuid,
+        #             data=record.to_member_api_dict(),
+        #         )
         
-        return records
+        # return records
 
     def write(self, vals):
         # Capturer les anciennes valeurs pour les membres
