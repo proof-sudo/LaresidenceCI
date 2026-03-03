@@ -43,7 +43,7 @@ class ResPartner(models.Model):
         #             data=record.to_member_api_dict(),
         #         )
         
-        # return records
+        return records
 
     def write(self, vals):
         # Capturer les anciennes valeurs pour les membres
