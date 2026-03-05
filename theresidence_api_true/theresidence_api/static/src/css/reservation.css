@@ -2,36 +2,29 @@
 /* The Residence - POS Reservations                             */
 /* ============================================================ */
 
-/* Bouton Navbar */
-.tr-reservation-btn {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    padding: 8px 14px;
+/* Bouton flottant (FAB) */
+.tr-fab-btn {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    z-index: 9999;
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
     background: #2c3e50;
     color: #fff;
     border: none;
-    border-radius: 6px;
-    font-size: 14px;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
     cursor: pointer;
-    position: relative;
-    transition: background 0.2s;
-}
-.tr-reservation-btn:hover {
-    background: #34495e;
-}
-.tr-badge {
-    background: #e74c3c;
-    color: #fff;
-    border-radius: 50%;
-    font-size: 11px;
-    font-weight: bold;
-    min-width: 18px;
-    height: 18px;
-    display: inline-flex;
+    font-size: 20px;
+    display: flex;
     align-items: center;
     justify-content: center;
-    padding: 0 4px;
+    transition: background 0.2s, transform 0.15s;
+}
+.tr-fab-btn:hover {
+    background: #34495e;
+    transform: scale(1.08);
 }
 
 /* Écran principal */

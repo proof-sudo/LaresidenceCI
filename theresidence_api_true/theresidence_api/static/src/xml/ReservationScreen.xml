@@ -2,14 +2,14 @@
 <templates xml:space="preserve">
 
     <!-- ============================== -->
-    <!-- Patch Navbar: bouton Réservations -->
+    <!-- Bouton flottant dans Chrome    -->
     <!-- ============================== -->
-    <t t-inherit="point_of_sale.Navbar" t-inherit-mode="extension">
-        <xpath expr="//nav" position="inside">
-            <button class="btn btn-light tr-reservation-btn ms-1"
-                    t-on-click="() => this.pos.showScreen('ReservationScreen')">
-                <i class="fa fa-calendar me-1"/>
-                Réservations
+    <t t-inherit="point_of_sale.Chrome" t-inherit-mode="extension">
+        <xpath expr="//div[hasclass('pos')]" position="inside">
+            <button class="tr-fab-btn"
+                    t-on-click="() => this.pos.showScreen('ReservationScreen')"
+                    title="Réservations du jour">
+                <i class="fa fa-calendar fa-lg"/>
             </button>
         </xpath>
     </t>
