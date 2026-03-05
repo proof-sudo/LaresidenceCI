@@ -5,8 +5,9 @@
     <!-- Patch Navbar: bouton Réservations -->
     <!-- ============================== -->
     <t t-inherit="point_of_sale.Navbar" t-inherit-mode="extension">
-        <xpath expr="//section[hasclass('navbar-section-end')]" position="prepend">
-            <button class="btn btn-light tr-reservation-btn" t-on-click="showReservationScreen">
+        <xpath expr="//nav" position="inside">
+            <button class="btn btn-light tr-reservation-btn ms-1"
+                    t-on-click="() => this.pos.showScreen('ReservationScreen')">
                 <i class="fa fa-calendar me-1"/>
                 Réservations
             </button>

@@ -1,10 +1,3 @@
 /** @odoo-module */
-
-import { patch } from "@web/core/utils/patch";
-import { Navbar } from "@point_of_sale/app/navbar/navbar";
-
-patch(Navbar.prototype, {
-    showReservationScreen() {
-        this.pos.showScreen("ReservationScreen");
-    },
-});
+// Le bouton est injecté dans la Navbar via l'héritage de template dans ReservationScreen.xml.
+// La navigation utilise this.pos (déjà disponible sur le composant Navbar via usePos/useService).

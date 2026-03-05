@@ -2,14 +2,13 @@
 
 import { Component, useState, onMounted } from "@odoo/owl";
 import { registry } from "@web/core/registry";
-import { usePos } from "@point_of_sale/app/store/pos_hook";
 import { useService } from "@web/core/utils/hooks";
 
 export class ReservationScreen extends Component {
     static template = "theresidence_api.ReservationScreen";
 
     setup() {
-        this.pos = usePos();
+        this.pos = useService("pos");
         this.orm = useService("orm");
         this.notification = useService("notification");
         this.state = useState({
@@ -38,10 +37,6 @@ export class ReservationScreen extends Component {
             return this.state.reservations;
         }
         return this.state.reservations.filter((r) => r.status === this.state.filter);
-    }
-
-    get pendingCount() {
-        return this.state.reservations.filter((r) => r.status === "PENDING").length;
     }
 
     setFilter(filter) {
