@@ -1,14 +1,13 @@
 /** @odoo-module */
 
 import { Component, useState, onMounted } from "@odoo/owl";
-import { registry } from "@web/core/registry";
 import { useService } from "@web/core/utils/hooks";
 
-export class ReservationScreen extends Component {
-    static template = "theresidence_api.ReservationScreen";
+export class ReservationPanel extends Component {
+    static template = "theresidence_api.ReservationPanel";
+    static props = { onClose: Function };
 
     setup() {
-        this.pos = useService("pos");
         this.orm = useService("orm");
         this.notification = useService("notification");
         this.state = useState({
@@ -119,15 +118,4 @@ export class ReservationScreen extends Component {
         }
         return records[0].id;
     }
-
-    back() {
-        if (typeof this.pos.showScreen === "function") {
-            this.pos.showScreen("ProductScreen");
-        } else if (this.pos.mainScreen !== undefined) {
-            this.pos.mainScreen.name = "ProductScreen";
-            this.pos.mainScreen.props = {};
-        }
-    }
 }
-
-registry.category("pos_screens").add("ReservationScreen", ReservationScreen);

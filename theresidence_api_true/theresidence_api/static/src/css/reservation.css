@@ -226,3 +226,51 @@
 .tr-action-btn.checkin  { background: #2980b9; color: #fff; }
 .tr-action-btn.cancel   { background: #e74c3c; color: #fff; }
 .tr-action-btn:hover:not(:disabled) { opacity: 0.85; }
+
+/* Overlay plein écran */
+.tr-reservation-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.55);
+    z-index: 10000;
+    display: flex;
+    align-items: stretch;
+    justify-content: flex-end;
+}
+
+/* Panneau latéral */
+.tr-reservation-panel {
+    width: 480px;
+    max-width: 95vw;
+    background: #f4f6f8;
+    display: flex;
+    flex-direction: column;
+    box-shadow: -4px 0 24px rgba(0, 0, 0, 0.25);
+    animation: tr-slide-in 0.22s ease-out;
+}
+@keyframes tr-slide-in {
+    from { transform: translateX(100%); }
+    to   { transform: translateX(0); }
+}
+
+/* Boutons header (refresh + close) */
+.tr-header-actions {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+.tr-close-btn {
+    background: rgba(255,255,255,0.15);
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    padding: 8px 12px;
+    cursor: pointer;
+    font-size: 16px;
+    display: flex;
+    align-items: center;
+    transition: background 0.2s;
+}
+.tr-close-btn:hover {
+    background: rgba(255,255,255,0.3);
+}
