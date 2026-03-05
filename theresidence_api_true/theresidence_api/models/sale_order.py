@@ -6,6 +6,15 @@ from odoo import models, fields, api, _
 from odoo.exceptions import ValidationError
 
 
+class SaleOrderLine(models.Model):
+    _inherit = 'sale.order.line'
+
+    def _planning_slot_generation(self):
+        """Skip planning slot generation for The Residence reservation orders."""
+        lines = self.filtered(lambda l: not l.order_id.x_tr_is_reservation)
+        return super(SaleOrderLine, lines)._planning_slot_generation()
+
+
 class SaleOrder(models.Model):
     _inherit = 'sale.order'
 
@@ -162,17 +171,22 @@ class SaleOrder(models.Model):
         )
         return order
 
+    def action_confirm(self):
+        result = super().action_confirm()
+        for order in self:
+            if order.x_tr_is_reservation and order.x_tr_reservation_status == 'PENDING':
+                order.write({'x_tr_reservation_status': 'APPROVED'})
+                self.env['theresidence.webhook'].trigger_event(
+                    'RESERVATION_STATUS_CHANGED', 'reservation', order.x_tr_uuid,
+                    order.to_reservation_api_dict(), 'PENDING', 'APPROVED'
+                )
+        return result
+
     def action_approve_reservation(self):
         for order in self:
             if order.x_tr_reservation_status != 'PENDING':
                 raise ValidationError(_("Seules les réservations en attente peuvent être approuvées."))
-            old = order.x_tr_reservation_status
-            order.x_tr_reservation_status = 'APPROVED'
             order.action_confirm()
-            self.env['theresidence.webhook'].trigger_event(
-                'RESERVATION_STATUS_CHANGED', 'reservation', order.x_tr_uuid,
-                order.to_reservation_api_dict(), old, 'APPROVED'
-            )
 
     def action_reject_reservation(self, reason=None):
         for order in self:
@@ -180,7 +194,6 @@ class SaleOrder(models.Model):
                 raise ValidationError(_("Seules les réservations en attente peuvent être rejetées."))
             old = order.x_tr_reservation_status
             order.write({'x_tr_reservation_status': 'REJECTED', 'x_tr_rejection_reason': reason or ''})
-            order.action_cancel()
             self.env['theresidence.webhook'].trigger_event(
                 'RESERVATION_STATUS_CHANGED', 'reservation', order.x_tr_uuid,
                 order.to_reservation_api_dict(), old, 'REJECTED'
@@ -191,7 +204,7 @@ class SaleOrder(models.Model):
             if order.x_tr_reservation_status != 'APPROVED':
                 raise ValidationError(_("Seules les réservations approuvées peuvent être check-in."))
             old = order.x_tr_reservation_status
-            order.x_tr_reservation_status = 'CHECKED_IN'
+            order.write({'x_tr_reservation_status': 'CHECKED_IN'})
             self.env['theresidence.webhook'].trigger_event(
                 'RESERVATION_STATUS_CHANGED', 'reservation', order.x_tr_uuid,
                 order.to_reservation_api_dict(), old, 'CHECKED_IN'
@@ -202,8 +215,7 @@ class SaleOrder(models.Model):
             if order.x_tr_reservation_status in ('COMPLETED', 'CANCELLED'):
                 raise ValidationError(_("Cette réservation ne peut plus être annulée."))
             old = order.x_tr_reservation_status
-            order.x_tr_reservation_status = 'CANCELLED'
-            order.action_cancel()
+            order.write({'x_tr_reservation_status': 'CANCELLED'})
             self.env['theresidence.webhook'].trigger_event(
                 'RESERVATION_CANCELLED', 'reservation', order.x_tr_uuid,
                 order.to_reservation_api_dict(), old, 'CANCELLED'
