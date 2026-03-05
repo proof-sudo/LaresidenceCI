@@ -14,15 +14,21 @@ export class ReservationPanel extends Component {
             reservations: [],
             loading: true,
             filter: "ALL",
+            dateFilter: "today",
             actionLoading: null,
         });
         onMounted(() => this.loadReservations());
     }
 
+    async setDateFilter(df) {
+        this.state.dateFilter = df;
+        await this.loadReservations();
+    }
+
     async loadReservations() {
         this.state.loading = true;
         try {
-            const result = await this.orm.call("sale.order", "get_pos_reservations", []);
+            const result = await this.orm.call("sale.order", "get_pos_reservations", [this.state.dateFilter]);
             this.state.reservations = result;
         } catch (e) {
             this.notification.add("Erreur lors du chargement des réservations", { type: "danger" });
@@ -58,6 +64,12 @@ export class ReservationPanel extends Component {
         if (!isoString) return "";
         const d = new Date(isoString);
         return d.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
+    }
+
+    formatDate(isoString) {
+        if (!isoString) return "";
+        const d = new Date(isoString);
+        return d.toLocaleDateString("fr-FR", { day: "2-digit", month: "short" }) + " · ";
     }
 
     async approveReservation(reservationUuid) {

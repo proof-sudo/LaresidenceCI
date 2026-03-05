@@ -69,6 +69,38 @@
     background: rgba(255,255,255,0.25);
 }
 
+/* Toggle Aujourd'hui / Toutes */
+.tr-date-toggle {
+    display: flex;
+    background: #2c3e50;
+    border-bottom: 2px solid #1a252f;
+}
+.tr-toggle-btn {
+    flex: 1;
+    padding: 8px 12px;
+    border: none;
+    background: transparent;
+    color: rgba(255,255,255,0.6);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    transition: all 0.2s;
+    border-bottom: 3px solid transparent;
+}
+.tr-toggle-btn.active {
+    color: #fff;
+    border-bottom-color: #3498db;
+    background: rgba(255,255,255,0.08);
+}
+.tr-toggle-btn:hover:not(.active) {
+    color: rgba(255,255,255,0.85);
+    background: rgba(255,255,255,0.05);
+}
+
 /* Filtres */
 .tr-filters {
     display: flex;

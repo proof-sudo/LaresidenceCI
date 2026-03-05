@@ -28,7 +28,7 @@
 
                 <!-- Header -->
                 <div class="tr-header">
-                    <h2>Réservations du jour</h2>
+                    <h2 t-esc="state.dateFilter === 'today' ? 'Réservations du jour' : 'Toutes les réservations'"/>
                     <div class="tr-header-actions">
                         <button class="tr-refresh-btn" t-on-click="loadReservations">
                             <i t-att-class="'fa fa-refresh ' + (state.loading ? 'fa-spin' : '')"/>
@@ -39,7 +39,19 @@
                     </div>
                 </div>
 
-                <!-- Filtres -->
+                <!-- Toggle date -->
+                <div class="tr-date-toggle">
+                    <button t-att-class="'tr-toggle-btn ' + (state.dateFilter === 'today' ? 'active' : '')"
+                            t-on-click="() => this.setDateFilter('today')">
+                        <i class="fa fa-calendar-check-o"/> Aujourd'hui
+                    </button>
+                    <button t-att-class="'tr-toggle-btn ' + (state.dateFilter === 'all' ? 'active' : '')"
+                            t-on-click="() => this.setDateFilter('all')">
+                        <i class="fa fa-list"/> Toutes
+                    </button>
+                </div>
+
+                <!-- Filtres statut -->
                 <div class="tr-filters">
                     <button t-att-class="'tr-filter-btn ' + (state.filter === 'ALL' ? 'active' : '')"
                             t-on-click="() => this.setFilter('ALL')">Tous</button>
@@ -61,7 +73,7 @@
 
                     <div t-elif="filteredReservations.length === 0" class="tr-empty">
                         <i class="fa fa-calendar-o fa-3x"/>
-                        <p>Aucune réservation pour aujourd'hui</p>
+                        <p t-esc="state.dateFilter === 'today' ? 'Aucune réservation pour aujourd\'hui' : 'Aucune réservation trouvée'"/>
                     </div>
 
                     <div t-else="" class="tr-list">
@@ -73,6 +85,7 @@
                                           t-esc="statusLabel(res.status)"/>
                                     <span class="tr-time">
                                         <i class="fa fa-clock-o"/>
+                                        <t t-if="state.dateFilter === 'all'" t-esc="formatDate(res.startTime)"/>
                                         <t t-esc="formatTime(res.startTime)"/> - <t t-esc="formatTime(res.endTime)"/>
                                     </span>
                                 </div>
