@@ -205,9 +205,24 @@ class SaleOrder(models.Model):
                 raise ValidationError(_("Seules les réservations approuvées peuvent être check-in."))
             old = order.x_tr_reservation_status
             order.write({'x_tr_reservation_status': 'CHECKED_IN'})
+            if order.x_tr_space_id:
+                order.x_tr_space_id.write({'x_tr_is_occupied': True})
             self.env['theresidence.webhook'].trigger_event(
                 'RESERVATION_STATUS_CHANGED', 'reservation', order.x_tr_uuid,
                 order.to_reservation_api_dict(), old, 'CHECKED_IN'
+            )
+
+    def action_checkout_reservation(self):
+        for order in self:
+            if order.x_tr_reservation_status != 'CHECKED_IN':
+                raise ValidationError(_("Seules les réservations en check-in peuvent être checkout."))
+            old = order.x_tr_reservation_status
+            order.write({'x_tr_reservation_status': 'COMPLETED'})
+            if order.x_tr_space_id:
+                order.x_tr_space_id.write({'x_tr_is_occupied': False})
+            self.env['theresidence.webhook'].trigger_event(
+                'RESERVATION_STATUS_CHANGED', 'reservation', order.x_tr_uuid,
+                order.to_reservation_api_dict(), old, 'COMPLETED'
             )
 
     def action_cancel_reservation(self):
@@ -237,6 +252,14 @@ class SaleOrder(models.Model):
         if not order:
             raise ValidationError(_("Réservation introuvable: %s") % uuid)
         order.action_checkin_reservation()
+        return order.to_reservation_api_dict()
+
+    @api.model
+    def pos_checkout_reservation(self, uuid):
+        order = self.search([('x_tr_uuid', '=', uuid), ('x_tr_is_reservation', '=', True)], limit=1)
+        if not order:
+            raise ValidationError(_("Réservation introuvable: %s") % uuid)
+        order.action_checkout_reservation()
         return order.to_reservation_api_dict()
 
     @api.model

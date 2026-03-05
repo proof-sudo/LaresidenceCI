@@ -15,6 +15,8 @@ class ProductTemplate(models.Model):
     x_tr_space_type_id = fields.Many2one('theresidence.space.type', string='Type d\'espace')
     x_tr_space_description = fields.Text(string='Description espace')
     
+    x_tr_is_occupied = fields.Boolean(string='Espace occupé', default=False)
+
     # Champs pour les plans d'abonnement
     x_tr_is_subscription_plan = fields.Boolean(string='Est un plan d\'abonnement')
     x_tr_membership_type_id = fields.Many2one('theresidence.membership.type', string='Type d\'adhésion lié')

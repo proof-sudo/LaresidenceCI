@@ -104,6 +104,22 @@ export class ReservationPanel extends Component {
         }
     }
 
+    async checkoutReservation(uuid) {
+        this.state.actionLoading = uuid;
+        try {
+            await this.orm.call("sale.order", "pos_checkout_reservation", [uuid]);
+            this.notification.add("Checkout effectué — espace libéré", { type: "success" });
+            await this.loadReservations();
+        } catch (e) {
+            this.notification.add(
+                e?.data?.message || e?.message || "Erreur lors du checkout",
+                { type: "danger" }
+            );
+        } finally {
+            this.state.actionLoading = null;
+        }
+    }
+
     async cancelReservation(uuid) {
         this.state.actionLoading = uuid;
         try {

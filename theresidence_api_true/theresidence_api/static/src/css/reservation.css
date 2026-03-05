@@ -173,7 +173,8 @@
 .tr-card.status-pending   { border-left-color: #e67e22; }
 .tr-card.status-approved  { border-left-color: #27ae60; }
 .tr-card.status-checked_in { border-left-color: #2980b9; }
-.tr-card.status-cancelled { border-left-color: #e74c3c; opacity: 0.6; }
+.tr-card.status-cancelled  { border-left-color: #e74c3c; opacity: 0.6; }
+.tr-card.status-completed  { border-left-color: #8e44ad; opacity: 0.7; }
 
 /* Header carte */
 .tr-card-header {
@@ -194,7 +195,8 @@
 .tr-status-badge.pending   { background: #fef3e2; color: #e67e22; }
 .tr-status-badge.approved  { background: #eafaf1; color: #27ae60; }
 .tr-status-badge.checked_in { background: #eaf4fb; color: #2980b9; }
-.tr-status-badge.cancelled { background: #fdedec; color: #e74c3c; }
+.tr-status-badge.cancelled  { background: #fdedec; color: #e74c3c; }
+.tr-status-badge.completed  { background: #f5eef8; color: #8e44ad; }
 .tr-time {
     font-size: 13px;
     color: #666;
@@ -254,9 +256,10 @@
     opacity: 0.5;
     cursor: not-allowed;
 }
-.tr-action-btn.approve  { background: #27ae60; color: #fff; }
-.tr-action-btn.checkin  { background: #2980b9; color: #fff; }
-.tr-action-btn.cancel   { background: #e74c3c; color: #fff; }
+.tr-action-btn.approve   { background: #27ae60; color: #fff; }
+.tr-action-btn.checkin   { background: #2980b9; color: #fff; }
+.tr-action-btn.checkout  { background: #8e44ad; color: #fff; }
+.tr-action-btn.cancel    { background: #e74c3c; color: #fff; }
 .tr-action-btn:hover:not(:disabled) { opacity: 0.85; }
 
 /* Overlay plein écran */
