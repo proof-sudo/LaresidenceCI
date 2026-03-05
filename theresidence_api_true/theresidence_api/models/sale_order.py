@@ -101,9 +101,14 @@ class SaleOrder(models.Model):
             today = fields.Date.today()
             tomorrow = today + timedelta(days=1)
             domain += [
-                ('x_tr_reservation_status', 'in', ['PENDING', 'APPROVED', 'CHECKED_IN']),
+                '|',
+                # Réservations du jour (PENDING ou APPROVED)
+                '&', '&',
+                ('x_tr_reservation_status', 'in', ['PENDING', 'APPROVED']),
                 ('x_tr_start_time', '>=', fields.Datetime.to_datetime(today)),
                 ('x_tr_start_time', '<', fields.Datetime.to_datetime(tomorrow)),
+                # Réservations en cours (CHECKED_IN) quelle que soit la date
+                ('x_tr_reservation_status', '=', 'CHECKED_IN'),
             ]
 
         reservations = self.search(domain, order='x_tr_start_time asc')
