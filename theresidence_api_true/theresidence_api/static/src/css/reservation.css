@@ -1,0 +1,235 @@
+/* ============================================================ */
+/* The Residence - POS Reservations                             */
+/* ============================================================ */
+
+/* Bouton Navbar */
+.tr-reservation-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 14px;
+    background: #2c3e50;
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    font-size: 14px;
+    cursor: pointer;
+    position: relative;
+    transition: background 0.2s;
+}
+.tr-reservation-btn:hover {
+    background: #34495e;
+}
+.tr-badge {
+    background: #e74c3c;
+    color: #fff;
+    border-radius: 50%;
+    font-size: 11px;
+    font-weight: bold;
+    min-width: 18px;
+    height: 18px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 4px;
+}
+
+/* Écran principal */
+.tr-reservation-screen {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    background: #f4f6f8;
+    font-family: sans-serif;
+}
+
+/* Header */
+.tr-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 20px;
+    background: #2c3e50;
+    color: #fff;
+}
+.tr-header h2 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 600;
+}
+.tr-back-btn,
+.tr-refresh-btn {
+    background: rgba(255,255,255,0.15);
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    padding: 8px 14px;
+    cursor: pointer;
+    font-size: 13px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: background 0.2s;
+}
+.tr-back-btn:hover,
+.tr-refresh-btn:hover {
+    background: rgba(255,255,255,0.25);
+}
+
+/* Filtres */
+.tr-filters {
+    display: flex;
+    gap: 8px;
+    padding: 12px 20px;
+    background: #fff;
+    border-bottom: 1px solid #dce1e7;
+    flex-wrap: wrap;
+}
+.tr-filter-btn {
+    padding: 6px 16px;
+    border: 2px solid #dce1e7;
+    border-radius: 20px;
+    background: #fff;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 500;
+    color: #555;
+    transition: all 0.2s;
+}
+.tr-filter-btn.active,
+.tr-filter-btn:hover {
+    background: #2c3e50;
+    color: #fff;
+    border-color: #2c3e50;
+}
+.tr-filter-btn.pending.active { background: #e67e22; border-color: #e67e22; }
+.tr-filter-btn.approved.active { background: #27ae60; border-color: #27ae60; }
+.tr-filter-btn.checkin.active { background: #2980b9; border-color: #2980b9; }
+
+/* Contenu */
+.tr-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px 20px;
+}
+
+/* Loading / Vide */
+.tr-loading,
+.tr-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 200px;
+    color: #999;
+    gap: 12px;
+    font-size: 15px;
+}
+
+/* Liste */
+.tr-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 14px;
+}
+
+/* Carte */
+.tr-card {
+    background: #fff;
+    border-radius: 10px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    overflow: hidden;
+    border-left: 5px solid #bdc3c7;
+    transition: box-shadow 0.2s;
+}
+.tr-card:hover {
+    box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+}
+.tr-card.status-pending   { border-left-color: #e67e22; }
+.tr-card.status-approved  { border-left-color: #27ae60; }
+.tr-card.status-checked_in { border-left-color: #2980b9; }
+.tr-card.status-cancelled { border-left-color: #e74c3c; opacity: 0.6; }
+
+/* Header carte */
+.tr-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 14px;
+    border-bottom: 1px solid #f0f0f0;
+}
+.tr-status-badge {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    padding: 3px 10px;
+    border-radius: 12px;
+    letter-spacing: 0.5px;
+}
+.tr-status-badge.pending   { background: #fef3e2; color: #e67e22; }
+.tr-status-badge.approved  { background: #eafaf1; color: #27ae60; }
+.tr-status-badge.checked_in { background: #eaf4fb; color: #2980b9; }
+.tr-status-badge.cancelled { background: #fdedec; color: #e74c3c; }
+.tr-time {
+    font-size: 13px;
+    color: #666;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+/* Body carte */
+.tr-card-body {
+    padding: 12px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+.tr-card-body > div {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    color: #444;
+}
+.tr-card-body i {
+    color: #888;
+    width: 14px;
+    text-align: center;
+}
+.tr-member strong {
+    font-size: 15px;
+    color: #2c3e50;
+}
+
+/* Actions carte */
+.tr-card-actions {
+    display: flex;
+    gap: 8px;
+    padding: 10px 14px;
+    border-top: 1px solid #f0f0f0;
+    flex-wrap: wrap;
+}
+.tr-action-btn {
+    flex: 1;
+    min-width: 90px;
+    padding: 7px 12px;
+    border: none;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    transition: opacity 0.2s;
+}
+.tr-action-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+.tr-action-btn.approve  { background: #27ae60; color: #fff; }
+.tr-action-btn.checkin  { background: #2980b9; color: #fff; }
+.tr-action-btn.cancel   { background: #e74c3c; color: #fff; }
+.tr-action-btn:hover:not(:disabled) { opacity: 0.85; }

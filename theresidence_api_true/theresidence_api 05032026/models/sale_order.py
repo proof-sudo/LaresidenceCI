@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import uuid
-from datetime import datetime, timedelta
+from datetime import datetime
 from odoo import models, fields, api, _
 from odoo.exceptions import ValidationError
 
@@ -83,19 +83,6 @@ class SaleOrder(models.Model):
             'createdAt': self.create_date.isoformat() if self.create_date else '',
             'updatedAt': self.write_date.isoformat() if self.write_date else ''
         }
-
-    @api.model
-    def get_pos_reservations(self, date_filter='today'):
-        today = fields.Date.today()
-        tomorrow = today + timedelta(days=1)
-        domain = [
-            ('x_tr_is_reservation', '=', True),
-            ('x_tr_reservation_status', 'in', ['PENDING', 'APPROVED', 'CHECKED_IN']),
-            ('x_tr_start_time', '>=', fields.Datetime.to_datetime(today)),
-            ('x_tr_start_time', '<', fields.Datetime.to_datetime(tomorrow)),
-        ]
-        reservations = self.search(domain, order='x_tr_start_time asc')
-        return [r.to_reservation_api_dict() for r in reservations]
 
     @api.model
     def create_reservation_from_api(self, data):
