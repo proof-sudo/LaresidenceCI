@@ -72,62 +72,51 @@ export class ReservationPanel extends Component {
         return d.toLocaleDateString("fr-FR", { day: "2-digit", month: "short" }) + " · ";
     }
 
-    async approveReservation(reservationUuid) {
-        const rec = await this._findRecordId(reservationUuid);
-        if (!rec) return;
-        this.state.actionLoading = reservationUuid;
+    async approveReservation(uuid) {
+        this.state.actionLoading = uuid;
         try {
-            await this.orm.call("sale.order", "action_approve_reservation", [[rec]]);
+            await this.orm.call("sale.order", "pos_approve_reservation", [uuid]);
             this.notification.add("Réservation approuvée", { type: "success" });
             await this.loadReservations();
         } catch (e) {
-            this.notification.add(e.message || "Erreur lors de l'approbation", { type: "danger" });
+            this.notification.add(
+                e?.data?.message || e?.message || "Erreur lors de l'approbation",
+                { type: "danger" }
+            );
         } finally {
             this.state.actionLoading = null;
         }
     }
 
-    async checkinReservation(reservationUuid) {
-        const rec = await this._findRecordId(reservationUuid);
-        if (!rec) return;
-        this.state.actionLoading = reservationUuid;
+    async checkinReservation(uuid) {
+        this.state.actionLoading = uuid;
         try {
-            await this.orm.call("sale.order", "action_checkin_reservation", [[rec]]);
+            await this.orm.call("sale.order", "pos_checkin_reservation", [uuid]);
             this.notification.add("Check-in effectué", { type: "success" });
             await this.loadReservations();
         } catch (e) {
-            this.notification.add(e.message || "Erreur lors du check-in", { type: "danger" });
+            this.notification.add(
+                e?.data?.message || e?.message || "Erreur lors du check-in",
+                { type: "danger" }
+            );
         } finally {
             this.state.actionLoading = null;
         }
     }
 
-    async cancelReservation(reservationUuid) {
-        const rec = await this._findRecordId(reservationUuid);
-        if (!rec) return;
-        this.state.actionLoading = reservationUuid;
+    async cancelReservation(uuid) {
+        this.state.actionLoading = uuid;
         try {
-            await this.orm.call("sale.order", "action_cancel_reservation", [[rec]]);
+            await this.orm.call("sale.order", "pos_cancel_reservation", [uuid]);
             this.notification.add("Réservation annulée", { type: "warning" });
             await this.loadReservations();
         } catch (e) {
-            this.notification.add(e.message || "Erreur lors de l'annulation", { type: "danger" });
+            this.notification.add(
+                e?.data?.message || e?.message || "Erreur lors de l'annulation",
+                { type: "danger" }
+            );
         } finally {
             this.state.actionLoading = null;
         }
-    }
-
-    async _findRecordId(uuid) {
-        const records = await this.orm.searchRead(
-            "sale.order",
-            [["x_tr_uuid", "=", uuid]],
-            ["id"],
-            { limit: 1 }
-        );
-        if (!records.length) {
-            this.notification.add("Réservation introuvable", { type: "danger" });
-            return null;
-        }
-        return records[0].id;
     }
 }

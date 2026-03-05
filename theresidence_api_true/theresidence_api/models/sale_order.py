@@ -209,6 +209,32 @@ class SaleOrder(models.Model):
                 order.to_reservation_api_dict(), old, 'CANCELLED'
             )
 
+    # === Actions POS (appelées par UUID depuis le frontend) ===
+
+    @api.model
+    def pos_approve_reservation(self, uuid):
+        order = self.search([('x_tr_uuid', '=', uuid), ('x_tr_is_reservation', '=', True)], limit=1)
+        if not order:
+            raise ValidationError(_("Réservation introuvable: %s") % uuid)
+        order.action_approve_reservation()
+        return order.to_reservation_api_dict()
+
+    @api.model
+    def pos_checkin_reservation(self, uuid):
+        order = self.search([('x_tr_uuid', '=', uuid), ('x_tr_is_reservation', '=', True)], limit=1)
+        if not order:
+            raise ValidationError(_("Réservation introuvable: %s") % uuid)
+        order.action_checkin_reservation()
+        return order.to_reservation_api_dict()
+
+    @api.model
+    def pos_cancel_reservation(self, uuid):
+        order = self.search([('x_tr_uuid', '=', uuid), ('x_tr_is_reservation', '=', True)], limit=1)
+        if not order:
+            raise ValidationError(_("Réservation introuvable: %s") % uuid)
+        order.action_cancel_reservation()
+        return order.to_reservation_api_dict()
+
     # === API Abonnement ===
     def to_subscription_api_dict(self):
         self.ensure_one()
