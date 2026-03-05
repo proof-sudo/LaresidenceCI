@@ -121,7 +121,12 @@ export class ReservationScreen extends Component {
     }
 
     back() {
-        this.pos.showScreen("ProductScreen");
+        if (typeof this.pos.showScreen === "function") {
+            this.pos.showScreen("ProductScreen");
+        } else if (this.pos.mainScreen !== undefined) {
+            this.pos.mainScreen.name = "ProductScreen";
+            this.pos.mainScreen.props = {};
+        }
     }
 }
 

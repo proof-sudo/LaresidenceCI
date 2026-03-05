@@ -7,7 +7,7 @@
     <t t-inherit="point_of_sale.Chrome" t-inherit-mode="extension">
         <xpath expr="//div[hasclass('pos')]" position="inside">
             <button class="tr-fab-btn"
-                    t-on-click="() => this.pos.showScreen('ReservationScreen')"
+                    t-on-click="openReservationScreen"
                     title="Réservations du jour">
                 <i class="fa fa-calendar fa-lg"/>
             </button>
