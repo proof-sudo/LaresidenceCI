@@ -99,33 +99,5 @@
         action="action_theresidence_orders"
         sequence="3"/>
 
-    <!-- ===================== -->
-    <!-- POS.CATEGORY INHERIT  -->
-    <!-- ===================== -->
-
-    <!-- Inherit Form View -->
-    <record id="view_pos_category_form_inherit_theresidence" model="ir.ui.view">
-        <field name="name">pos.category.form.inherit.theresidence</field>
-        <field name="model">pos.category</field>
-        <field name="inherit_id" ref="point_of_sale.pos_category_view_form"/>
-        <field name="arch" type="xml">
-            <xpath expr="//field[@name='parent_id']" position="after">
-                <field name="x_tr_uuid" readonly="1"/>
-                <field name="x_tr_menu_kind_id"/>
-            </xpath>
-        </field>
-    </record>
-
-    <!-- Inherit list View -->
-    <record id="view_pos_category_list_inherit_theresidence" model="ir.ui.view">
-        <field name="name">pos.category.list.inherit.theresidence</field>
-        <field name="model">pos.category</field>
-        <field name="inherit_id" ref="point_of_sale.product_pos_category_tree_view"/>
-        <field name="arch" type="xml">
-            <xpath expr="//field[@name='name']" position="after">
-                <field name="x_tr_menu_kind_id" optional="show"/>
-            </xpath>
-        </field>
-    </record>
 
 </odoo>
