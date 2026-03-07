@@ -31,6 +31,12 @@ class WebhookMixin(models.AbstractModel):
         }
         return mapping.get(self._name, self._name)
 
+    def _get_entity_uuid(self, record):
+        """Retourne l'UUID métier du record selon le modèle, fallback sur l'ID Odoo"""
+        if self._name == 'product.template':
+            return getattr(record, 'x_tr_space_uuid', None) or str(record.id)
+        return getattr(record, 'x_tr_uuid', None) or str(record.id)
+
     def _format_field_value(self, value):
         """Séreilisation sécurisée des types Odoo (Dates, Relations)"""
         if isinstance(value, models.BaseModel):
@@ -89,7 +95,7 @@ class WebhookMixin(models.AbstractModel):
             "event_id": f"evt_{datetime.now().strftime('%Y%m%d')}_{uuid.uuid4().hex[:8]}",
             "timestamp": datetime.now().strftime('%Y-%m-%dT%H:%M:%SZ'),
             "entity_type": entity_type,
-            "entity_id": str(record.id),
+            "entity_id": self._get_entity_uuid(record),
             "data": custom_data
         }
 
