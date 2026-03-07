@@ -63,6 +63,27 @@ class WebhookMixin(models.AbstractModel):
         if include_image and hasattr(record, 'image_1920') and record.image_1920:
             custom_data['image_url'] = f"/web/image/{record._name}/{record.id}/image_1920"
 
+        # 4. UUIDs des modèles liés (non couverts par x_tr_* automatique)
+        if self._name == 'res.partner':
+            if hasattr(record, 'x_tr_membership_type_id') and record.x_tr_membership_type_id:
+                custom_data['x_tr_membership_type_uuid'] = record.x_tr_membership_type_id.x_uuid
+
+        elif self._name == 'sale.order':
+            custom_data['x_tr_member_uuid'] = record.partner_id.x_tr_uuid if record.partner_id else False
+            if getattr(record, 'x_tr_is_reservation', False) and record.x_tr_space_id:
+                custom_data['x_tr_space_uuid'] = record.x_tr_space_id.x_tr_space_uuid
+            elif getattr(record, 'x_tr_is_subscription', False) and record.x_tr_plan_id:
+                custom_data['x_tr_plan_uuid'] = record.x_tr_plan_id.x_tr_space_uuid
+
+        elif self._name == 'pos.order':
+            member = getattr(record, 'x_tr_member_id', None)
+            if member:
+                custom_data['x_tr_member_uuid'] = member.x_tr_uuid
+
+        elif self._name == 'pos.category':
+            if record.parent_id and hasattr(record.parent_id, 'x_tr_uuid'):
+                custom_data['x_tr_parent_uuid'] = record.parent_id.x_tr_uuid
+
         return {
             "event_type": f"{entity_type}.{event_type}",
             "event_id": f"evt_{datetime.now().strftime('%Y%m%d')}_{uuid.uuid4().hex[:8]}",
@@ -85,7 +106,10 @@ class WebhookMixin(models.AbstractModel):
         for config in configs:
             try:
                 payload_json = json.dumps(payload, indent=2)
-                _logger.info(f"[WEBHOOK SEND] header : url {config.url}, apikey { config.api_key} {payload['event_type']} | ID {record.id}")
+                _logger.info(
+                    f"[WEBHOOK SEND] url={config.url} | event={payload['event_type']} | ID={record.id}\n"
+                    f"[WEBHOOK DATA] {payload_json}"
+                )
                 
                 response = requests.post(
                     config.url, 

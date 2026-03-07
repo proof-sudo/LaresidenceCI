@@ -282,6 +282,7 @@
     flex-direction: column;
     box-shadow: -4px 0 24px rgba(0, 0, 0, 0.25);
     animation: tr-slide-in 0.22s ease-out;
+    margin-top: 56px;
 }
 @keyframes tr-slide-in {
     from { transform: translateX(100%); }
