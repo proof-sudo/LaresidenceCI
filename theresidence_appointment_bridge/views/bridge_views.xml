@@ -16,10 +16,10 @@
                        readonly="1"
                        invisible="not x_tr_is_space"
                        string="Type RDV (pos_appointment)"/>
-                <field name="x_tr_appointment_resource_id"
+                <!-- <field name="x_tr_appointment_resource_id"
                        readonly="1"
                        invisible="not x_tr_is_space"
-                       string="Ressource Appointment"/>
+                       string="Ressource Appointment"/> -->
             </xpath>
         </field>
     </record>
