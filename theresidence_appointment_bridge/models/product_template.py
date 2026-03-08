@@ -4,6 +4,10 @@ from odoo import models, fields, api
 
 _logger = logging.getLogger(__name__)
 
+# Nom du type RDV unique partagé par tous les espaces TR.
+# Modifiez cette constante si vous avez déjà un type nommé différemment.
+_TR_SHARED_APT_TYPE_NAME = "Réservation d'espace"
+
 
 class ProductTemplate(models.Model):
     _inherit = 'product.template'
@@ -12,19 +16,12 @@ class ProductTemplate(models.Model):
         'appointment.type',
         string='Type de RDV (Appointment)',
         copy=False,
-        help="Lien vers le appointment.type Odoo généré automatiquement pour cet espace.",
-    )
-
-    x_tr_appointment_resource_id = fields.Many2one(
-        'appointment.resource',
-        string='Ressource Appointment',
-        copy=False,
-        help="appointment.resource lié à cet espace (créé automatiquement).",
+        help="Lien vers le appointment.type Odoo partagé par tous les espaces TR.",
     )
 
     # ─────────────────────────────────────────────────────────────
-    # Création : si l'espace est marqué x_tr_is_space, on génère
-    # automatiquement un appointment.type correspondant.
+    # Création : si l'espace est marqué x_tr_is_space, on attache
+    # le type RDV partagé.
     # ─────────────────────────────────────────────────────────────
     @api.model_create_multi
     def create(self, vals_list):
@@ -40,128 +37,64 @@ class ProductTemplate(models.Model):
             for rec in self:
                 if not rec.x_tr_appointment_type_id:
                     rec._ensure_appointment_type()
-        if 'name' in vals:
-            for rec in self:
-                if rec.x_tr_appointment_type_id:
-                    rec.x_tr_appointment_type_id.sudo().write({'name': rec.name})
-                if rec.x_tr_appointment_resource_id:
-                    rec.x_tr_appointment_resource_id.sudo().write({'name': rec.name})
+        # Le type RDV est partagé : on ne renomme plus quand l'espace est renommé.
         return res
 
     def _ensure_appointment_type(self):
-        """Crée (ou retrouve) un appointment.type pour cet espace."""
+        """
+        Retrouve ou crée le appointment.type PARTAGÉ par tous les espaces TR.
+        Catégorie 'table' → visible dans le menu natif POS Appointments.
+        """
         self.ensure_one()
-
-        existing = self.env['appointment.type'].search(
-            [('name', '=', self.name)], limit=1
-        )
-        if existing:
-            self.x_tr_appointment_type_id = existing
-            self._link_apt_type_to_pos(existing)
-            # appointment.resource créé séparément (évite le conflit public user)
-            self._try_ensure_appointment_resource()
-            return existing
-
-        create_vals = {'name': self.name}
 
         apt_fields = self.env['appointment.type']._fields
 
-        # Catégorie : 'custom' pour éviter le filtre "réserver une table" du POS.
-        if 'category' in apt_fields:
-            create_vals['category'] = 'custom'
-
-        # staff_user_ids DOIT contenir au moins un utilisateur valide.
-        # Odoo crée automatiquement des appointment.booking.line lors de la création
-        # d'un calendar.event lié à ce type. La contrainte
-        # _check_user_or_resource_match_appointment_type exige que le staff_user
-        # soit dans cette liste — sinon la création du calendar.event échoue avec
-        # "Public user cannot be used for X".
-        # → On ajoute l'utilisateur admin comme staff par défaut.
-        if 'staff_user_ids' in apt_fields:
-            admin_user = self.env.ref('base.user_admin', raise_if_not_found=False)
-            if admin_user:
-                create_vals['staff_user_ids'] = [(4, admin_user.id)]
-
-        # Capacité max = capacité de l'espace si disponible
-        if 'max_capacity' in apt_fields and getattr(self, 'x_tr_space_capacity', 0):
-            create_vals['max_capacity'] = self.x_tr_space_capacity
-
-        apt_type = self.env['appointment.type'].sudo().create(create_vals)
-        self.x_tr_appointment_type_id = apt_type
-        self._link_apt_type_to_pos(apt_type)
-        # appointment.resource créé séparément (évite le conflit public user)
-        self._try_ensure_appointment_resource()
-
-        _logger.info(
-            "[TR BRIDGE] appointment.type '%s' (ID %s) créé pour l'espace ID %s",
-            apt_type.name, apt_type.id, self.id
+        # 1. Chercher le type partagé TR par son nom fixe
+        shared = self.env['appointment.type'].search(
+            [('name', '=', _TR_SHARED_APT_TYPE_NAME)], limit=1
         )
-        return apt_type
 
-    def _try_ensure_appointment_resource(self):
-        """Wrapper sécurisé : ne bloque jamais même si appointment.resource échoue."""
-        try:
-            self._ensure_appointment_resource()
-        except Exception as e:
-            _logger.warning(
-                "[TR BRIDGE] Impossible de créer appointment.resource pour '%s' : %s",
-                self.name, str(e)
+        if not shared:
+            # 2. Chercher un type catégorie 'table' existant (pos_restaurant_appointment)
+            if 'category' in apt_fields:
+                shared = self.env['appointment.type'].search(
+                    [('category', '=', 'table')], limit=1
+                )
+
+        if not shared:
+            # 3. Créer le type partagé
+            create_vals = {'name': _TR_SHARED_APT_TYPE_NAME}
+
+            # category='table' : affiché dans le menu POS "Réservations"
+            if 'category' in apt_fields:
+                create_vals['category'] = 'table'
+
+            # staff_user_ids : obligatoire pour éviter la contrainte
+            # _check_user_or_resource_match_appointment_type lors de la création
+            # des appointment.booking.line.
+            if 'staff_user_ids' in apt_fields:
+                admin_user = self.env.ref('base.user_admin', raise_if_not_found=False)
+                if admin_user:
+                    create_vals['staff_user_ids'] = [(4, admin_user.id)]
+
+            shared = self.env['appointment.type'].sudo().create(create_vals)
+            _logger.info(
+                "[TR BRIDGE] appointment.type partagé '%s' (ID %s) créé",
+                shared.name, shared.id,
             )
 
-    def _ensure_appointment_resource(self):
-        """Crée (ou retrouve) un appointment.resource pour cet espace et le lie à l'appointment.type."""
-        self.ensure_one()
-
-        if 'appointment.resource' not in self.env:
-            return False
-
-        if self.x_tr_appointment_resource_id:
-            return self.x_tr_appointment_resource_id
-
-        existing = self.env['appointment.resource'].search(
-            [('name', '=', self.name)], limit=1
-        )
-        if existing:
-            self.x_tr_appointment_resource_id = existing
-            self._link_resource_to_apt_type(existing)
-            return existing
-
-        res_vals = {'name': self.name}
-        res_fields = self.env['appointment.resource']._fields
-        if 'capacity' in res_fields and getattr(self, 'x_tr_space_capacity', 0):
-            res_vals['capacity'] = self.x_tr_space_capacity
-
-        apt_resource = self.env['appointment.resource'].sudo().create(res_vals)
-        self.x_tr_appointment_resource_id = apt_resource
-        self._link_resource_to_apt_type(apt_resource)
+        self.x_tr_appointment_type_id = shared
+        self._link_apt_type_to_pos(shared)
 
         _logger.info(
-            "[TR BRIDGE] appointment.resource '%s' (ID %s) créé pour l'espace ID %s",
-            apt_resource.name, apt_resource.id, self.id
+            "[TR BRIDGE] Espace '%s' (ID %s) lié au type RDV partagé '%s' (ID %s)",
+            self.name, self.id, shared.name, shared.id,
         )
-        return apt_resource
-
-    def _link_resource_to_apt_type(self, apt_resource):
-        """Lie l'appointment.resource à l'appointment.type de cet espace."""
-        self.ensure_one()
-        apt_type = self.x_tr_appointment_type_id
-        if not apt_type:
-            return
-
-        apt_fields = self.env['appointment.type']._fields
-        res_field = next(
-            (f for f in ['resource_ids', 'appointment_resource_ids'] if f in apt_fields),
-            None,
-        )
-        if res_field:
-            apt_type.sudo().write({res_field: [(4, apt_resource.id)]})
-            _logger.info("[TR BRIDGE] appointment.resource lié à appointment.type '%s'", apt_type.name)
+        return shared
 
     def _link_apt_type_to_pos(self, apt_type):
         """
         Lie le appointment.type à toutes les configs POS actives.
-        La relation peut être portée par pos.config ou appointment.type selon la version.
-        On essaie les deux sens, on log si aucun ne fonctionne.
         """
         pos_configs = self.env['pos.config'].sudo().search([('active', '=', True)])
         if not pos_configs:
@@ -188,7 +121,7 @@ class ProductTemplate(models.Model):
             return
 
         _logger.warning(
-            "[TR BRIDGE] Impossible de lier '%s' au POS automatiquement — "
+            "[TR BRIDGE] Impossible de lier '%s' au POS — "
             "faites-le manuellement dans POS > Configuration > Types de RDV",
             apt_type.name
         )

@@ -105,7 +105,6 @@ class SaleOrder(models.Model):
             # Ce canal est automatiquement souscrit par le bus_service Odoo (POS inclus),
             # ce qui garantit la réception sans avoir besoin d'addChannel côté JS.
             internal_users = self.env['res.users'].sudo().search([
-                ('share', '=', False),
                 ('active', '=', True),
             ])
             msg = {
