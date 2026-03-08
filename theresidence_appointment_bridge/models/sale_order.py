@@ -158,17 +158,6 @@ class SaleOrder(models.Model):
             if 'waiting_list_capacity' in ce_fields:
                 event_vals['waiting_list_capacity'] = self.x_tr_guest_count
 
-        # resource_ids : lier l'appointment.resource de l'espace si disponible
-        apt_resource = self._get_or_create_space_resource()
-        if apt_resource:
-            ce_fields = self.env['calendar.event']._fields
-            res_field = next(
-                (f for f in ['resource_ids', 'appointment_resource_ids'] if f in ce_fields),
-                None,
-            )
-            if res_field:
-                event_vals[res_field] = [(4, apt_resource.id)]
-
         event = self.env['calendar.event'].sudo().create(event_vals)
         self.sudo().write({'x_tr_calendar_event_id': event.id})
 
@@ -212,27 +201,6 @@ class SaleOrder(models.Model):
             "[TR BRIDGE] calendar.event %s mis à jour → statut %s",
             event.id, self.x_tr_reservation_status
         )
-
-    # ─────────────────────────────────────────────────────────────
-    # Récupère ou crée l'appointment.resource lié à l'espace
-    # ─────────────────────────────────────────────────────────────
-    def _get_or_create_space_resource(self):
-        self.ensure_one()
-        space = self.x_tr_space_id
-        if not space:
-            return False
-        if 'appointment.resource' not in self.env:
-            return False
-        try:
-            # sudo() indispensable : le contexte API est public user,
-            # et appointment.resource interdit l'utilisateur public.
-            return space.sudo()._ensure_appointment_resource()
-        except Exception as e:
-            _logger.warning(
-                "[TR BRIDGE] Impossible de créer appointment.resource pour '%s' : %s",
-                space.name, str(e)
-            )
-            return False
 
     # ─────────────────────────────────────────────────────────────
     # Helpers
