@@ -3,17 +3,16 @@
 /**
  * TR Bridge — Notification POS pour nouvelles réservations
  *
- * Enregistre un service via le registry Odoo.
- * Fonctionne dans le contexte POS d'Odoo 17-19.
+ * Écoute le canal partenaire de l'utilisateur connecté (souscrit automatiquement
+ * par le bus_service Odoo). Pas besoin d'addChannel.
  *
- * Son : utilise le fichier WAV du module (new Audio),
- *        avec fallback Web Audio API si le fichier échoue.
+ * Côté Python : _sendone(user.partner_id, 'tr_new_reservation', {...})
  */
 
 import { registry } from "@web/core/registry";
 
 // ─────────────────────────────────────────────────────────────
-// Son WAV via Audio API
+// Son WAV (exclamation), avec fallback Web Audio API
 // ─────────────────────────────────────────────────────────────
 const SOUND_URL = "/theresidence_appointment_bridge/static/src/sounds/new_reservation.wav";
 
@@ -23,22 +22,19 @@ async function playNotificationSound() {
         audio.preload = "auto";
         await audio.play();
     } catch {
-        // Fallback : bip via Web Audio API
-        _playWebAudioBip();
+        _webAudioBip();
     }
 }
 
-function _playWebAudioBip() {
+function _webAudioBip() {
     try {
         const AudioCtx = window.AudioContext || window.webkitAudioContext;
         if (!AudioCtx) return;
-
         const ctx = new AudioCtx();
         const gain = ctx.createGain();
         gain.connect(ctx.destination);
         gain.gain.setValueAtTime(0.35, ctx.currentTime);
         gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.45);
-
         const osc = ctx.createOscillator();
         osc.connect(gain);
         osc.type = "sine";
@@ -47,7 +43,7 @@ function _playWebAudioBip() {
         osc.start(ctx.currentTime);
         osc.stop(ctx.currentTime + 0.45);
     } catch {
-        // Son optionnel — jamais bloquant
+        // jamais bloquant
     }
 }
 
@@ -59,24 +55,18 @@ const trReservationNotifyService = {
 
     start(env, { bus_service, notification }) {
         try {
-            bus_service.addChannel("tr_reservation_notifications");
-
+            // Pas de addChannel : on écoute le canal partenaire de l'utilisateur
+            // connecté, qui est souscrit automatiquement par Odoo bus_service.
             bus_service.addEventListener("notification", (event) => {
                 const notifications = event.detail || [];
                 for (const notif of notifications) {
-                    // Le type est défini dans le 2e arg de bus.bus._sendone (Python)
-                    if (notif.type !== "new_reservation") continue;
+                    if (notif.type !== "tr_new_reservation") continue;
 
-                    const data = notif.payload || notif;
-                    const parts = [
-                        data.member || "Membre",
-                        "→",
-                        data.space || "Espace",
-                    ];
+                    const data = notif.payload || {};
+                    const parts = [data.member || "Membre", "→", data.space || "Espace"];
                     if (data.start) parts.push("à " + data.start);
-                    const msg = parts.join(" ");
 
-                    notification.add(msg, {
+                    notification.add(parts.join(" "), {
                         title: "Nouvelle réservation",
                         type: "warning",
                         sticky: false,

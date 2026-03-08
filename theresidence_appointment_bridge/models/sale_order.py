@@ -101,20 +101,26 @@ class SaleOrder(models.Model):
     def _notify_pos_new_reservation(self):
         self.ensure_one()
         try:
-            self.sudo().env['bus.bus']._sendone(
-                'tr_reservation_notifications',
-                'new_reservation',
-                {
-                    'type': 'new_reservation',
-                    'title': 'Nouvelle réservation',
-                    'member': self.partner_id.name or '',
-                    'space': self.x_tr_space_id.name or '',
-                    'start': self.x_tr_start_time.strftime('%H:%M') if self.x_tr_start_time else '',
-                    'uuid': self.x_tr_uuid or '',
-                    'status': self.x_tr_reservation_status or 'PENDING',
-                },
+            # On envoie sur le canal partenaire de chaque utilisateur interne.
+            # Ce canal est automatiquement souscrit par le bus_service Odoo (POS inclus),
+            # ce qui garantit la réception sans avoir besoin d'addChannel côté JS.
+            internal_users = self.env['res.users'].sudo().search([
+                ('share', '=', False),
+                ('active', '=', True),
+            ])
+            msg = {
+                'member': self.partner_id.name or '',
+                'space': self.x_tr_space_id.name or '',
+                'start': self.x_tr_start_time.strftime('%H:%M') if self.x_tr_start_time else '',
+                'uuid': self.x_tr_uuid or '',
+                'status': self.x_tr_reservation_status or 'PENDING',
+            }
+            for user in internal_users:
+                self.env['bus.bus']._sendone(user.partner_id, 'tr_new_reservation', msg)
+            _logger.info(
+                "[TR BRIDGE] Notification bus envoyée à %s utilisateur(s) pour réservation %s",
+                len(internal_users), self.x_tr_uuid,
             )
-            _logger.info("[TR BRIDGE] Notification bus envoyée pour réservation %s", self.x_tr_uuid)
         except Exception as e:
             _logger.warning("[TR BRIDGE] Échec notification bus : %s", str(e))
 
