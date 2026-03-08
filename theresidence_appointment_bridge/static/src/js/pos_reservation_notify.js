@@ -3,26 +3,26 @@
 /**
  * TR Bridge — Notification POS pour nouvelles réservations (Odoo 19)
  *
- * QUAND le popup et le son se déclenchent :
- *   → Uniquement quand une nouvelle réservation est créée depuis l'app mobile
- *     (POST /v1/external/reservations → sale.order.create() → _notify_pos_new_reservation())
- *   → JAMAIS lors d'un changement de statut (approve, checkin, cancel) : le write()
- *     ne notifie pas, seul create() le fait.
+ * QUAND : uniquement à la création d'une réservation depuis l'app mobile.
+ *         Jamais sur les changements de statut (approve/checkin/cancel).
  *
- * POURQUOI canal string et non canal partenaire :
- *   → Le POS ne charge pas le module discuss. Sans discuss, le canal partenaire
- *     (user.partner_id) n'est pas souscrit automatiquement dans le bus_service POS.
- *   → Un canal string ("tr_reservation_notifications") avec addChannel() est
- *     souscrit explicitement et fonctionne de manière fiable en POS Odoo 19.
+ * PATTERN : patch de Chrome.prototype (même approche que ReservationButton.js)
+ *           → useService() dans un contexte OWL component = notification.add()
+ *             rendu dans le DOM POS.
+ *           Un registry "service" background ne peut pas déclencher le rendu
+ *           du composant NotificationList dans POS.
  *
- * Python côté serveur :
- *   bus.bus._sendone('tr_reservation_notifications', 'tr_new_reservation', {...})
+ * CANAL : canal string "tr_reservation_notifications" souscrit via addChannel()
+ *         dans onMounted(), après que le composant Chrome est monté.
  */
 
-import { registry } from "@web/core/registry";
+import { Chrome } from "@point_of_sale/app/pos_app";
+import { patch } from "@web/core/utils/patch";
+import { useService } from "@web/core/utils/hooks";
+import { onMounted } from "@odoo/owl";
 
 // ─────────────────────────────────────────────────────────────
-// Son WAV (exclamation), fallback bip Web Audio API
+// Son WAV, fallback bip Web Audio
 // ─────────────────────────────────────────────────────────────
 const SOUND_URL = "/theresidence_appointment_bridge/static/src/sounds/new_reservation.wav";
 
@@ -56,26 +56,29 @@ function _webAudioBip() {
 }
 
 // ─────────────────────────────────────────────────────────────
-// Service TR — compatible POS Odoo 19
+// Patch Chrome — même pattern que ReservationButton.js
+// Plusieurs patches sur Chrome.prototype sont supportés par OWL.
 // ─────────────────────────────────────────────────────────────
-registry.category("services").add("tr_reservation_notify", {
-    dependencies: ["bus_service", "notification"],
+patch(Chrome.prototype, {
+    setup() {
+        super.setup(...arguments);
 
-    start(_env, { bus_service, notification }) {
-        try {
-            // Souscription explicite au canal string TR.
-            // addChannel() bufferise la demande jusqu'à ce que le bus soit connecté.
-            bus_service.addChannel("tr_reservation_notifications");
+        const busService = useService("bus_service");
+        const notification = useService("notification");
 
-            bus_service.addEventListener("notification", ({ detail: notifications = [] }) => {
+        onMounted(() => {
+            // addChannel() est bufferisé jusqu'à la connexion WebSocket
+            busService.addChannel("tr_reservation_notifications");
+
+            busService.addEventListener("notification", ({ detail: notifications = [] }) => {
                 for (const notif of notifications) {
                     if (notif.type !== "tr_new_reservation") continue;
 
                     const d = notif.payload || {};
                     const body = [
-                        d.member || "Membre inconnu",
+                        d.member || "Membre",
                         "→",
-                        d.space  || "Espace inconnu",
+                        d.space  || "Espace",
                         d.start  ? "à " + d.start : "",
                     ].filter(Boolean).join(" ");
 
@@ -89,9 +92,7 @@ registry.category("services").add("tr_reservation_notify", {
                 }
             });
 
-            console.info("[TR BRIDGE] Service notification actif — canal tr_reservation_notifications");
-        } catch (err) {
-            console.warn("[TR BRIDGE] Échec démarrage service notification :", err);
-        }
+            console.info("[TR BRIDGE] Canal bus souscrit — tr_reservation_notifications");
+        });
     },
 });
