@@ -58,17 +58,22 @@ class ProductTemplate(models.Model):
         if existing:
             self.x_tr_appointment_type_id = existing
             self._link_apt_type_to_pos(existing)
-            self._ensure_appointment_resource()
+            # appointment.resource créé séparément (évite le conflit public user)
+            self._try_ensure_appointment_resource()
             return existing
 
-        # Champs de base. On évite les champs Enterprise non garantis.
+        # Champs de base uniquement — on évite staff_user_ids qui peut inclure le public user.
         create_vals = {'name': self.name}
 
-        # Catégorie : on tente 'custom' pour éviter le filtre "réserver une table"
-        # qui correspond à la catégorie 'website' ou au type par défaut du POS.
+        # Catégorie : 'custom' pour éviter le filtre "réserver une table" du POS.
         apt_fields = self.env['appointment.type']._fields
         if 'category' in apt_fields:
             create_vals['category'] = 'custom'
+
+        # Exclure explicitement les staff_user_ids pour éviter l'ajout automatique
+        # du public user quand le type est créé depuis un contexte API.
+        if 'staff_user_ids' in apt_fields:
+            create_vals['staff_user_ids'] = [(5, 0, 0)]  # vider la liste
 
         # Capacité max = capacité de l'espace si disponible
         if 'max_capacity' in apt_fields and getattr(self, 'x_tr_space_capacity', 0):
@@ -77,13 +82,24 @@ class ProductTemplate(models.Model):
         apt_type = self.env['appointment.type'].sudo().create(create_vals)
         self.x_tr_appointment_type_id = apt_type
         self._link_apt_type_to_pos(apt_type)
-        self._ensure_appointment_resource()
+        # appointment.resource créé séparément (évite le conflit public user)
+        self._try_ensure_appointment_resource()
 
         _logger.info(
             "[TR BRIDGE] appointment.type '%s' (ID %s) créé pour l'espace ID %s",
             apt_type.name, apt_type.id, self.id
         )
         return apt_type
+
+    def _try_ensure_appointment_resource(self):
+        """Wrapper sécurisé : ne bloque jamais même si appointment.resource échoue."""
+        try:
+            self._ensure_appointment_resource()
+        except Exception as e:
+            _logger.warning(
+                "[TR BRIDGE] Impossible de créer appointment.resource pour '%s' : %s",
+                self.name, str(e)
+            )
 
     def _ensure_appointment_resource(self):
         """Crée (ou retrouve) un appointment.resource pour cet espace et le lie à l'appointment.type."""

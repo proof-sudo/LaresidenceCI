@@ -44,8 +44,20 @@ class SaleOrder(models.Model):
         records = super().create(vals_list)
         for rec in records:
             if rec.x_tr_is_reservation and rec.x_tr_start_time and rec.x_tr_end_time:
-                rec._sync_create_calendar_event()
-                rec._notify_pos_new_reservation()
+                # sudo() obligatoire : le contexte API (auth='public') garde l'env
+                # public user même quand create_reservation_from_api est appelé en sudo.
+                # appointment.type et appointment.resource refusent le public user.
+                try:
+                    rec.sudo()._sync_create_calendar_event()
+                except Exception as e:
+                    _logger.warning(
+                        "[TR BRIDGE] Échec création calendar.event pour %s : %s",
+                        rec.x_tr_uuid, str(e)
+                    )
+                try:
+                    rec.sudo()._notify_pos_new_reservation()
+                except Exception as e:
+                    _logger.warning("[TR BRIDGE] Échec notification bus : %s", str(e))
         return records
 
     def write(self, vals):
@@ -62,10 +74,16 @@ class SaleOrder(models.Model):
             for rec in self:
                 if not rec.x_tr_is_reservation:
                     continue
-                if rec.x_tr_calendar_event_id:
-                    rec._sync_update_calendar_event()
-                elif rec.x_tr_start_time and rec.x_tr_end_time:
-                    rec._sync_create_calendar_event()
+                try:
+                    if rec.x_tr_calendar_event_id:
+                        rec.sudo()._sync_update_calendar_event()
+                    elif rec.x_tr_start_time and rec.x_tr_end_time:
+                        rec.sudo()._sync_create_calendar_event()
+                except Exception as e:
+                    _logger.warning(
+                        "[TR BRIDGE] Échec sync calendar.event pour %s : %s",
+                        rec.x_tr_uuid, str(e)
+                    )
         return res
 
     # ─────────────────────────────────────────────────────────────
