@@ -28,6 +28,7 @@
     'assets': {
         'point_of_sale._assets_pos': [
             'theresidence_appointment_bridge/static/src/js/pos_reservation_notify.js',
+            'theresidence_appointment_bridge/static/src/sounds/new_reservation.wav'
         ],
     },
     'installable': True,

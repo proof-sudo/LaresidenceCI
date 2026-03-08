@@ -126,6 +126,10 @@ class SaleOrder(models.Model):
     def _notify_pos_new_reservation(self):
         self.ensure_one()
         try:
+            internal_users = self.env['res.users'].sudo().search([
+                ('active', '=', True),
+            ])
+
             msg = {
                 'member': self.partner_id.name or '',
                 'space': self.x_tr_space_id.name or '',
@@ -133,13 +137,20 @@ class SaleOrder(models.Model):
                 'uuid': self.x_tr_uuid or '',
                 'status': self.x_tr_reservation_status or 'PENDING',
             }
-            # Envoie à toutes les sessions connectées
-            self.env['bus.bus']._sendmany([('pos', None)], 'tr_new_reservation', msg)
-            _logger.info("[TR BRIDGE] Notification bus envoyée à toutes les sessions POS pour réservation %s", self.x_tr_uuid)
+
+            for user in internal_users:
+                if user.partner_id:
+                    self.env['bus.bus']._sendone(user.partner_id, 'tr_new_reservation', msg)
+
+            _logger.info(
+                "[TR BRIDGE] Notification bus envoyée à %s utilisateur(s) pour réservation %s",
+                len(internal_users), self.x_tr_uuid,
+            )
+
         except Exception as e:
             _logger.warning("[TR BRIDGE] Échec notification bus : %s", str(e))
 
-    # ─────────────────────────────────────────────────────────────
+        # ─────────────────────────────────────────────────────────────
     # Création du calendar.event miroir
     # ─────────────────────────────────────────────────────────────
     def _sync_create_calendar_event(self):

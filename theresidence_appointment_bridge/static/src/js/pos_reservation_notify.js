@@ -1,34 +1,27 @@
-odoo.define('theresidence_appointment_bridge.pos_notifications', function(require){
+odoo.define('theresidence_appointment_bridge.pos_notifications', function (require) {
     "use strict";
 
-    const Registries = require('point_of_sale.Registries');
+    const { Gui } = require('point_of_sale.Gui');
+    const PosGlobalState = require('point_of_sale.PosGlobalState');
 
-    const PosNotificationMixin = (Component) => {
-        class PosNotification extends Component {
-            mounted() {
-                const bus = this.env.pos.bus;
-                bus.add_channel('tr_new_reservation');
+    function playSound() {
+        // On joue le fichier .wave au lieu du mp3
+        const audio = new Audio('/theresidence_appointment_bridge/static/src/sounds/new_reservation.wav');
+        audio.play().catch(() => {});
+    }
 
-                bus.on('tr_new_reservation', this, (message) => {
-                    console.log('[POS] Nouvelle réservation', message);
+    function showToast(msg) {
+        Gui.showPopup('Toast', {
+            title: "Nouvelle réservation",
+            body: `Espace: ${msg.space}\nMembre: ${msg.member}\nHeure: ${msg.start}`,
+        });
+        playSound();
+    }
 
-                    // Toast simple
-                    alert(`Nouvelle réservation\nMembre: ${message.member}\nEspace: ${message.space}\nHeure: ${message.start}`);
-
-                    // Audio
-                    try {
-                        const audio = new Audio("/theresidence_appointment_bridge/static/src/sounds/ding.mp3");
-                        audio.play();
-                    } catch(e){
-                        console.warn('Impossible de jouer le son', e);
-                    }
-                });
-            }
+    // On attend que le bus soit prêt
+    PosGlobalState.on('change:bus', function (bus) {
+        if (bus) {
+            bus.on('tr_new_reservation', showToast);
         }
-        return PosNotification;
-    };
-
-    Registries.Component.add(PosNotificationMixin);
-
-    return PosNotificationMixin;
+    });
 });
