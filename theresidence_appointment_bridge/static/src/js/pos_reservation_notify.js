@@ -1,98 +1,78 @@
 /** @odoo-module */
 
-import { patch } from "@web/core/utils/patch";
-import { PosStore } from "@point_of_sale/app/store/pos_store";
-
 /**
  * TR Bridge — Notification POS pour nouvelles réservations
  *
- * - Écoute le canal bus `tr_reservation_notifications`
- * - Affiche un toast visuel + joue un bip sonore quand une nouvelle
- *   réservation arrive, pour alerter la caissière.
+ * Enregistre un service via le registry Odoo (pas de dépendance sur PosStore).
+ * Fonctionne dans le contexte POS d'Odoo 17-19.
  */
-patch(PosStore.prototype, {
-    /**
-     * Override setup : abonnement au canal bus après initialisation du POS.
-     */
-    async setup() {
-        await super.setup(...arguments);
-        this._trSubscribeReservationBus();
-    },
 
-    /**
-     * Abonnement au canal bus TR.
-     */
-    _trSubscribeReservationBus() {
+import { registry } from "@web/core/registry";
+
+// ─────────────────────────────────────────────────────────────
+// Bip sonore — deux tons via Web Audio API
+// ─────────────────────────────────────────────────────────────
+function playBip() {
+    try {
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        if (!AudioCtx) return;
+
+        const ctx = new AudioCtx();
+        const gain = ctx.createGain();
+        gain.connect(ctx.destination);
+        gain.gain.setValueAtTime(0.35, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.45);
+
+        const osc = ctx.createOscillator();
+        osc.connect(gain);
+        osc.type = "sine";
+        osc.frequency.setValueAtTime(880, ctx.currentTime);
+        osc.frequency.setValueAtTime(1100, ctx.currentTime + 0.15);
+        osc.start(ctx.currentTime);
+        osc.stop(ctx.currentTime + 0.45);
+    } catch {
+        // Son optionnel — jamais bloquant
+    }
+}
+
+// ─────────────────────────────────────────────────────────────
+// Service TR Notification
+// ─────────────────────────────────────────────────────────────
+const trReservationNotifyService = {
+    dependencies: ["bus_service", "notification"],
+
+    start(env, { bus_service, notification }) {
         try {
-            const busService = this.env?.services?.bus_service;
-            if (!busService) {
-                console.warn("[TR BRIDGE] bus_service non disponible dans le POS");
-                return;
-            }
-            busService.addChannel("tr_reservation_notifications");
-            busService.addEventListener("notification", (event) => {
-                for (const notif of event.detail) {
+            bus_service.addChannel("tr_reservation_notifications");
+
+            bus_service.addEventListener("notification", (event) => {
+                const notifications = event.detail || [];
+                for (const notif of notifications) {
                     if (notif.type === "new_reservation") {
-                        this._trOnNewReservation(notif.payload || notif);
+                        const data = notif.payload || notif;
+                        const msg = [
+                            data.member || "Membre",
+                            "→",
+                            data.space || "Espace",
+                            data.start ? "à " + data.start : "",
+                        ].filter(Boolean).join(" ");
+
+                        notification.add(msg, {
+                            title: "Nouvelle réservation",
+                            type: "warning",
+                            sticky: false,
+                        });
+
+                        playBip();
                     }
                 }
             });
-            console.info("[TR BRIDGE] Abonné au canal tr_reservation_notifications");
+
+            console.info("[TR BRIDGE] Service notification réservation actif");
         } catch (e) {
-            console.warn("[TR BRIDGE] Échec abonnement bus :", e);
+            console.warn("[TR BRIDGE] Échec démarrage service notification :", e);
         }
     },
+};
 
-    /**
-     * Callback : nouvelle réservation reçue.
-     * @param {Object} data  { member, space, start, uuid, status }
-     */
-    _trOnNewReservation(data) {
-        // 1. Toast visuel
-        try {
-            const notif = this.env?.services?.notification;
-            if (notif) {
-                notif.add(
-                    `${data.member || "Membre"} → ${data.space || "Espace"}${data.start ? " à " + data.start : ""}`,
-                    {
-                        title: "Nouvelle réservation",
-                        type: "warning",
-                        sticky: false,
-                    }
-                );
-            }
-        } catch (e) {
-            console.warn("[TR BRIDGE] Toast échoué :", e);
-        }
-
-        // 2. Bip sonore (Web Audio API)
-        this._trPlayBip();
-    },
-
-    /**
-     * Bip deux tons via Web Audio API.
-     * Ne lève jamais d'exception.
-     */
-    _trPlayBip() {
-        try {
-            const AudioCtx = window.AudioContext || window.webkitAudioContext;
-            if (!AudioCtx) return;
-
-            const ctx = new AudioCtx();
-            const gain = ctx.createGain();
-            gain.connect(ctx.destination);
-            gain.gain.setValueAtTime(0.35, ctx.currentTime);
-            gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.45);
-
-            const osc = ctx.createOscillator();
-            osc.connect(gain);
-            osc.type = "sine";
-            osc.frequency.setValueAtTime(880, ctx.currentTime);
-            osc.frequency.setValueAtTime(1100, ctx.currentTime + 0.15);
-            osc.start(ctx.currentTime);
-            osc.stop(ctx.currentTime + 0.45);
-        } catch (e) {
-            // Silencieux — le son est optionnel
-        }
-    },
-});
+registry.category("services").add("tr_reservation_notify", trReservationNotifyService);
