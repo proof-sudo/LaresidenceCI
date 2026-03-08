@@ -49,15 +49,15 @@ class SaleOrder(models.Model):
                 # appointment.type et appointment.resource refusent le public user.
                 try:
                     rec.sudo()._sync_create_calendar_event()
-                except Exception as e:
-                    _logger.warning(
-                        "[TR BRIDGE] Échec création calendar.event pour %s : %s",
-                        rec.x_tr_uuid, str(e)
+                except Exception:
+                    _logger.exception(
+                        "[TR BRIDGE] Échec création calendar.event pour réservation %s",
+                        rec.x_tr_uuid,
                     )
                 try:
                     rec.sudo()._notify_pos_new_reservation()
-                except Exception as e:
-                    _logger.warning("[TR BRIDGE] Échec notification bus : %s", str(e))
+                except Exception:
+                    _logger.exception("[TR BRIDGE] Échec notification bus pour %s", rec.x_tr_uuid)
         return records
 
     def write(self, vals):
@@ -127,8 +127,14 @@ class SaleOrder(models.Model):
         apt_type = self.x_tr_space_id.x_tr_appointment_type_id if self.x_tr_space_id else False
 
         if self.x_tr_space_id and not apt_type:
-            # sudo() : contexte API est public user, _ensure_appointment_type nécessite admin
-            apt_type = self.x_tr_space_id.sudo()._ensure_appointment_type()
+            try:
+                apt_type = self.x_tr_space_id.sudo()._ensure_appointment_type()
+            except Exception:
+                _logger.exception(
+                    "[TR BRIDGE] Impossible de créer appointment.type pour l'espace '%s'",
+                    self.x_tr_space_id.name,
+                )
+                # On continue sans appointment_type_id — le calendar.event sera créé quand même
 
         partner_ids = [(4, self.partner_id.id)] if self.partner_id else []
 
