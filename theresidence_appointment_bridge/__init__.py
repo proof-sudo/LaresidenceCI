@@ -9,8 +9,6 @@ def post_init_hook(env):
     import logging
     _logger = logging.getLogger(__name__)
 
-    pos_configs = env['pos.config'].sudo().search([('active', '=', True)])
-
     # 1. Créer/lier les appointment.type pour tous les espaces existants
     spaces = env['product.template'].search([
         ('x_tr_is_space', '=', True),
@@ -20,11 +18,9 @@ def post_init_hook(env):
     for space in spaces:
         if not space.x_tr_appointment_type_id:
             space._ensure_appointment_type()
-        elif pos_configs:
+        else:
             # Lier les types existants au POS s'ils ne le sont pas encore
-            space.x_tr_appointment_type_id.sudo().write({
-                'pos_config_ids': [(6, 0, pos_configs.ids)]
-            })
+            space._link_apt_type_to_pos(space.x_tr_appointment_type_id)
 
     # 2. Créer les calendar.event pour toutes les réservations sans event
     reservations = env['sale.order'].search([
