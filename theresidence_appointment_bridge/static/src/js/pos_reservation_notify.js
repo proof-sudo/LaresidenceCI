@@ -3,16 +3,32 @@
 /**
  * TR Bridge — Notification POS pour nouvelles réservations
  *
- * Enregistre un service via le registry Odoo (pas de dépendance sur PosStore).
+ * Enregistre un service via le registry Odoo.
  * Fonctionne dans le contexte POS d'Odoo 17-19.
+ *
+ * Son : utilise le fichier WAV du module (new Audio),
+ *        avec fallback Web Audio API si le fichier échoue.
  */
 
 import { registry } from "@web/core/registry";
 
 // ─────────────────────────────────────────────────────────────
-// Bip sonore — deux tons via Web Audio API
+// Son WAV via Audio API
 // ─────────────────────────────────────────────────────────────
-function playBip() {
+const SOUND_URL = "/theresidence_appointment_bridge/static/src/sounds/new_reservation.wav";
+
+async function playNotificationSound() {
+    try {
+        const audio = new Audio(SOUND_URL);
+        audio.preload = "auto";
+        await audio.play();
+    } catch {
+        // Fallback : bip via Web Audio API
+        _playWebAudioBip();
+    }
+}
+
+function _playWebAudioBip() {
     try {
         const AudioCtx = window.AudioContext || window.webkitAudioContext;
         if (!AudioCtx) return;
@@ -48,23 +64,25 @@ const trReservationNotifyService = {
             bus_service.addEventListener("notification", (event) => {
                 const notifications = event.detail || [];
                 for (const notif of notifications) {
-                    if (notif.type === "new_reservation") {
-                        const data = notif.payload || notif;
-                        const msg = [
-                            data.member || "Membre",
-                            "→",
-                            data.space || "Espace",
-                            data.start ? "à " + data.start : "",
-                        ].filter(Boolean).join(" ");
+                    // Le type est défini dans le 2e arg de bus.bus._sendone (Python)
+                    if (notif.type !== "new_reservation") continue;
 
-                        notification.add(msg, {
-                            title: "Nouvelle réservation",
-                            type: "warning",
-                            sticky: false,
-                        });
+                    const data = notif.payload || notif;
+                    const parts = [
+                        data.member || "Membre",
+                        "→",
+                        data.space || "Espace",
+                    ];
+                    if (data.start) parts.push("à " + data.start);
+                    const msg = parts.join(" ");
 
-                        playBip();
-                    }
+                    notification.add(msg, {
+                        title: "Nouvelle réservation",
+                        type: "warning",
+                        sticky: false,
+                    });
+
+                    playNotificationSound();
                 }
             });
 

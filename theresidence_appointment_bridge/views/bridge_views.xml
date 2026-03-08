@@ -44,6 +44,27 @@
     </record>
 
     <!-- ================================================== -->
+    <!-- Action : réparer les appointment.type sans staff   -->
+    <!-- À lancer manuellement depuis la liste des espaces  -->
+    <!-- ================================================== -->
+    <record id="action_tr_fix_apt_staff" model="ir.actions.server">
+        <field name="name">Réparer Types RDV (ajouter staff admin)</field>
+        <field name="model_id" ref="product.model_product_template"/>
+        <field name="binding_model_id" ref="product.model_product_template"/>
+        <field name="binding_view_types">list</field>
+        <field name="state">code</field>
+        <field name="code">
+admin_user = env.ref('base.user_admin', raise_if_not_found=False)
+for record in records:
+    if record.x_tr_is_space and record.x_tr_appointment_type_id and admin_user:
+        apt = record.x_tr_appointment_type_id.sudo()
+        if admin_user not in apt.staff_user_ids:
+            apt.write({'staff_user_ids': [(4, admin_user.id)]})
+            log('TR BRIDGE: staff admin ajouté à ' + apt.name)
+        </field>
+    </record>
+
+    <!-- ================================================== -->
     <!-- Action : synchroniser les calendar.event (sale.order) -->
     <!-- ================================================== -->
     <record id="action_tr_sync_bridge" model="ir.actions.server">
@@ -56,9 +77,9 @@
 for record in records:
     if record.x_tr_is_reservation and record.x_tr_start_time and record.x_tr_end_time:
         if record.x_tr_calendar_event_id:
-            record._sync_update_calendar_event()
+            record.sudo()._sync_update_calendar_event()
         else:
-            record._sync_create_calendar_event()
+            record.sudo()._sync_create_calendar_event()
         </field>
     </record>
 

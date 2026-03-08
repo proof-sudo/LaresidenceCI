@@ -62,18 +62,25 @@ class ProductTemplate(models.Model):
             self._try_ensure_appointment_resource()
             return existing
 
-        # Champs de base uniquement — on évite staff_user_ids qui peut inclure le public user.
         create_vals = {'name': self.name}
 
-        # Catégorie : 'custom' pour éviter le filtre "réserver une table" du POS.
         apt_fields = self.env['appointment.type']._fields
+
+        # Catégorie : 'custom' pour éviter le filtre "réserver une table" du POS.
         if 'category' in apt_fields:
             create_vals['category'] = 'custom'
 
-        # Exclure explicitement les staff_user_ids pour éviter l'ajout automatique
-        # du public user quand le type est créé depuis un contexte API.
+        # staff_user_ids DOIT contenir au moins un utilisateur valide.
+        # Odoo crée automatiquement des appointment.booking.line lors de la création
+        # d'un calendar.event lié à ce type. La contrainte
+        # _check_user_or_resource_match_appointment_type exige que le staff_user
+        # soit dans cette liste — sinon la création du calendar.event échoue avec
+        # "Public user cannot be used for X".
+        # → On ajoute l'utilisateur admin comme staff par défaut.
         if 'staff_user_ids' in apt_fields:
-            create_vals['staff_user_ids'] = [(5, 0, 0)]  # vider la liste
+            admin_user = self.env.ref('base.user_admin', raise_if_not_found=False)
+            if admin_user:
+                create_vals['staff_user_ids'] = [(4, admin_user.id)]
 
         # Capacité max = capacité de l'espace si disponible
         if 'max_capacity' in apt_fields and getattr(self, 'x_tr_space_capacity', 0):
