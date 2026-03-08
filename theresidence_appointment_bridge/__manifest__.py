@@ -22,6 +22,7 @@
     ],
     'data': [
         'security/ir.model.access.csv',
+        'views/bridge_views.xml',
     ],
     'installable': True,
     'application': False,

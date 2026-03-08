@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ================================================== -->
+    <!-- product.template : champ appointment.type          -->
+    <!-- Hérite de la page "The Residence" déjà existante   -->
+    <!-- ================================================== -->
+    <record id="view_product_template_form_bridge" model="ir.ui.view">
+        <field name="name">product.template.form.bridge.appointment</field>
+        <field name="model">product.template</field>
+        <field name="inherit_id" ref="theresidence_api.view_product_template_form_inherit_theresidence"/>
+        <field name="arch" type="xml">
+            <!-- On ajoute le lien appointment.type dans le groupe espace -->
+            <xpath expr="//group[@string='Configuration Espace']" position="inside">
+                <field name="x_tr_appointment_type_id"
+                       readonly="1"
+                       invisible="not x_tr_is_space"
+                       string="Type RDV (pos_appointment)"/>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- ================================================== -->
+    <!-- sale.order : champ calendar.event                  -->
+    <!-- Hérite de l'onglet "Réservation TR" existant       -->
+    <!-- ================================================== -->
+    <record id="view_sale_order_form_bridge" model="ir.ui.view">
+        <field name="name">sale.order.form.bridge.appointment</field>
+        <field name="model">sale.order</field>
+        <field name="inherit_id" ref="theresidence_api.view_sale_order_form_inherit_theresidence"/>
+        <field name="arch" type="xml">
+            <!-- On ajoute le lien calendar.event dans le groupe infos réservation -->
+            <xpath expr="//group[@string='Informations réservation']" position="inside">
+                <field name="x_tr_calendar_event_id"
+                       readonly="1"
+                       invisible="not x_tr_is_reservation"
+                       string="Événement Agenda (Bridge)"
+                       widget="many2one_avatar"/>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- ================================================== -->
+    <!-- Action : lancer la synchronisation manuelle        -->
+    <!-- ================================================== -->
+    <record id="action_tr_sync_bridge" model="ir.actions.server">
+        <field name="name">Synchroniser tous les calendar.event (Bridge TR)</field>
+        <field name="model_id" ref="sale.model_sale_order"/>
+        <field name="binding_model_id" ref="sale.model_sale_order"/>
+        <field name="binding_view_types">list</field>
+        <field name="state">code</field>
+        <field name="code">
+for record in records:
+    if record.x_tr_is_reservation and record.x_tr_start_time and record.x_tr_end_time:
+        if record.x_tr_calendar_event_id:
+            record._sync_update_calendar_event()
+        else:
+            record._sync_create_calendar_event()
+        </field>
+    </record>
+
+</odoo>
