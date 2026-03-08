@@ -53,17 +53,22 @@ class ProductTemplate(models.Model):
             self.x_tr_appointment_type_id = existing
             return existing
 
+        # Récupère toutes les configs POS actives pour lier le type
+        pos_configs = self.env['pos.config'].sudo().search([('active', '=', True)])
+
         apt_type = self.env['appointment.type'].sudo().create({
             'name': self.name,
-            'appointment_duration': 60,       # durée par défaut 1h
+            'appointment_duration': 60,
             'min_schedule_hours': 0,
             'max_schedule_days': 90,
             'schedule_based_on': 'users',
             'assign_method': 'resource_time',
+            # Lien critique : rend visible dans le menu Réservations du POS
+            'pos_config_ids': [(6, 0, pos_configs.ids)] if pos_configs else [],
         })
         self.x_tr_appointment_type_id = apt_type
         _logger.info(
-            "[TR BRIDGE] appointment.type créé : '%s' (ID %s) pour l'espace ID %s",
-            apt_type.name, apt_type.id, self.id
+            "[TR BRIDGE] appointment.type '%s' (ID %s) créé et lié à %s config(s) POS",
+            apt_type.name, apt_type.id, len(pos_configs)
         )
         return apt_type

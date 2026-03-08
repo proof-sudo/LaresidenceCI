@@ -40,10 +40,10 @@
     </record>
 
     <!-- ================================================== -->
-    <!-- Action : lancer la synchronisation manuelle        -->
+    <!-- Action : synchroniser les calendar.event (sale.order) -->
     <!-- ================================================== -->
     <record id="action_tr_sync_bridge" model="ir.actions.server">
-        <field name="name">Synchroniser tous les calendar.event (Bridge TR)</field>
+        <field name="name">Synchroniser les événements Agenda (Bridge TR)</field>
         <field name="model_id" ref="sale.model_sale_order"/>
         <field name="binding_model_id" ref="sale.model_sale_order"/>
         <field name="binding_view_types">list</field>
@@ -55,6 +55,25 @@ for record in records:
             record._sync_update_calendar_event()
         else:
             record._sync_create_calendar_event()
+        </field>
+    </record>
+
+    <!-- ================================================== -->
+    <!-- Action : lier les appointment.type au POS          -->
+    <!-- ================================================== -->
+    <record id="action_tr_link_apt_to_pos" model="ir.actions.server">
+        <field name="name">Lier les Types RDV au POS (Bridge TR)</field>
+        <field name="model_id" ref="product.model_product_template"/>
+        <field name="binding_model_id" ref="product.model_product_template"/>
+        <field name="binding_view_types">list</field>
+        <field name="state">code</field>
+        <field name="code">
+pos_configs = env['pos.config'].sudo().search([('active', '=', True)])
+for record in records:
+    if record.x_tr_is_space and record.x_tr_appointment_type_id and pos_configs:
+        record.x_tr_appointment_type_id.sudo().write({
+            'pos_config_ids': [(6, 0, pos_configs.ids)]
+        })
         </field>
     </record>
 
