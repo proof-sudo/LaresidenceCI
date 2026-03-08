@@ -23,7 +23,13 @@
     'data': [
         'security/ir.model.access.csv',
         'views/bridge_views.xml',
+        'views/assets.xml',
     ],
+    'assets': {
+        'point_of_sale._assets_pos': [
+            'theresidence_appointment_bridge/static/src/js/pos_reservation_notify.js',
+        ],
+    },
     'installable': True,
     'application': False,
     'auto_install': False,

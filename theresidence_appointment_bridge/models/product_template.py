@@ -15,6 +15,13 @@ class ProductTemplate(models.Model):
         help="Lien vers le appointment.type Odoo généré automatiquement pour cet espace.",
     )
 
+    x_tr_appointment_resource_id = fields.Many2one(
+        'appointment.resource',
+        string='Ressource Appointment',
+        copy=False,
+        help="appointment.resource lié à cet espace (créé automatiquement).",
+    )
+
     # ─────────────────────────────────────────────────────────────
     # Création : si l'espace est marqué x_tr_is_space, on génère
     # automatiquement un appointment.type correspondant.
@@ -29,39 +36,103 @@ class ProductTemplate(models.Model):
 
     def write(self, vals):
         res = super().write(vals)
-        # Si on vient de cocher "Est un espace TR", on crée le type
         if vals.get('x_tr_is_space'):
             for rec in self:
                 if not rec.x_tr_appointment_type_id:
                     rec._ensure_appointment_type()
-        # Si le nom de l'espace change, on met à jour le appointment.type
         if 'name' in vals:
             for rec in self:
                 if rec.x_tr_appointment_type_id:
                     rec.x_tr_appointment_type_id.sudo().write({'name': rec.name})
+                if rec.x_tr_appointment_resource_id:
+                    rec.x_tr_appointment_resource_id.sudo().write({'name': rec.name})
         return res
 
     def _ensure_appointment_type(self):
         """Crée (ou retrouve) un appointment.type pour cet espace."""
         self.ensure_one()
 
-        # Cherche un type existant portant le même nom pour éviter les doublons
         existing = self.env['appointment.type'].search(
             [('name', '=', self.name)], limit=1
         )
         if existing:
             self.x_tr_appointment_type_id = existing
             self._link_apt_type_to_pos(existing)
+            self._ensure_appointment_resource()
             return existing
 
-        apt_type = self.env['appointment.type'].sudo().create({'name': self.name})
+        # Champs de base. On évite les champs Enterprise non garantis.
+        create_vals = {'name': self.name}
+
+        # Catégorie : on tente 'custom' pour éviter le filtre "réserver une table"
+        # qui correspond à la catégorie 'website' ou au type par défaut du POS.
+        apt_fields = self.env['appointment.type']._fields
+        if 'category' in apt_fields:
+            create_vals['category'] = 'custom'
+
+        # Capacité max = capacité de l'espace si disponible
+        if 'max_capacity' in apt_fields and getattr(self, 'x_tr_space_capacity', 0):
+            create_vals['max_capacity'] = self.x_tr_space_capacity
+
+        apt_type = self.env['appointment.type'].sudo().create(create_vals)
         self.x_tr_appointment_type_id = apt_type
         self._link_apt_type_to_pos(apt_type)
+        self._ensure_appointment_resource()
+
         _logger.info(
             "[TR BRIDGE] appointment.type '%s' (ID %s) créé pour l'espace ID %s",
             apt_type.name, apt_type.id, self.id
         )
         return apt_type
+
+    def _ensure_appointment_resource(self):
+        """Crée (ou retrouve) un appointment.resource pour cet espace et le lie à l'appointment.type."""
+        self.ensure_one()
+
+        if 'appointment.resource' not in self.env:
+            return False
+
+        if self.x_tr_appointment_resource_id:
+            return self.x_tr_appointment_resource_id
+
+        existing = self.env['appointment.resource'].search(
+            [('name', '=', self.name)], limit=1
+        )
+        if existing:
+            self.x_tr_appointment_resource_id = existing
+            self._link_resource_to_apt_type(existing)
+            return existing
+
+        res_vals = {'name': self.name}
+        res_fields = self.env['appointment.resource']._fields
+        if 'capacity' in res_fields and getattr(self, 'x_tr_space_capacity', 0):
+            res_vals['capacity'] = self.x_tr_space_capacity
+
+        apt_resource = self.env['appointment.resource'].sudo().create(res_vals)
+        self.x_tr_appointment_resource_id = apt_resource
+        self._link_resource_to_apt_type(apt_resource)
+
+        _logger.info(
+            "[TR BRIDGE] appointment.resource '%s' (ID %s) créé pour l'espace ID %s",
+            apt_resource.name, apt_resource.id, self.id
+        )
+        return apt_resource
+
+    def _link_resource_to_apt_type(self, apt_resource):
+        """Lie l'appointment.resource à l'appointment.type de cet espace."""
+        self.ensure_one()
+        apt_type = self.x_tr_appointment_type_id
+        if not apt_type:
+            return
+
+        apt_fields = self.env['appointment.type']._fields
+        res_field = next(
+            (f for f in ['resource_ids', 'appointment_resource_ids'] if f in apt_fields),
+            None,
+        )
+        if res_field:
+            apt_type.sudo().write({res_field: [(4, apt_resource.id)]})
+            _logger.info("[TR BRIDGE] appointment.resource lié à appointment.type '%s'", apt_type.name)
 
     def _link_apt_type_to_pos(self, apt_type):
         """

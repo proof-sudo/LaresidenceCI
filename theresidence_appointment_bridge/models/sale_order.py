@@ -45,6 +45,7 @@ class SaleOrder(models.Model):
         for rec in records:
             if rec.x_tr_is_reservation and rec.x_tr_start_time and rec.x_tr_end_time:
                 rec._sync_create_calendar_event()
+                rec._notify_pos_new_reservation()
         return records
 
     def write(self, vals):
@@ -64,9 +65,40 @@ class SaleOrder(models.Model):
                 if rec.x_tr_calendar_event_id:
                     rec._sync_update_calendar_event()
                 elif rec.x_tr_start_time and rec.x_tr_end_time:
-                    # Création tardive si l'event n'existe pas encore
                     rec._sync_create_calendar_event()
         return res
+
+    # ─────────────────────────────────────────────────────────────
+    # Override tri : plus récent en premier (pour ReservationPanel POS)
+    # ─────────────────────────────────────────────────────────────
+    @api.model
+    def get_pos_reservations(self, date_filter='today'):
+        result = super().get_pos_reservations(date_filter)
+        # Tri newest-first par createdAt (ISO string, lexicographique)
+        return sorted(result, key=lambda r: r.get('createdAt', ''), reverse=True)
+
+    # ─────────────────────────────────────────────────────────────
+    # Notification bus → POS (toast + son côté caissière)
+    # ─────────────────────────────────────────────────────────────
+    def _notify_pos_new_reservation(self):
+        self.ensure_one()
+        try:
+            self.env['bus.bus']._sendone(
+                'tr_reservation_notifications',
+                'new_reservation',
+                {
+                    'type': 'new_reservation',
+                    'title': 'Nouvelle réservation',
+                    'member': self.partner_id.name or '',
+                    'space': self.x_tr_space_id.name or '',
+                    'start': self.x_tr_start_time.strftime('%H:%M') if self.x_tr_start_time else '',
+                    'uuid': self.x_tr_uuid or '',
+                    'status': self.x_tr_reservation_status or 'PENDING',
+                },
+            )
+            _logger.info("[TR BRIDGE] Notification bus envoyée pour réservation %s", self.x_tr_uuid)
+        except Exception as e:
+            _logger.warning("[TR BRIDGE] Échec notification bus : %s", str(e))
 
     # ─────────────────────────────────────────────────────────────
     # Création du calendar.event miroir
@@ -76,7 +108,6 @@ class SaleOrder(models.Model):
 
         apt_type = self.x_tr_space_id.x_tr_appointment_type_id if self.x_tr_space_id else False
 
-        # S'il n'y a pas encore de type, on le crée à la volée
         if self.x_tr_space_id and not apt_type:
             apt_type = self.x_tr_space_id._ensure_appointment_type()
 
@@ -92,11 +123,35 @@ class SaleOrder(models.Model):
             'description': self._build_event_description(),
             'privacy': 'confidential',
         }
+
         if apt_type:
             event_vals['appointment_type_id'] = apt_type.id
 
+        # waiting_list_capacity : capacité ou nb invités selon le champ disponible
+        if self.x_tr_guest_count:
+            ce_fields = self.env['calendar.event']._fields
+            if 'waiting_list_capacity' in ce_fields:
+                event_vals['waiting_list_capacity'] = self.x_tr_guest_count
+
+        # resource_ids : lier l'appointment.resource de l'espace si disponible
+        apt_resource = self._get_or_create_space_resource()
+        if apt_resource:
+            ce_fields = self.env['calendar.event']._fields
+            res_field = next(
+                (f for f in ['resource_ids', 'appointment_resource_ids'] if f in ce_fields),
+                None,
+            )
+            if res_field:
+                event_vals[res_field] = [(4, apt_resource.id)]
+
         event = self.env['calendar.event'].sudo().create(event_vals)
         self.sudo().write({'x_tr_calendar_event_id': event.id})
+
+        # Si waiting_list_capacity est sur appointment.type plutôt que calendar.event
+        if apt_type and self.x_tr_guest_count:
+            apt_fields = self.env['appointment.type']._fields
+            if 'waiting_list_capacity' in apt_fields:
+                apt_type.sudo().write({'waiting_list_capacity': self.x_tr_guest_count})
 
         _logger.info(
             "[TR BRIDGE] calendar.event %s créé pour réservation %s (%s)",
@@ -112,19 +167,38 @@ class SaleOrder(models.Model):
         if not event:
             return
 
-        event.sudo().write({
+        update_vals = {
             'name': self._build_event_name(),
             'start': self.x_tr_start_time,
             'stop': self.x_tr_end_time,
             'show_as': STATUS_TO_SHOW.get(self.x_tr_reservation_status, 'free'),
             'active': STATUS_TO_ACTIVE.get(self.x_tr_reservation_status, True),
             'description': self._build_event_description(),
-        })
+        }
+
+        if self.x_tr_guest_count:
+            ce_fields = self.env['calendar.event']._fields
+            if 'waiting_list_capacity' in ce_fields:
+                update_vals['waiting_list_capacity'] = self.x_tr_guest_count
+
+        event.sudo().write(update_vals)
 
         _logger.info(
             "[TR BRIDGE] calendar.event %s mis à jour → statut %s",
             event.id, self.x_tr_reservation_status
         )
+
+    # ─────────────────────────────────────────────────────────────
+    # Récupère ou crée l'appointment.resource lié à l'espace
+    # ─────────────────────────────────────────────────────────────
+    def _get_or_create_space_resource(self):
+        self.ensure_one()
+        space = self.x_tr_space_id
+        if not space:
+            return False
+        if 'appointment.resource' not in self.env:
+            return False
+        return space._ensure_appointment_resource()
 
     # ─────────────────────────────────────────────────────────────
     # Helpers
@@ -133,16 +207,7 @@ class SaleOrder(models.Model):
         self.ensure_one()
         space = self.x_tr_space_id.name if self.x_tr_space_id else 'Espace'
         member = self.partner_id.name if self.partner_id else 'Membre'
-        status_labels = {
-            'PENDING':    'En attente',
-            'APPROVED':   'Approuvée',
-            'CHECKED_IN': 'Check-in',
-            'COMPLETED':  'Terminée',
-            'REJECTED':   'Rejetée',
-            'CANCELLED':  'Annulée',
-        }
-        status = status_labels.get(self.x_tr_reservation_status, '')
-        return f"[{status}] {space} — {member}"
+        return f"{space} — {member}"
 
     def _build_event_description(self):
         self.ensure_one()

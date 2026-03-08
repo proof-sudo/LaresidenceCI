@@ -127,8 +127,12 @@ class SaleOrder(models.Model):
         if not space:
             raise ValidationError(_("Espace non trouvé: %s") % data.get('spaceId'))
         
-        start_time = datetime.fromisoformat(data.get('startTime').replace('Z', '+00:00'))
-        end_time = datetime.fromisoformat(data.get('endTime').replace('Z', '+00:00'))
+        if not data.get('startTime') or not data.get('endTime'):
+            raise ValidationError(_("Les champs startTime et endTime sont obligatoires."))
+        start_time = datetime.fromisoformat(data['startTime'].replace('Z', '+00:00'))
+        end_time = datetime.fromisoformat(data['endTime'].replace('Z', '+00:00'))
+        if end_time <= start_time:
+            raise ValidationError(_("endTime doit être postérieur à startTime."))
         
         order = self.create({
             'partner_id': partner.id,
