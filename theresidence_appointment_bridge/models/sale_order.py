@@ -47,15 +47,21 @@ class SaleOrder(models.Model):
                 # sudo() obligatoire : le contexte API (auth='public') garde l'env
                 # public user même quand create_reservation_from_api est appelé en sudo.
                 # appointment.type et appointment.resource refusent le public user.
+                # Savepoint isolé : si calendar.event échoue, le cursor reste
+                # propre pour les opérations suivantes (bus notification).
                 try:
-                    rec.sudo()._sync_create_calendar_event()
+                    with rec.env.cr.savepoint():
+                        rec.sudo()._sync_create_calendar_event()
                 except Exception:
                     _logger.exception(
                         "[TR BRIDGE] Échec création calendar.event pour réservation %s",
                         rec.x_tr_uuid,
                     )
+                # Savepoint isolé pour le bus : garantit le commit même si
+                # _sync_create_calendar_event a échoué.
                 try:
-                    rec.sudo()._notify_pos_new_reservation()
+                    with rec.env.cr.savepoint():
+                        rec.sudo()._notify_pos_new_reservation()
                 except Exception:
                     _logger.exception("[TR BRIDGE] Échec notification bus pour %s", rec.x_tr_uuid)
         return records

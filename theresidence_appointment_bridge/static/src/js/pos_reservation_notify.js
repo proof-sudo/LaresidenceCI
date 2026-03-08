@@ -71,6 +71,10 @@ patch(Chrome.prototype, {
             busService.addChannel("tr_reservation_notifications");
 
             busService.addEventListener("notification", ({ detail: notifications = [] }) => {
+                // DEBUG : log toutes les notifs pour diagnostiquer
+                if (notifications.length) {
+                    console.log("[TR BRIDGE] Bus reçu:", JSON.stringify(notifications));
+                }
                 for (const notif of notifications) {
                     if (notif.type !== "tr_new_reservation") continue;
 
