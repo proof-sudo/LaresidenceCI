@@ -1,86 +1,52 @@
-/** @odoo-module */
+odoo.define('theresidence_appointment_bridge.pos_notifications_toast', function(require){
+    "use strict";
 
-/**
- * TR Bridge — Notification POS pour nouvelles réservations
- *
- * Écoute le canal partenaire de l'utilisateur connecté (souscrit automatiquement
- * par le bus_service Odoo). Pas besoin d'addChannel.
- *
- * Côté Python : _sendone(user.partner_id, 'tr_new_reservation', {...})
- */
+    const Registries = require('point_of_sale.Registries');
+    const PosGlobalState = require('point_of_sale.PosGlobalState');
 
-import { registry } from "@web/core/registry";
+    const PosGlobalStateNotifications = (superClass) => class extends superClass {
+        setup() {
+            super.setup?.();
 
-// ─────────────────────────────────────────────────────────────
-// Son WAV (exclamation), avec fallback Web Audio API
-// ─────────────────────────────────────────────────────────────
-const SOUND_URL = "/theresidence_appointment_bridge/static/src/sounds/new_reservation.wav";
+            // ── Abonnement au canal tr_new_reservation ──
+            this.env.bus_service.addChannel('tr_new_reservation');
 
-async function playNotificationSound() {
-    try {
-        const audio = new Audio(SOUND_URL);
-        audio.preload = "auto";
-        await audio.play();
-    } catch {
-        _webAudioBip();
-    }
-}
+            this.env.bus_service.on('tr_new_reservation', this, (message) => {
+                console.log("[POS] Nouvelle réservation :", message);
 
-function _webAudioBip() {
-    try {
-        const AudioCtx = window.AudioContext || window.webkitAudioContext;
-        if (!AudioCtx) return;
-        const ctx = new AudioCtx();
-        const gain = ctx.createGain();
-        gain.connect(ctx.destination);
-        gain.gain.setValueAtTime(0.35, ctx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.45);
-        const osc = ctx.createOscillator();
-        osc.connect(gain);
-        osc.type = "sine";
-        osc.frequency.setValueAtTime(880, ctx.currentTime);
-        osc.frequency.setValueAtTime(1100, ctx.currentTime + 0.15);
-        osc.start(ctx.currentTime);
-        osc.stop(ctx.currentTime + 0.45);
-    } catch {
-        // jamais bloquant
-    }
-}
+                // ── Création toast flottant ──
+                const toast = document.createElement('div');
+                toast.style.position = 'fixed';
+                toast.style.bottom = '20px';
+                toast.style.right = '20px';
+                toast.style.background = '#fffae6';
+                toast.style.border = '1px solid #f1c40f';
+                toast.style.padding = '15px 20px';
+                toast.style.borderRadius = '8px';
+                toast.style.boxShadow = '0 4px 6px rgba(0,0,0,0.2)';
+                toast.style.zIndex = 9999;
+                toast.style.fontFamily = 'Arial, sans-serif';
+                toast.style.color = '#333';
+                toast.style.whiteSpace = 'pre-line';
+                toast.innerText = `📌 Nouvelle réservation\nMembre: ${message.member}\nEspace: ${message.space}\nHeure: ${message.start}`;
 
-// ─────────────────────────────────────────────────────────────
-// Service TR Notification
-// ─────────────────────────────────────────────────────────────
-const trReservationNotifyService = {
-    dependencies: ["bus_service", "notification"],
+                document.body.appendChild(toast);
 
-    start(env, { bus_service, notification }) {
-        try {
-            // Pas de addChannel : on écoute le canal partenaire de l'utilisateur
-            // connecté, qui est souscrit automatiquement par Odoo bus_service.
-            bus_service.addEventListener("notification", (event) => {
-                const notifications = event.detail || [];
-                for (const notif of notifications) {
-                    if (notif.type !== "tr_new_reservation") continue;
+                setTimeout(() => {
+                    toast.remove();
+                }, 5000);
 
-                    const data = notif.payload || {};
-                    const parts = [data.member || "Membre", "→", data.space || "Espace"];
-                    if (data.start) parts.push("à " + data.start);
-
-                    notification.add(parts.join(" "), {
-                        title: "Nouvelle réservation",
-                        type: "warning",
-                        sticky: false,
-                    });
-
-                    playNotificationSound();
+                // ── Lecture audio intégré en base64 ──
+                try {
+                    const audioData = "data:audio/mp3;base64,//uQxAA..."; // Remplace par ton base64 réel
+                    const audio = new Audio(audioData);
+                    audio.play().catch(err => console.warn('Impossible de jouer le son POS', err));
+                } catch(e) {
+                    console.warn('Erreur audio POS', e);
                 }
             });
-
-            console.info("[TR BRIDGE] Service notification réservation actif");
-        } catch (e) {
-            console.warn("[TR BRIDGE] Échec démarrage service notification :", e);
         }
-    },
-};
+    };
 
-registry.category("services").add("tr_reservation_notify", trReservationNotifyService);
+    Registries.Component.extend(PosGlobalState, PosGlobalStateNotifications);
+});

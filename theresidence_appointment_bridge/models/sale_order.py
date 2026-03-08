@@ -98,15 +98,34 @@ class SaleOrder(models.Model):
     # ─────────────────────────────────────────────────────────────
     # Notification bus → POS (toast + son côté caissière)
     # ─────────────────────────────────────────────────────────────
+    # def _notify_pos_new_reservation(self):
+    #     self.ensure_one()
+    #     try:
+    #         # On envoie sur le canal partenaire de chaque utilisateur interne.
+    #         # Ce canal est automatiquement souscrit par le bus_service Odoo (POS inclus),
+    #         # ce qui garantit la réception sans avoir besoin d'addChannel côté JS.
+    #         internal_users = self.env['res.users'].sudo().search([
+    #             ('active', '=', True),
+    #         ])
+    #         msg = {
+    #             'member': self.partner_id.name or '',
+    #             'space': self.x_tr_space_id.name or '',
+    #             'start': self.x_tr_start_time.strftime('%H:%M') if self.x_tr_start_time else '',
+    #             'uuid': self.x_tr_uuid or '',
+    #             'status': self.x_tr_reservation_status or 'PENDING',
+    #         }
+    #         for user in internal_users:
+    #             self.env['bus.bus']._sendone(user.partner_id, 'tr_new_reservation', msg)
+    #         _logger.info(
+    #             "[TR BRIDGE] Notification bus envoyée à %s utilisateur(s) pour réservation %s",
+    #             len(internal_users), self.x_tr_uuid,
+    #         )
+    #     except Exception as e:
+    #         _logger.warning("[TR BRIDGE] Échec notification bus : %s", str(e))
+    
     def _notify_pos_new_reservation(self):
         self.ensure_one()
         try:
-            # On envoie sur le canal partenaire de chaque utilisateur interne.
-            # Ce canal est automatiquement souscrit par le bus_service Odoo (POS inclus),
-            # ce qui garantit la réception sans avoir besoin d'addChannel côté JS.
-            internal_users = self.env['res.users'].sudo().search([
-                ('active', '=', True),
-            ])
             msg = {
                 'member': self.partner_id.name or '',
                 'space': self.x_tr_space_id.name or '',
@@ -114,12 +133,9 @@ class SaleOrder(models.Model):
                 'uuid': self.x_tr_uuid or '',
                 'status': self.x_tr_reservation_status or 'PENDING',
             }
-            for user in internal_users:
-                self.env['bus.bus']._sendone(user.partner_id, 'tr_new_reservation', msg)
-            _logger.info(
-                "[TR BRIDGE] Notification bus envoyée à %s utilisateur(s) pour réservation %s",
-                len(internal_users), self.x_tr_uuid,
-            )
+            # Envoie à toutes les sessions connectées
+            self.env['bus.bus']._sendmany([('pos', None)], 'tr_new_reservation', msg)
+            _logger.info("[TR BRIDGE] Notification bus envoyée à toutes les sessions POS pour réservation %s", self.x_tr_uuid)
         except Exception as e:
             _logger.warning("[TR BRIDGE] Échec notification bus : %s", str(e))
 
