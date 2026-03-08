@@ -58,11 +58,6 @@ class ProductTemplate(models.Model):
 
         apt_type = self.env['appointment.type'].sudo().create({
             'name': self.name,
-            'appointment_duration': 60,
-            'min_schedule_hours': 0,
-            'max_schedule_days': 90,
-            'schedule_based_on': 'users',
-            'assign_method': 'resource_time',
             # Lien critique : rend visible dans le menu Réservations du POS
             'pos_config_ids': [(6, 0, pos_configs.ids)] if pos_configs else [],
         })
