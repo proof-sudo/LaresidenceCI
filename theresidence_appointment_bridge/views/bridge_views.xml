@@ -10,8 +10,8 @@
         <field name="model">product.template</field>
         <field name="inherit_id" ref="theresidence_api.view_product_template_form_inherit_theresidence"/>
         <field name="arch" type="xml">
-            <!-- On ajoute le lien appointment.type dans le groupe espace -->
-            <xpath expr="//group[@string='Configuration Espace']" position="inside">
+            <!-- On ajoute le lien appointment.type après x_tr_space_uuid dans le groupe espace -->
+            <xpath expr="//field[@name='x_tr_space_uuid']" position="after">
                 <field name="x_tr_appointment_type_id"
                        readonly="1"
                        invisible="not x_tr_is_space"
@@ -29,13 +29,12 @@
         <field name="model">sale.order</field>
         <field name="inherit_id" ref="theresidence_api.view_sale_order_form_inherit_theresidence"/>
         <field name="arch" type="xml">
-            <!-- On ajoute le lien calendar.event dans le groupe infos réservation -->
-            <xpath expr="//group[@string='Informations réservation']" position="inside">
+            <!-- On ajoute le lien calendar.event après x_tr_space_id dans l'onglet réservation -->
+            <xpath expr="//field[@name='x_tr_space_id']" position="after">
                 <field name="x_tr_calendar_event_id"
                        readonly="1"
                        invisible="not x_tr_is_reservation"
-                       string="Événement Agenda (Bridge)"
-                       widget="many2one_avatar"/>
+                       string="Événement Agenda (Bridge)"/>
             </xpath>
         </field>
     </record>
