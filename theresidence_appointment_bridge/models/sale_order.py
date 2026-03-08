@@ -83,7 +83,7 @@ class SaleOrder(models.Model):
     def _notify_pos_new_reservation(self):
         self.ensure_one()
         try:
-            self.env['bus.bus']._sendone(
+            self.sudo().env['bus.bus']._sendone(
                 'tr_reservation_notifications',
                 'new_reservation',
                 {
@@ -109,7 +109,8 @@ class SaleOrder(models.Model):
         apt_type = self.x_tr_space_id.x_tr_appointment_type_id if self.x_tr_space_id else False
 
         if self.x_tr_space_id and not apt_type:
-            apt_type = self.x_tr_space_id._ensure_appointment_type()
+            # sudo() : contexte API est public user, _ensure_appointment_type nécessite admin
+            apt_type = self.x_tr_space_id.sudo()._ensure_appointment_type()
 
         partner_ids = [(4, self.partner_id.id)] if self.partner_id else []
 
@@ -198,7 +199,16 @@ class SaleOrder(models.Model):
             return False
         if 'appointment.resource' not in self.env:
             return False
-        return space._ensure_appointment_resource()
+        try:
+            # sudo() indispensable : le contexte API est public user,
+            # et appointment.resource interdit l'utilisateur public.
+            return space.sudo()._ensure_appointment_resource()
+        except Exception as e:
+            _logger.warning(
+                "[TR BRIDGE] Impossible de créer appointment.resource pour '%s' : %s",
+                space.name, str(e)
+            )
+            return False
 
     # ─────────────────────────────────────────────────────────────
     # Helpers
