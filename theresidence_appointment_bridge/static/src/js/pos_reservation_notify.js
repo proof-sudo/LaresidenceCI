@@ -1,20 +1,28 @@
 /** @odoo-module */
 
 /**
- * TR Bridge — Notification POS pour nouvelles réservations (Odoo 17/18/19)
+ * TR Bridge — Notification POS pour nouvelles réservations (Odoo 19)
  *
- * Principe :
- *   - Python envoie via bus.bus._sendone(user.partner_id, 'tr_new_reservation', {...})
- *   - Le canal partenaire est automatiquement souscrit par le bus_service Odoo.
- *   - Ce service écoute le flux global et filtre uniquement 'tr_new_reservation'.
- *   - Cela ne se déclenche QUE lors d'une création de réservation (create), jamais
- *     lors des changements de statut (write ne notifie pas).
+ * QUAND le popup et le son se déclenchent :
+ *   → Uniquement quand une nouvelle réservation est créée depuis l'app mobile
+ *     (POST /v1/external/reservations → sale.order.create() → _notify_pos_new_reservation())
+ *   → JAMAIS lors d'un changement de statut (approve, checkin, cancel) : le write()
+ *     ne notifie pas, seul create() le fait.
+ *
+ * POURQUOI canal string et non canal partenaire :
+ *   → Le POS ne charge pas le module discuss. Sans discuss, le canal partenaire
+ *     (user.partner_id) n'est pas souscrit automatiquement dans le bus_service POS.
+ *   → Un canal string ("tr_reservation_notifications") avec addChannel() est
+ *     souscrit explicitement et fonctionne de manière fiable en POS Odoo 19.
+ *
+ * Python côté serveur :
+ *   bus.bus._sendone('tr_reservation_notifications', 'tr_new_reservation', {...})
  */
 
 import { registry } from "@web/core/registry";
 
 // ─────────────────────────────────────────────────────────────
-// Son WAV, fallback bip Web Audio
+// Son WAV (exclamation), fallback bip Web Audio API
 // ─────────────────────────────────────────────────────────────
 const SOUND_URL = "/theresidence_appointment_bridge/static/src/sounds/new_reservation.wav";
 
@@ -48,24 +56,27 @@ function _webAudioBip() {
 }
 
 // ─────────────────────────────────────────────────────────────
-// Service enregistré dans le registry Odoo (compatible POS 17-19)
+// Service TR — compatible POS Odoo 19
 // ─────────────────────────────────────────────────────────────
 registry.category("services").add("tr_reservation_notify", {
     dependencies: ["bus_service", "notification"],
 
     start(_env, { bus_service, notification }) {
         try {
+            // Souscription explicite au canal string TR.
+            // addChannel() bufferise la demande jusqu'à ce que le bus soit connecté.
+            bus_service.addChannel("tr_reservation_notifications");
+
             bus_service.addEventListener("notification", ({ detail: notifications = [] }) => {
                 for (const notif of notifications) {
-                    // Filtre strict : uniquement les messages envoyés par _notify_pos_new_reservation
                     if (notif.type !== "tr_new_reservation") continue;
 
                     const d = notif.payload || {};
                     const body = [
-                        d.member  || "Membre inconnu",
+                        d.member || "Membre inconnu",
                         "→",
-                        d.space   || "Espace inconnu",
-                        d.start   ? "à " + d.start : "",
+                        d.space  || "Espace inconnu",
+                        d.start  ? "à " + d.start : "",
                     ].filter(Boolean).join(" ");
 
                     notification.add(body, {
@@ -78,7 +89,7 @@ registry.category("services").add("tr_reservation_notify", {
                 }
             });
 
-            console.info("[TR BRIDGE] Service notification réservation actif (Odoo 19)");
+            console.info("[TR BRIDGE] Service notification actif — canal tr_reservation_notifications");
         } catch (err) {
             console.warn("[TR BRIDGE] Échec démarrage service notification :", err);
         }
