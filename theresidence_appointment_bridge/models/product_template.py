@@ -4,9 +4,8 @@ from odoo import models, fields, api
 
 _logger = logging.getLogger(__name__)
 
-# Nom du type RDV unique partagé par tous les espaces TR.
-# Modifiez cette constante si vous avez déjà un type nommé différemment.
-_TR_SHARED_APT_TYPE_NAME = "Réservation d'espace"
+# Nom de secours si aucun type catégorie 'table' n'existe.
+_TR_SHARED_APT_TYPE_NAME = "Réservation de table"
 
 
 class ProductTemplate(models.Model):
@@ -49,29 +48,27 @@ class ProductTemplate(models.Model):
 
         apt_fields = self.env['appointment.type']._fields
 
-        # 1. Chercher le type partagé TR par son nom fixe
-        shared = self.env['appointment.type'].search(
-            [('name', '=', _TR_SHARED_APT_TYPE_NAME)], limit=1
-        )
+        # 1. Priorité : type catégorie 'table' existant (pos_restaurant_appointment)
+        #    C'est le "Réserver une table" natif Odoo, visible dans le menu POS.
+        shared = False
+        if 'category' in apt_fields:
+            shared = self.env['appointment.type'].search(
+                [('category', '=', 'table')], limit=1
+            )
 
+        # 2. Sinon, chercher par nom de secours
         if not shared:
-            # 2. Chercher un type catégorie 'table' existant (pos_restaurant_appointment)
-            if 'category' in apt_fields:
-                shared = self.env['appointment.type'].search(
-                    [('category', '=', 'table')], limit=1
-                )
+            shared = self.env['appointment.type'].search(
+                [('name', '=', _TR_SHARED_APT_TYPE_NAME)], limit=1
+            )
 
+        # 3. Créer si introuvable
         if not shared:
-            # 3. Créer le type partagé
             create_vals = {'name': _TR_SHARED_APT_TYPE_NAME}
 
-            # category='table' : affiché dans le menu POS "Réservations"
             if 'category' in apt_fields:
                 create_vals['category'] = 'table'
 
-            # staff_user_ids : obligatoire pour éviter la contrainte
-            # _check_user_or_resource_match_appointment_type lors de la création
-            # des appointment.booking.line.
             if 'staff_user_ids' in apt_fields:
                 admin_user = self.env.ref('base.user_admin', raise_if_not_found=False)
                 if admin_user:
