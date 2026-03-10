@@ -286,6 +286,13 @@ class SaleOrder(models.Model):
             lines.append(f"Invités : {self.x_tr_guest_count}")
         if self.x_tr_notes:
             lines.append(f"Notes : {self.x_tr_notes}")
+        # Options de réservation
+        options = getattr(self, 'x_tr_option_ids', False)
+        if options:
+            lines.append("Options :")
+            for opt in options:
+                label = opt.name or (opt.option_def_id.name if opt.option_def_id else '')
+                lines.append(f"  • {label} × {opt.quantity}  ({opt.amount:.0f})")
         if self.x_tr_uuid:
             lines.append(f"UUID : {self.x_tr_uuid}")
         if self.x_tr_qr_token:
