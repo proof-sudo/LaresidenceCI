@@ -111,33 +111,35 @@ for record in records:
         <field name="model">calendar.event</field>
         <field name="inherit_id" ref="pos_appointment.calendar_event_view_form_gantt_booking"/>
         <field name="arch" type="xml">
-            <xpath expr="//div[hasclass('mb-3')]" position="replace">
-                <div class="mb-3" invisible="not id">
-                    <!-- Boutons TR (réservation The Residence) -->
-                    <button name="action_tr_reserve" type="object"
-                            string="Réserver" class="btn-primary mx-1"
-                            invisible="x_tr_reservation_status != 'PENDING'"/>
-                    <button name="action_tr_arrive" type="object"
-                            string="Marquer arrivée" class="btn-primary mx-1"
-                            invisible="x_tr_reservation_status != 'RESERVED'"/>
-                    <button name="action_tr_release" type="object"
-                            string="Libérer l'espace" class="btn-success mx-1"
-                            invisible="x_tr_reservation_status != 'ARRIVED'"/>
-                    <button name="action_tr_cancel" type="object"
-                            string="Annuler" class="btn-danger mx-1"
-                            invisible="x_tr_reservation_status not in ('PENDING', 'RESERVED', 'ARRIVED')"/>
-                    <!-- Boutons natifs pour les events non-TR -->
-                    <button name="set_attended" type="object"
-                            string="Check In" class="btn-secondary mx-1"
-                            invisible="x_tr_reservation_status"/>
-                    <button name="set_cancelled" type="object"
-                            string="Cancel" class="btn-secondary"
-                            invisible="x_tr_reservation_status"/>
-                    <field name="appointment_status" widget="statusbar"
-                           invisible="not appointment_type_id"
-                           required="appointment_type_id" style="float:right;"/>
-                    <field name="x_tr_reservation_status" invisible="1"/>
-                </div>
+            <!-- Ajoute le champ TR au sheet pour le rendre disponible dans les conditions -->
+            <xpath expr="//sheet" position="inside">
+                <field name="x_tr_reservation_status" invisible="1"/>
+            </xpath>
+            <!-- Remplace le bouton natif "Check In" par nos boutons TR conditionnels -->
+            <xpath expr="//button[@name='set_attended']" position="replace">
+                <button name="action_tr_reserve" type="object"
+                        string="Réserver" class="btn-primary mx-1"
+                        invisible="x_tr_reservation_status != 'PENDING'"/>
+                <button name="action_tr_arrive" type="object"
+                        string="Marquer arrivée" class="btn-primary mx-1"
+                        invisible="x_tr_reservation_status != 'RESERVED'"/>
+                <button name="action_tr_release" type="object"
+                        string="Libérer l'espace" class="btn-success mx-1"
+                        invisible="x_tr_reservation_status != 'ARRIVED'"/>
+                <!-- Bouton natif Check In conservé pour les events non-TR -->
+                <button name="set_attended" type="object"
+                        string="Check In" class="btn-secondary mx-1"
+                        invisible="x_tr_reservation_status"/>
+            </xpath>
+            <!-- Remplace le bouton natif "Cancel" par notre bouton Annuler TR -->
+            <xpath expr="//button[@name='set_cancelled']" position="replace">
+                <button name="action_tr_cancel" type="object"
+                        string="Annuler" class="btn-danger"
+                        invisible="x_tr_reservation_status not in ('PENDING', 'RESERVED', 'ARRIVED')"/>
+                <!-- Bouton natif Cancel conservé pour les events non-TR -->
+                <button name="set_cancelled" type="object"
+                        string="Cancel" class="btn-secondary"
+                        invisible="x_tr_reservation_status"/>
             </xpath>
         </field>
     </record>
