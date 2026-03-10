@@ -4,9 +4,6 @@ import uuid
 from odoo import models, fields, api, _
 from odoo.exceptions import ValidationError
 
-import logging
-
-_logger = logging.getLogger(__name__)
 class PosOrder(models.Model):
     _inherit = 'pos.order'
 
@@ -15,8 +12,9 @@ class PosOrder(models.Model):
     x_tr_order_status = fields.Selection([
         ('PENDING',     'En attente'),
         ('CONFIRMED',   'Confirmée'),
+        ('READY',       'Prête'),
         ('SENT_TO_POS', 'Envoyée au POS'),
-        ('REJECTED',    'Rejetée'),
+        ('CANCELLED',   'Annulée'),
         ('PAID',        'Payée'),
         ('COMPLETED',   'Terminée'),
     ], string="Statut commande mobile",
@@ -24,8 +22,6 @@ class PosOrder(models.Model):
        required=True,
        index=True,
        tracking=True,
-       compute='_compute_x_tr_order_status',
-     
     )
     x_tr_order_mode = fields.Selection([
         ('PICKUP', 'Retrait'),
@@ -37,21 +33,30 @@ class PosOrder(models.Model):
     x_tr_member_id = fields.Many2one('res.partner', string='Membre', domain=[('x_tr_is_member', '=', True)])
     
     
-    @api.depends('state')
-    def _compute_x_tr_order_status(self):
-        mapping = {
-            'draft': 'CONFIRMED',
-            'paid': 'PAID',
-            'done': 'COMPLETED',
-            'cancel': 'REJECTED'
-        }
-        for order in self:
-            order.x_tr_order_status = mapping.get(order.state, 'PENDING')
-            _logger.info(f"[DEBUG] POS {order.name} state={order.state} -> x_tr_order_status={order.x_tr_order_status}")
+    # Sync automatique state Odoo → x_tr_order_status pour commandes mobiles
+    _STATE_TO_ORDER_STATUS = {
+        'paid':   'PAID',
+        'done':   'COMPLETED',
+        'cancel': 'CANCELLED',
+    }
 
-    # -------------------------------
-    # Surcharge write pour assurer que tous changements futurs soient pris en compte
-    # -------------------------------
+    def write(self, vals):
+        res = super().write(vals)
+        if 'state' in vals and not self.env.context.get('tr_skip_order_sync'):
+            new_status = self._STATE_TO_ORDER_STATUS.get(vals['state'])
+            if new_status:
+                for order in self.filtered(
+                    lambda o: o.x_tr_is_mobile_order and o.x_tr_order_status != new_status
+                ):
+                    old = order.x_tr_order_status
+                    order.with_context(tr_skip_order_sync=True).write({
+                        'x_tr_order_status': new_status,
+                    })
+                    self.env['theresidence.webhook'].trigger_event(
+                        'ORDER_STATUS_CHANGED', 'order', order.x_tr_uuid,
+                        order.to_order_api_dict(), old, new_status,
+                    )
+        return res
 
 
     @api.model_create_multi
@@ -227,6 +232,33 @@ class PosOrder(models.Model):
 #             order.to_order_api_dict(), None, 'PENDING'
 #         )
 #         return order
+
+    @api.model
+    def get_new_pending_orders(self, since_iso):
+        """POS polling — retourne les commandes mobiles PENDING créées depuis since_iso."""
+        from datetime import datetime, timezone
+        try:
+            since_dt = datetime.fromisoformat(since_iso.replace('Z', '+00:00'))
+            since_str = since_dt.astimezone(timezone.utc).strftime('%Y-%m-%d %H:%M:%S')
+        except (ValueError, TypeError):
+            since_str = fields.Datetime.now()
+
+        orders = self.sudo().search([
+            ('x_tr_is_mobile_order', '=', True),
+            ('x_tr_order_status', '=', 'PENDING'),
+            ('create_date', '>=', since_str),
+        ])
+        result = []
+        for order in orders:
+            member = order.x_tr_member_id or order.partner_id
+            result.append({
+                'uuid':        order.x_tr_uuid or str(order.id),
+                'member':      member.name if member else '',
+                'mode':        order.x_tr_order_mode or 'PICKUP',
+                'total':       order.amount_total,
+                'items_count': len(order.lines),
+            })
+        return result
 
     def action_confirm_order(self):
         for order in self:

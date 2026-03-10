@@ -28,7 +28,7 @@
                             <field name="x_tr_guest_count"/>
                         </group>
                     </group>
-                    <group invisible="x_tr_reservation_status != 'REJECTED'">
+                    <group invisible="not x_tr_rejection_reason">
                         <field name="x_tr_rejection_reason"/>
                     </group>
                     <group>

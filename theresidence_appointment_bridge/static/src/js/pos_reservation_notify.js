@@ -61,35 +61,56 @@ patch(Chrome.prototype, {
         let pollTimer = null;
 
         onMounted(() => {
-            console.info("[TR BRIDGE] Polling nouvelles réservations actif");
+            console.info("[TR BRIDGE] Polling nouvelles réservations + commandes mobiles actif");
 
             pollTimer = setInterval(async () => {
                 try {
                     const checkFrom = lastCheck;
                     lastCheck = new Date().toISOString();
 
-                    const newOnes = await orm.call(
+                    // ── Réservations ──────────────────────────────────────
+                    const newReservations = await orm.call(
                         "sale.order",
                         "get_new_pending_reservations",
                         [checkFrom]
                     );
-
-                    for (const res of newOnes) {
+                    for (const res of newReservations) {
                         const body = [
                             res.member || "Membre",
                             "→",
                             res.space  || "Espace",
                             res.start  ? "à " + res.start : "",
                         ].filter(Boolean).join(" ");
-
                         notification.add(body, {
                             title: "Nouvelle réservation",
                             type: "warning",
                             sticky: false,
                         });
-
                         playNotificationSound();
                         console.info("[TR BRIDGE] Nouvelle réservation:", res.uuid);
+                    }
+
+                    // ── Commandes mobiles ──────────────────────────────────
+                    const newOrders = await orm.call(
+                        "pos.order",
+                        "get_new_pending_orders",
+                        [checkFrom]
+                    );
+                    for (const order of newOrders) {
+                        const modeLabel = { PICKUP: "Retrait", DELIVERY: "Livraison", DINE_IN: "Sur place" }[order.mode] || order.mode;
+                        const body = [
+                            order.member || "Client",
+                            "—",
+                            modeLabel,
+                            order.items_count ? `(${order.items_count} article${order.items_count > 1 ? "s" : ""})` : "",
+                        ].filter(Boolean).join(" ");
+                        notification.add(body, {
+                            title: "Nouvelle commande mobile",
+                            type: "info",
+                            sticky: false,
+                        });
+                        playNotificationSound();
+                        console.info("[TR BRIDGE] Nouvelle commande mobile:", order.uuid);
                     }
                 } catch {
                     // Silencieux — retry au prochain cycle
