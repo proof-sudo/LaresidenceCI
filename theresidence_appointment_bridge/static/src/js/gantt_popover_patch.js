@@ -6,18 +6,17 @@ import { _t } from "@web/core/l10n/translation";
 
 /**
  * Patch du renderer Gantt POS pour remplacer les boutons natifs
- * (Booked / Check In / No Show) par les actions TR custom
- * (Réserver / Marquer arrivée / Libérer l'espace / Annuler).
+ * (Booked / Check In / No Show) par les actions TR custom :
+ *   Réserver / Marquer arrivée / Libérer l'espace / Annuler
  *
- * Déclenchement : l'utilisateur clique sur un événement dans la vue
- * POS > Appointments > Gantt.
+ * Si l'événement n'est pas une réservation TR, les boutons natifs sont conservés.
  */
 patch(POSAppointmentBookingGanttRenderer.prototype, {
     async getPopoverProps(pill) {
         const props = await super.getPopoverProps(...arguments);
         const { record } = pill;
 
-        // Cherche le sale.order lié à ce calendar.event
+        // Cherche le sale.order TR lié à ce calendar.event
         let saleOrders;
         try {
             saleOrders = await this.orm.searchRead(
@@ -30,24 +29,27 @@ patch(POSAppointmentBookingGanttRenderer.prototype, {
                 { limit: 1 }
             );
         } catch (e) {
-            // Pas une réservation TR → boutons natifs
             return props;
         }
 
         if (!saleOrders || !saleOrders.length) {
-            return props;
+            return props; // Pas une réservation TR → boutons natifs conservés
         }
 
         const status = saleOrders[0].x_tr_reservation_status;
         const calendarEventId = record.id;
 
         const doAction = async (action) => {
-            await this.orm.call(
-                "sale.order",
-                "pos_action_from_calendar_event",
-                [calendarEventId, action]
-            );
-            this.model.fetchData();
+            try {
+                await this.orm.call(
+                    "sale.order",
+                    "pos_action_from_calendar_event",
+                    [calendarEventId, action]
+                );
+                this.model.fetchData();
+            } catch (e) {
+                console.error("[TR BRIDGE] Erreur action réservation:", e?.data?.message || e?.message);
+            }
         };
 
         const buttons = [

@@ -69,6 +69,10 @@ class SaleOrder(models.Model):
     def write(self, vals):
         res = super().write(vals)
 
+        # tr_skip_calendar_sync : posé par calendar_event.py pour éviter la boucle
+        if self.env.context.get('tr_skip_calendar_sync'):
+            return res
+
         sync_fields = {
             'x_tr_reservation_status',
             'x_tr_start_time',
