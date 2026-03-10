@@ -1,27 +1,26 @@
 # -*- coding: utf-8 -*-
 import logging
+from datetime import datetime
 from odoo import models, fields, api
 
 _logger = logging.getLogger(__name__)
 
 # Mapping statuts TR → show_as du calendar.event
 STATUS_TO_SHOW = {
-    'PENDING':    'free',
-    'APPROVED':   'busy',
-    'CHECKED_IN': 'busy',
-    'COMPLETED':  'free',
-    'REJECTED':   'free',
-    'CANCELLED':  'free',
+    'PENDING':   'free',
+    'RESERVED':  'busy',
+    'ARRIVED':   'busy',
+    'COMPLETED': 'free',
+    'CANCELLED': 'free',
 }
 
 # Mapping statuts TR → active du calendar.event
 STATUS_TO_ACTIVE = {
-    'PENDING':    True,
-    'APPROVED':   True,
-    'CHECKED_IN': True,
-    'COMPLETED':  True,
-    'REJECTED':   False,
-    'CANCELLED':  False,
+    'PENDING':   True,
+    'RESERVED':  True,
+    'ARRIVED':   True,
+    'COMPLETED': False,
+    'CANCELLED': False,
 }
 
 
@@ -100,6 +99,31 @@ class SaleOrder(models.Model):
         result = super().get_pos_reservations(date_filter)
         # Tri newest-first par createdAt (ISO string, lexicographique)
         return sorted(result, key=lambda r: r.get('createdAt', ''), reverse=True)
+
+    @api.model
+    def get_new_pending_reservations(self, since_iso):
+        """
+        Retourne les réservations PENDING créées après since_iso (ISO string).
+        Utilisé par le polling POS pour détecter les nouvelles réservations,
+        quelle que soit la date de startTime (filtre sur create_date, pas startTime).
+        """
+        try:
+            since = datetime.fromisoformat(since_iso[:19])
+        except Exception:
+            since = datetime.now()
+
+        records = self.sudo().search([
+            ('x_tr_is_reservation', '=', True),
+            ('x_tr_reservation_status', '=', 'PENDING'),
+            ('create_date', '>=', since),
+            ('x_tr_start_time', '!=', False),
+        ])
+        return [{
+            'uuid': r.x_tr_uuid or str(r.id),
+            'member': r.partner_id.name or '',
+            'space': r.x_tr_space_id.name or '',
+            'start': r.x_tr_start_time.strftime('%H:%M') if r.x_tr_start_time else '',
+        } for r in records]
 
     # ─────────────────────────────────────────────────────────────
     # Notification bus → POS (toast + son côté caissière)

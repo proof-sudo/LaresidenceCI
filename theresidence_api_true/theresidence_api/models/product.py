@@ -141,7 +141,7 @@ class ProductTemplate(models.Model):
         # Rechercher les réservations conflictuelles
         conflicting = self.env['sale.order'].sudo().search_count([
             ('x_tr_is_reservation', '=', True),
-            ('x_tr_reservation_status', 'in', ['PENDING', 'APPROVED', 'CHECKED_IN']),
+            ('x_tr_reservation_status', 'in', ['PENDING', 'RESERVED', 'ARRIVED']),
             ('x_tr_space_id', '=', self.id),
             ('x_tr_start_time', '<', end_time),
             ('x_tr_end_time', '>', start_time),

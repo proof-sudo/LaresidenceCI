@@ -1,15 +1,11 @@
 /** @odoo-module */
 
 /**
- * TR Bridge — Notification POS (Odoo 19) par polling ORM
+ * TR Bridge — Notification POS (Odoo 19)
  *
- * Le bus WebSocket d'Odoo.com ne dispatche pas les canaux string custom
- * sans autorisation serveur explicite. On utilise donc un polling ORM
- * (même mécanisme que ReservationScreen.js) : toutes les 10s on compare
- * les réservations PENDING du jour avec celles déjà vues.
- *
- * Python (_notify_pos_new_reservation) reste actif comme tentative rapide,
- * le polling sert de filet de sécurité garanti.
+ * Polling toutes les 10s via get_new_pending_reservations(since_iso).
+ * Filtre sur create_date (pas startTime) → fonctionne quelle que soit
+ * la date de la réservation (aujourd'hui, demain, etc.).
  */
 
 import { Chrome } from "@point_of_sale/app/pos_app";
@@ -51,13 +47,8 @@ function _webAudioBip() {
     } catch { /* jamais bloquant */ }
 }
 
-function formatTime(iso) {
-    if (!iso) return "";
-    return new Date(iso).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
-}
-
 // ─────────────────────────────────────────────────────────────
-// Patch Chrome — polling toutes les 10s
+// Patch Chrome — polling toutes les 10s sur create_date
 // ─────────────────────────────────────────────────────────────
 patch(Chrome.prototype, {
     setup() {
@@ -66,39 +57,30 @@ patch(Chrome.prototype, {
         const orm = useService("orm");
         const notification = useService("notification");
 
-        let seenIds = new Set();
+        let lastCheck = new Date().toISOString();
         let pollTimer = null;
 
-        onMounted(async () => {
-            // Snapshot initial : on mémorise les réservations existantes
-            // pour ne PAS notifier celles qui étaient déjà là au démarrage.
-            try {
-                const existing = await orm.call("sale.order", "get_pos_reservations", ["today"]);
-                for (const r of existing) seenIds.add(r.id);
-                console.info(`[TR BRIDGE] Polling actif — ${seenIds.size} réservation(s) connue(s)`);
-            } catch (e) {
-                console.warn("[TR BRIDGE] Snapshot initial échoué:", e);
-            }
+        onMounted(() => {
+            console.info("[TR BRIDGE] Polling nouvelles réservations actif");
 
-            // Polling toutes les 10 secondes
             pollTimer = setInterval(async () => {
                 try {
-                    const current = await orm.call("sale.order", "get_pos_reservations", ["today"]);
+                    const checkFrom = lastCheck;
+                    lastCheck = new Date().toISOString();
 
-                    // Nouvelles réservations PENDING non encore vues
-                    const newOnes = current.filter(
-                        (r) => !seenIds.has(r.id) && r.status === "PENDING"
+                    const newOnes = await orm.call(
+                        "sale.order",
+                        "get_new_pending_reservations",
+                        [checkFrom]
                     );
 
-                    // Marquer toutes comme vues (même les non-PENDING)
-                    for (const r of current) seenIds.add(r.id);
-
                     for (const res of newOnes) {
-                        const member = [res.memberFirstName, res.memberLastName]
-                            .filter(Boolean).join(" ") || "Membre";
-                        const body = `${member} → ${res.spaceName || "Espace"}${
-                            res.startTime ? " à " + formatTime(res.startTime) : ""
-                        }`;
+                        const body = [
+                            res.member || "Membre",
+                            "→",
+                            res.space  || "Espace",
+                            res.start  ? "à " + res.start : "",
+                        ].filter(Boolean).join(" ");
 
                         notification.add(body, {
                             title: "Nouvelle réservation",
@@ -107,7 +89,7 @@ patch(Chrome.prototype, {
                         });
 
                         playNotificationSound();
-                        console.info("[TR BRIDGE] Nouvelle réservation détectée:", res.id);
+                        console.info("[TR BRIDGE] Nouvelle réservation:", res.uuid);
                     }
                 } catch {
                     // Silencieux — retry au prochain cycle

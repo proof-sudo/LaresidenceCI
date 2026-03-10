@@ -23,10 +23,9 @@ class SaleOrder(models.Model):
     x_tr_is_reservation = fields.Boolean(string='Est une réservation TR', default=False)
     x_tr_reservation_status = fields.Selection([
         ('PENDING', 'En attente'),
-        ('APPROVED', 'Approuvée'),
-        ('REJECTED', 'Rejetée'),
+        ('RESERVED', 'Réservé'),
+        ('ARRIVED', 'Arrivé'),
         ('CANCELLED', 'Annulée'),
-        ('CHECKED_IN', 'Check-in'),
         ('COMPLETED', 'Terminée'),
     ], string='Statut réservation', default='PENDING')
     x_tr_space_id = fields.Many2one('product.template', string='Espace', domain=[('x_tr_is_space', '=', True)])
@@ -102,13 +101,13 @@ class SaleOrder(models.Model):
             tomorrow = today + timedelta(days=1)
             domain += [
                 '|',
-                # Réservations du jour (PENDING ou APPROVED)
+                # Réservations du jour (PENDING ou RESERVED)
                 '&', '&',
-                ('x_tr_reservation_status', 'in', ['PENDING', 'APPROVED']),
+                ('x_tr_reservation_status', 'in', ['PENDING', 'RESERVED']),
                 ('x_tr_start_time', '>=', fields.Datetime.to_datetime(today)),
                 ('x_tr_start_time', '<', fields.Datetime.to_datetime(tomorrow)),
-                # Réservations en cours (CHECKED_IN) quelle que soit la date
-                ('x_tr_reservation_status', '=', 'CHECKED_IN'),
+                # Réservations en cours (ARRIVED) quelle que soit la date
+                ('x_tr_reservation_status', '=', 'ARRIVED'),
             ]
 
         reservations = self.search(domain, order='x_tr_start_time asc')
@@ -180,51 +179,56 @@ class SaleOrder(models.Model):
         )
         return order
 
-    def action_confirm(self):
-        result = super().action_confirm()
+    @api.constrains('x_tr_reservation_status', 'x_tr_space_id', 'x_tr_start_time', 'x_tr_end_time')
+    def _check_no_double_booking(self):
         for order in self:
-            if order.x_tr_is_reservation and order.x_tr_reservation_status == 'PENDING':
-                order.write({'x_tr_reservation_status': 'APPROVED'})
-                self.env['theresidence.webhook'].trigger_event(
-                    'RESERVATION_STATUS_CHANGED', 'reservation', order.x_tr_uuid,
-                    order.to_reservation_api_dict(), 'PENDING', 'APPROVED'
-                )
-        return result
+            if not order.x_tr_is_reservation:
+                continue
+            if order.x_tr_reservation_status not in ('PENDING', 'RESERVED', 'ARRIVED'):
+                continue
+            if not order.x_tr_space_id or not order.x_tr_start_time or not order.x_tr_end_time:
+                continue
+            conflicting = self.env['sale.order'].sudo().search_count([
+                ('id', '!=', order.id),
+                ('x_tr_is_reservation', '=', True),
+                ('x_tr_reservation_status', 'in', ['PENDING', 'RESERVED', 'ARRIVED']),
+                ('x_tr_space_id', '=', order.x_tr_space_id.id),
+                ('x_tr_start_time', '<', order.x_tr_end_time),
+                ('x_tr_end_time', '>', order.x_tr_start_time),
+            ])
+            if conflicting:
+                raise ValidationError(_(
+                    "L'espace '%s' n'est pas disponible pour ce créneau."
+                ) % order.x_tr_space_id.name)
 
-    def action_approve_reservation(self):
+    def action_reserve_reservation(self):
         for order in self:
             if order.x_tr_reservation_status != 'PENDING':
-                raise ValidationError(_("Seules les réservations en attente peuvent être approuvées."))
-            order.action_confirm()
-
-    def action_reject_reservation(self, reason=None):
-        for order in self:
-            if order.x_tr_reservation_status != 'PENDING':
-                raise ValidationError(_("Seules les réservations en attente peuvent être rejetées."))
+                raise ValidationError(_("Seules les réservations en attente peuvent être réservées."))
             old = order.x_tr_reservation_status
-            order.write({'x_tr_reservation_status': 'REJECTED', 'x_tr_rejection_reason': reason or ''})
-            self.env['theresidence.webhook'].trigger_event(
-                'RESERVATION_STATUS_CHANGED', 'reservation', order.x_tr_uuid,
-                order.to_reservation_api_dict(), old, 'REJECTED'
-            )
-
-    def action_checkin_reservation(self):
-        for order in self:
-            if order.x_tr_reservation_status != 'APPROVED':
-                raise ValidationError(_("Seules les réservations approuvées peuvent être check-in."))
-            old = order.x_tr_reservation_status
-            order.write({'x_tr_reservation_status': 'CHECKED_IN'})
+            order.write({'x_tr_reservation_status': 'RESERVED'})
             if order.x_tr_space_id:
                 order.x_tr_space_id.write({'x_tr_is_occupied': True})
             self.env['theresidence.webhook'].trigger_event(
                 'RESERVATION_STATUS_CHANGED', 'reservation', order.x_tr_uuid,
-                order.to_reservation_api_dict(), old, 'CHECKED_IN'
+                order.to_reservation_api_dict(), old, 'RESERVED'
             )
 
-    def action_checkout_reservation(self):
+    def action_arrive_reservation(self):
         for order in self:
-            if order.x_tr_reservation_status != 'CHECKED_IN':
-                raise ValidationError(_("Seules les réservations en check-in peuvent être checkout."))
+            if order.x_tr_reservation_status != 'RESERVED':
+                raise ValidationError(_("Seules les réservations réservées peuvent être marquées arrivées."))
+            old = order.x_tr_reservation_status
+            order.write({'x_tr_reservation_status': 'ARRIVED'})
+            self.env['theresidence.webhook'].trigger_event(
+                'RESERVATION_STATUS_CHANGED', 'reservation', order.x_tr_uuid,
+                order.to_reservation_api_dict(), old, 'ARRIVED'
+            )
+
+    def action_release_reservation(self):
+        for order in self:
+            if order.x_tr_reservation_status not in ('RESERVED', 'ARRIVED'):
+                raise ValidationError(_("Seules les réservations réservées ou arrivées peuvent être libérées."))
             old = order.x_tr_reservation_status
             order.write({'x_tr_reservation_status': 'COMPLETED'})
             if order.x_tr_space_id:
@@ -239,6 +243,8 @@ class SaleOrder(models.Model):
             if order.x_tr_reservation_status in ('COMPLETED', 'CANCELLED'):
                 raise ValidationError(_("Cette réservation ne peut plus être annulée."))
             old = order.x_tr_reservation_status
+            if order.x_tr_space_id and old in ('RESERVED', 'ARRIVED'):
+                order.x_tr_space_id.write({'x_tr_is_occupied': False})
             order.write({'x_tr_reservation_status': 'CANCELLED'})
             self.env['theresidence.webhook'].trigger_event(
                 'RESERVATION_CANCELLED', 'reservation', order.x_tr_uuid,
@@ -248,27 +254,27 @@ class SaleOrder(models.Model):
     # === Actions POS (appelées par UUID depuis le frontend) ===
 
     @api.model
-    def pos_approve_reservation(self, uuid):
+    def pos_reserve_reservation(self, uuid):
         order = self.search([('x_tr_uuid', '=', uuid), ('x_tr_is_reservation', '=', True)], limit=1)
         if not order:
             raise ValidationError(_("Réservation introuvable: %s") % uuid)
-        order.action_approve_reservation()
+        order.action_reserve_reservation()
         return order.to_reservation_api_dict()
 
     @api.model
-    def pos_checkin_reservation(self, uuid):
+    def pos_arrive_reservation(self, uuid):
         order = self.search([('x_tr_uuid', '=', uuid), ('x_tr_is_reservation', '=', True)], limit=1)
         if not order:
             raise ValidationError(_("Réservation introuvable: %s") % uuid)
-        order.action_checkin_reservation()
+        order.action_arrive_reservation()
         return order.to_reservation_api_dict()
 
     @api.model
-    def pos_checkout_reservation(self, uuid):
+    def pos_release_reservation(self, uuid):
         order = self.search([('x_tr_uuid', '=', uuid), ('x_tr_is_reservation', '=', True)], limit=1)
         if not order:
             raise ValidationError(_("Réservation introuvable: %s") % uuid)
-        order.action_checkout_reservation()
+        order.action_release_reservation()
         return order.to_reservation_api_dict()
 
     @api.model

@@ -77,16 +77,14 @@
             </xpath>
             <!-- Ajouter les boutons d'action pour les réservations -->
             <xpath expr="//header" position="inside">
-                <button name="action_approve_reservation" type="object" string="Approuver" 
+                <button name="action_reserve_reservation" type="object" string="Réserver"
                     class="btn-primary" invisible="not x_tr_is_reservation or x_tr_reservation_status != 'PENDING'"/>
-                <button name="action_reject_reservation" type="object" string="Rejeter" 
-                    class="btn-secondary" invisible="not x_tr_is_reservation or x_tr_reservation_status != 'PENDING'"/>
-                <button name="action_checkin_reservation" type="object" string="Check-in"
-                    class="btn-primary" invisible="not x_tr_is_reservation or x_tr_reservation_status != 'APPROVED'"/>
-                <button name="action_checkout_reservation" type="object" string="Checkout"
-                    class="btn-primary" invisible="not x_tr_is_reservation or x_tr_reservation_status != 'CHECKED_IN'"/>
+                <button name="action_arrive_reservation" type="object" string="Marquer arrivée"
+                    class="btn-primary" invisible="not x_tr_is_reservation or x_tr_reservation_status != 'RESERVED'"/>
+                <button name="action_release_reservation" type="object" string="Libérer l'espace"
+                    class="btn-primary" invisible="not x_tr_is_reservation or x_tr_reservation_status != 'ARRIVED'"/>
                 <button name="action_cancel_reservation" type="object" string="Annuler réservation"
-                    class="btn-secondary" invisible="not x_tr_is_reservation or x_tr_reservation_status in ('CANCELLED', 'COMPLETED', 'CHECKED_IN')"/>
+                    class="btn-secondary" invisible="not x_tr_is_reservation or x_tr_reservation_status in ('CANCELLED', 'COMPLETED')"/>
             </xpath>
             <!-- Ajouter les boutons d'action pour les abonnements -->
             <xpath expr="//header" position="inside">
