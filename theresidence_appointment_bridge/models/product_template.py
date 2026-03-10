@@ -48,10 +48,16 @@ class ProductTemplate(models.Model):
 
         apt_fields = self.env['appointment.type']._fields
 
+        # Vérifie si 'table' est une valeur valide pour category dans cette version
+        _has_table_category = (
+            'category' in apt_fields
+            and 'table' in dict(apt_fields['category'].selection or [])
+        )
+
         # 1. Priorité : type catégorie 'table' existant (pos_restaurant_appointment)
         #    C'est le "Réserver une table" natif Odoo, visible dans le menu POS.
         shared = False
-        if 'category' in apt_fields:
+        if _has_table_category:
             shared = self.env['appointment.type'].search(
                 [('category', '=', 'table')], limit=1
             )
@@ -66,7 +72,7 @@ class ProductTemplate(models.Model):
         if not shared:
             create_vals = {'name': _TR_SHARED_APT_TYPE_NAME}
 
-            if 'category' in apt_fields:
+            if _has_table_category:
                 create_vals['category'] = 'table'
 
             if 'staff_user_ids' in apt_fields:
