@@ -72,7 +72,9 @@ class SubscriptionsController(http.Controller):
             if not data.get('memberId'):
                 return error_response('memberId is required', 'MISSING_MEMBER_ID', 400)
             subscription = request.env['sale.order'].sudo().create_subscription_from_api(data)
-            return success_response(subscription.to_subscription_api_dict(), 201)
+            result = subscription.to_subscription_api_dict()
+            _logger.info(f"[TR API] Subscription created: {result}")
+            return success_response(result, 201)
         except Exception as e:
             _logger.error(f"Failed to create subscription: {str(e)}", exc_info=True)
             return error_response(str(e), 'INVALID_REQUEST', 400)

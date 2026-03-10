@@ -366,7 +366,8 @@ class ReferenceController(http.Controller):
                 vals['email'] = data['email']
             if 'phone' in data:
                 vals['phone'] = data['phone']
-                vals['mobile'] = data['phone']
+            if 'mobile' in data:
+                vals['mobile'] = data['mobile']
             if 'companyName' in data:
                 vals['company_name'] = data['companyName']
             if 'jobTitle' in data:
