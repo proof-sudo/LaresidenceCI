@@ -125,7 +125,7 @@ for record in records:
                         invisible="x_tr_reservation_status != 'RESERVED'"/>
                 <button name="action_tr_release" type="object"
                         string="Libérer l'espace" class="btn-success mx-1"
-                        invisible="x_tr_reservation_status != 'ARRIVED'"/>
+                        invisible="x_tr_reservation_status not in ('RESERVED', 'ARRIVED')"/>
                 <!-- Bouton natif Check In conservé pour les events non-TR -->
                 <button name="set_attended" type="object"
                         string="Check In" class="btn-secondary mx-1"

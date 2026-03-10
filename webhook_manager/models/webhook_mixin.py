@@ -172,6 +172,9 @@ class WebhookMixin(models.AbstractModel):
                         event = rec.x_tr_subscription_status.lower() if rec.x_tr_subscription_status else "updated"
                 elif rec._name == 'res.partner':
                     event = rec.x_tr_member_status.lower() if rec.x_tr_member_status else "updated"
+                elif rec._name == 'pos.order':
+                    if getattr(rec, 'x_tr_is_mobile_order', False) and 'x_tr_order_status' in vals:
+                        event = rec.x_tr_order_status.lower() if rec.x_tr_order_status else "updated"
 
                 rec._send_to_residence(event, rec, include_image=include_image)
         return res

@@ -39,6 +39,9 @@ patch(POSAppointmentBookingGanttRenderer.prototype, {
         const status = saleOrders[0].x_tr_reservation_status;
         const calendarEventId = record.id;
 
+        // Accès au service notification (disponible sur l'env OWL)
+        const notification = this.env?.services?.notification;
+
         const doAction = async (action) => {
             try {
                 await this.orm.call(
@@ -47,8 +50,18 @@ patch(POSAppointmentBookingGanttRenderer.prototype, {
                     [calendarEventId, action]
                 );
                 this.model.fetchData();
+                notification?.add(_t("Réservation mise à jour"), {
+                    type: "success",
+                    sticky: false,
+                });
             } catch (e) {
-                console.error("[TR BRIDGE] Erreur action réservation:", e?.data?.message || e?.message);
+                const msg = e?.data?.message || e?.message || _t("Erreur inconnue");
+                console.error("[TR BRIDGE] Erreur action réservation:", msg);
+                notification?.add(msg, {
+                    title: _t("Erreur réservation"),
+                    type: "danger",
+                    sticky: false,
+                });
             }
         };
 
@@ -74,7 +87,8 @@ patch(POSAppointmentBookingGanttRenderer.prototype, {
                 text: _t("Marquer arrivée"),
             });
         }
-        if (status === "ARRIVED") {
+        // "Libérer" disponible depuis RESERVED ou ARRIVED (action_release accepte les deux)
+        if (["RESERVED", "ARRIVED"].includes(status)) {
             buttons.push({
                 class: "btn btn-sm btn-info me-1",
                 onClick: () => doAction("release"),
