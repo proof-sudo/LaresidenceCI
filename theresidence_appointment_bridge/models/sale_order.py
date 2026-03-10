@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
 import logging
 from datetime import datetime
-from odoo import models, fields, api
+from odoo import models, fields, api, _
+from odoo.exceptions import ValidationError
 
 _logger = logging.getLogger(__name__)
 
@@ -233,6 +234,37 @@ class SaleOrder(models.Model):
             "[TR BRIDGE] calendar.event %s mis à jour → statut %s",
             event.id, self.x_tr_reservation_status
         )
+
+    # ─────────────────────────────────────────────────────────────
+    # Action depuis le popover Gantt POS (calendar.event → sale.order)
+    # ─────────────────────────────────────────────────────────────
+    @api.model
+    def pos_action_from_calendar_event(self, calendar_event_id, action):
+        """
+        Appelé depuis le popover Gantt POS pour modifier le statut d'une
+        réservation TR à partir de l'ID du calendar.event miroir.
+        """
+        order = self.sudo().search([
+            ('x_tr_calendar_event_id', '=', calendar_event_id),
+            ('x_tr_is_reservation', '=', True),
+        ], limit=1)
+        if not order:
+            raise ValidationError(_(
+                "Aucune réservation TR trouvée pour l'événement calendrier %s"
+            ) % calendar_event_id)
+
+        if action == 'reserve':
+            order.action_reserve_reservation()
+        elif action == 'arrive':
+            order.action_arrive_reservation()
+        elif action == 'release':
+            order.action_release_reservation()
+        elif action == 'cancel':
+            order.action_cancel_reservation()
+        else:
+            raise ValidationError(_("Action inconnue : %s") % action)
+
+        return {'status': order.x_tr_reservation_status}
 
     # ─────────────────────────────────────────────────────────────
     # Helpers
