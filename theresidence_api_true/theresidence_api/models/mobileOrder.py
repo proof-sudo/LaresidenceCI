@@ -95,23 +95,22 @@ class MobileOrder(models.Model):
         ondelete='set null'
     )
     pos_order_status = fields.Selection(
-            [
-                ('draft', 'Brouillon'),
-                ('paid', 'Payée'),
-                ('done', 'Terminé'),
-                ('cancel', 'Annulée')
-            ],
-            string="Statut POS",
-            compute='_compute_pos_order_status',
-            store=True,   # permet recherche et tri
-            readonly=True
-        )
+        [
+            ('PENDING',     'En attente'),
+            ('CONFIRMED',   'Confirmée'),
+            ('READY',       'Prête'),
+            ('SENT_TO_POS', 'Envoyée au POS'),
+            ('CANCELLED',   'Annulée'),
+            ('PAID',        'Payée'),
+            ('COMPLETED',   'Terminée'),
+        ],
+        string="Statut POS",
+        related='pos_order_id.x_tr_order_status',
+        store=True,
+        readonly=True,
+    )
 
-    @api.depends('pos_order_id.state')
-    def _compute_pos_order_status(self):
-        for order in self:
-            order.pos_order_status = order.pos_order_id.state if order.pos_order_id else False
-        # ─── Montants calculés ────────────────────────────────────────────────────
+    # ─── Montants calculés ────────────────────────────────────────────────────
 
     amount_total = fields.Float(
         compute='_compute_amounts',
