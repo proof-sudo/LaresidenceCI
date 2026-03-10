@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import logging
-from odoo import models, api
+from odoo import models, fields, api, _
+from odoo.exceptions import ValidationError
 
 _logger = logging.getLogger(__name__)
 
@@ -15,6 +16,20 @@ APT_STATUS_TO_TR = {
 
 class CalendarEvent(models.Model):
     _inherit = 'calendar.event'
+
+    x_tr_reservation_status = fields.Char(
+        string='Statut réservation TR',
+        compute='_compute_tr_reservation_status',
+        store=False,
+    )
+
+    def _compute_tr_reservation_status(self):
+        for event in self:
+            order = self.env['sale.order'].sudo().search([
+                ('x_tr_calendar_event_id', '=', event.id),
+                ('x_tr_is_reservation', '=', True),
+            ], limit=1)
+            event.x_tr_reservation_status = order.x_tr_reservation_status if order else False
 
     def write(self, vals):
         res = super().write(vals)
@@ -55,3 +70,37 @@ class CalendarEvent(models.Model):
             )
 
         return res
+
+    # ─────────────────────────────────────────────────────────────
+    # Boutons TR dans la vue formulaire POS Appointments
+    # ─────────────────────────────────────────────────────────────
+    def _get_tr_order(self):
+        self.ensure_one()
+        return self.env['sale.order'].sudo().search([
+            ('x_tr_calendar_event_id', '=', self.id),
+            ('x_tr_is_reservation', '=', True),
+        ], limit=1)
+
+    def action_tr_reserve(self):
+        order = self._get_tr_order()
+        if not order:
+            raise ValidationError(_("Aucune réservation TR liée à cet événement."))
+        order.action_reserve_reservation()
+
+    def action_tr_arrive(self):
+        order = self._get_tr_order()
+        if not order:
+            raise ValidationError(_("Aucune réservation TR liée à cet événement."))
+        order.action_arrive_reservation()
+
+    def action_tr_release(self):
+        order = self._get_tr_order()
+        if not order:
+            raise ValidationError(_("Aucune réservation TR liée à cet événement."))
+        order.action_release_reservation()
+
+    def action_tr_cancel(self):
+        order = self._get_tr_order()
+        if not order:
+            raise ValidationError(_("Aucune réservation TR liée à cet événement."))
+        order.action_cancel_reservation()

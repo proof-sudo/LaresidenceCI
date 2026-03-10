@@ -102,4 +102,44 @@ for record in records:
         </field>
     </record>
 
+    <!-- ================================================== -->
+    <!-- calendar.event : boutons TR dans la vue formulaire -->
+    <!-- POS > Appointments > clic sur un événement > Voir  -->
+    <!-- ================================================== -->
+    <record id="view_calendar_event_form_bridge_tr" model="ir.ui.view">
+        <field name="name">calendar.event.form.bridge.tr.actions</field>
+        <field name="model">calendar.event</field>
+        <field name="inherit_id" ref="pos_appointment.calendar_event_view_form_gantt_booking"/>
+        <field name="arch" type="xml">
+            <xpath expr="//div[hasclass('mb-3')]" position="replace">
+                <div class="mb-3" invisible="not id">
+                    <!-- Boutons TR (réservation The Residence) -->
+                    <button name="action_tr_reserve" type="object"
+                            string="Réserver" class="btn-primary mx-1"
+                            invisible="x_tr_reservation_status != 'PENDING'"/>
+                    <button name="action_tr_arrive" type="object"
+                            string="Marquer arrivée" class="btn-primary mx-1"
+                            invisible="x_tr_reservation_status != 'RESERVED'"/>
+                    <button name="action_tr_release" type="object"
+                            string="Libérer l'espace" class="btn-success mx-1"
+                            invisible="x_tr_reservation_status != 'ARRIVED'"/>
+                    <button name="action_tr_cancel" type="object"
+                            string="Annuler" class="btn-danger mx-1"
+                            invisible="x_tr_reservation_status not in ('PENDING', 'RESERVED', 'ARRIVED')"/>
+                    <!-- Boutons natifs pour les events non-TR -->
+                    <button name="set_attended" type="object"
+                            string="Check In" class="btn-secondary mx-1"
+                            invisible="x_tr_reservation_status"/>
+                    <button name="set_cancelled" type="object"
+                            string="Cancel" class="btn-secondary"
+                            invisible="x_tr_reservation_status"/>
+                    <field name="appointment_status" widget="statusbar"
+                           invisible="not appointment_type_id"
+                           required="appointment_type_id" style="float:right;"/>
+                    <field name="x_tr_reservation_status" invisible="1"/>
+                </div>
+            </xpath>
+        </field>
+    </record>
+
 </odoo>
