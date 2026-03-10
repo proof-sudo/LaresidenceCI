@@ -21,6 +21,12 @@ class PosPrepOrder(models.Model):
             return res
 
         order = self.env['pos.order'].browse(order_id)
+        _logger.info(
+            "[TR KITCHEN] process_order → order_id=%s, mobile=%s, status=%s",
+            order_id,
+            getattr(order, 'x_tr_is_mobile_order', '?'),
+            getattr(order, 'x_tr_order_status', '?'),
+        )
         if not order or not getattr(order, 'x_tr_is_mobile_order', False):
             return res
 
