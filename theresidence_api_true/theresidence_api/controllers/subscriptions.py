@@ -69,79 +69,12 @@ class SubscriptionsController(http.Controller):
     def create_subscription(self, **kwargs):
         try:
             data = json.loads(request.httprequest.data)
-            
-            # Valider les données requises
             if not data.get('memberId'):
                 return error_response('memberId is required', 'MISSING_MEMBER_ID', 400)
-            
-            # Rechercher le membre
-            member = request.env['res.partner'].sudo().search([
-                ('x_tr_is_member', '=', True),
-                '|', ('x_tr_uuid', '=', data['memberId']), 
-                ('id', '=', int(data['memberId']) if str(data['memberId']).isdigit() else 0)
-            ], limit=1)
-            
-            if not member:
-                return error_response('Member not found', 'MEMBER_NOT_FOUND', 404)
-            
-            # Rechercher le produit d'abonnement
-            product_domain = [('recurring_invoice', '=', True)]
-            if data.get('productName'):
-                product_domain.append(('name', '=', data['productName']))
-            else:
-                # Par défaut, utiliser "Abonnement CEO"
-                product_domain.append(('name', '=', 'Abonnement CEO'))
-            
-            subscription_product = request.env['product.product'].sudo().search(product_domain, limit=1)
-            
-            if not subscription_product:
-                return error_response('Subscription product not found', 'PRODUCT_NOT_FOUND', 404)
-            
-            # Rechercher le plan d'abonnement
-            plan_domain = []
-            if data.get('planId'):
-                plan_domain.append(('x_tr_space_uuid', '=', data['planId']))
-            else:
-                # Par défaut, rechercher un plan mensuel
-                plan_domain.append(('name', 'ilike', 'mensuel'))
-            
-            subscription_plan = request.env['sale.subscription.plan'].sudo().search(plan_domain, limit=1)
-            
-            if not subscription_plan:
-                # Prendre le premier plan disponible
-                subscription_plan = request.env['sale.subscription.plan'].sudo().search([], limit=1)
-            
-            if not subscription_plan:
-                return error_response('No subscription plan found', 'PLAN_NOT_FOUND', 404)
-            
-            # Créer l'abonnement
-            subscription_vals = {
-                'partner_id': member.id,
-                'is_subscription': True,
-                'plan_id': subscription_plan.id,
-                'order_line': [(0, 0, {
-                    'product_id': subscription_product.id,
-                    'name': subscription_product.name,
-                    'product_uom_qty': data.get('quantity', 1),
-                    'product_uom_id': subscription_product.uom_id.id,
-                    'price_unit': data.get('price', subscription_product.list_price),
-                })],
-            }
-            
-            # Ajouter des champs optionnels si présents
-            if data.get('startDate'):
-                subscription_vals['start_date'] = data['startDate']
-            
-            subscription = request.env['sale.order'].sudo().create(subscription_vals)
-            
-            # Confirmer automatiquement si demandé
-            if data.get('autoConfirm', True):
-                subscription.action_confirm()
-            
+            subscription = request.env['sale.order'].sudo().create_subscription_from_api(data)
             return success_response(subscription.to_subscription_api_dict(), 201)
-            
         except Exception as e:
-            _logger.error(f"Error creating subscription: {str(e)}", exc_info=True)
+            _logger.error(f"Failed to create subscription: {str(e)}", exc_info=True)
             return error_response(str(e), 'INVALID_REQUEST', 400)
 
     @http.route(f'{API_PREFIX}/subscriptions/<string:subscription_id>/pause', type='http', auth='public', methods=['POST'], csrf=False)
