@@ -51,11 +51,10 @@ export class ReservationPanel extends Component {
     statusLabel(status) {
         const labels = {
             PENDING: "En attente",
-            APPROVED: "Approuvée",
-            CHECKED_IN: "Check-in",
+            RESERVED: "Réservée",
+            ARRIVED: "Arrivée",
             CANCELLED: "Annulée",
-            COMPLETED: "Terminée",
-            REJECTED: "Rejetée",
+            COMPLETED: "Libéré",
         };
         return labels[status] || status;
     }
@@ -72,15 +71,15 @@ export class ReservationPanel extends Component {
         return d.toLocaleDateString("fr-FR", { day: "2-digit", month: "short" }) + " · ";
     }
 
-    async approveReservation(uuid) {
+    async reserveReservation(uuid) {
         this.state.actionLoading = uuid;
         try {
-            await this.orm.call("sale.order", "pos_approve_reservation", [uuid]);
-            this.notification.add("Réservation approuvée", { type: "success" });
+            await this.orm.call("sale.order", "pos_reserve_reservation", [uuid]);
+            this.notification.add("Réservation confirmée", { type: "success" });
             await this.loadReservations();
         } catch (e) {
             this.notification.add(
-                e?.data?.message || e?.message || "Erreur lors de l'approbation",
+                e?.data?.message || e?.message || "Erreur lors de la réservation",
                 { type: "danger" }
             );
         } finally {
@@ -88,15 +87,15 @@ export class ReservationPanel extends Component {
         }
     }
 
-    async checkinReservation(uuid) {
+    async arriveReservation(uuid) {
         this.state.actionLoading = uuid;
         try {
-            await this.orm.call("sale.order", "pos_checkin_reservation", [uuid]);
-            this.notification.add("Check-in effectué", { type: "success" });
+            await this.orm.call("sale.order", "pos_arrive_reservation", [uuid]);
+            this.notification.add("Arrivée enregistrée", { type: "success" });
             await this.loadReservations();
         } catch (e) {
             this.notification.add(
-                e?.data?.message || e?.message || "Erreur lors du check-in",
+                e?.data?.message || e?.message || "Erreur lors de l'enregistrement de l'arrivée",
                 { type: "danger" }
             );
         } finally {
@@ -104,15 +103,15 @@ export class ReservationPanel extends Component {
         }
     }
 
-    async checkoutReservation(uuid) {
+    async releaseReservation(uuid) {
         this.state.actionLoading = uuid;
         try {
-            await this.orm.call("sale.order", "pos_checkout_reservation", [uuid]);
-            this.notification.add("Checkout effectué — espace libéré", { type: "success" });
+            await this.orm.call("sale.order", "pos_release_reservation", [uuid]);
+            this.notification.add("Espace libéré", { type: "success" });
             await this.loadReservations();
         } catch (e) {
             this.notification.add(
-                e?.data?.message || e?.message || "Erreur lors du checkout",
+                e?.data?.message || e?.message || "Erreur lors de la libération",
                 { type: "danger" }
             );
         } finally {

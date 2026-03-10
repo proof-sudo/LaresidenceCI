@@ -57,10 +57,10 @@
                             t-on-click="() => this.setFilter('ALL')">Tous</button>
                     <button t-att-class="'tr-filter-btn pending ' + (state.filter === 'PENDING' ? 'active' : '')"
                             t-on-click="() => this.setFilter('PENDING')">En attente</button>
-                    <button t-att-class="'tr-filter-btn approved ' + (state.filter === 'APPROVED' ? 'active' : '')"
-                            t-on-click="() => this.setFilter('APPROVED')">Approuvées</button>
-                    <button t-att-class="'tr-filter-btn checkin ' + (state.filter === 'CHECKED_IN' ? 'active' : '')"
-                            t-on-click="() => this.setFilter('CHECKED_IN')">Check-in</button>
+                    <button t-att-class="'tr-filter-btn reserved ' + (state.filter === 'RESERVED' ? 'active' : '')"
+                            t-on-click="() => this.setFilter('RESERVED')">Réservées</button>
+                    <button t-att-class="'tr-filter-btn arrived ' + (state.filter === 'ARRIVED' ? 'active' : '')"
+                            t-on-click="() => this.setFilter('ARRIVED')">Arrivées</button>
                 </div>
 
                 <!-- Contenu -->
@@ -112,23 +112,23 @@
                                 <div class="tr-card-actions">
                                     <button t-if="res.status === 'PENDING'"
                                             class="tr-action-btn approve"
-                                            t-on-click="() => this.approveReservation(res.id)"
+                                            t-on-click="() => this.reserveReservation(res.id)"
                                             t-att-disabled="state.actionLoading === res.id">
-                                        <i class="fa fa-check"/> Approuver
+                                        <i class="fa fa-check"/> Réserver
                                     </button>
-                                    <button t-if="res.status === 'APPROVED'"
+                                    <button t-if="res.status === 'RESERVED'"
                                             class="tr-action-btn checkin"
-                                            t-on-click="() => this.checkinReservation(res.id)"
+                                            t-on-click="() => this.arriveReservation(res.id)"
                                             t-att-disabled="state.actionLoading === res.id">
-                                        <i class="fa fa-sign-in"/> Check-in
+                                        <i class="fa fa-sign-in"/> Marquer arrivée
                                     </button>
-                                    <button t-if="res.status === 'CHECKED_IN'"
+                                    <button t-if="res.status === 'ARRIVED'"
                                             class="tr-action-btn checkout"
-                                            t-on-click="() => this.checkoutReservation(res.id)"
+                                            t-on-click="() => this.releaseReservation(res.id)"
                                             t-att-disabled="state.actionLoading === res.id">
-                                        <i class="fa fa-sign-out"/> Checkout
+                                        <i class="fa fa-sign-out"/> Libérer l'espace
                                     </button>
-                                    <button t-if="res.status !== 'CHECKED_IN' and res.status !== 'COMPLETED'"
+                                    <button t-if="res.status !== 'ARRIVED' and res.status !== 'COMPLETED' and res.status !== 'CANCELLED'"
                                             class="tr-action-btn cancel"
                                             t-on-click="() => this.cancelReservation(res.id)"
                                             t-att-disabled="state.actionLoading === res.id">
