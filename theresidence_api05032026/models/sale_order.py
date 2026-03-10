@@ -14,10 +14,9 @@ class SaleOrder(models.Model):
     x_tr_is_reservation = fields.Boolean(string='Est une réservation TR', default=False)
     x_tr_reservation_status = fields.Selection([
         ('PENDING', 'En attente'),
-        ('APPROVED', 'Approuvée'),
-        ('REJECTED', 'Rejetée'),
+        ('RESERVED', 'Réservé'),
+        ('ARRIVED', 'Arrivé'),
         ('CANCELLED', 'Annulée'),
-        ('CHECKED_IN', 'Check-in'),
         ('COMPLETED', 'Terminée'),
     ], string='Statut réservation', default='PENDING')
     x_tr_space_id = fields.Many2one('product.template', string='Espace', domain=[('x_tr_is_space', '=', True)])
@@ -146,39 +145,41 @@ class SaleOrder(models.Model):
         )
         return order
 
-    def action_approve_reservation(self):
+    def action_reserve_reservation(self):
         for order in self:
             if order.x_tr_reservation_status != 'PENDING':
-                raise ValidationError(_("Seules les réservations en attente peuvent être approuvées."))
+                raise ValidationError(_("Seules les réservations en attente peuvent être réservées."))
             old = order.x_tr_reservation_status
-            order.x_tr_reservation_status = 'APPROVED'
-            order.action_confirm()
+            order.write({'x_tr_reservation_status': 'RESERVED'})
+            if order.x_tr_space_id:
+                order.x_tr_space_id.write({'x_tr_is_occupied': True})
             self.env['theresidence.webhook'].trigger_event(
                 'RESERVATION_STATUS_CHANGED', 'reservation', order.x_tr_uuid,
-                order.to_reservation_api_dict(), old, 'APPROVED'
+                order.to_reservation_api_dict(), old, 'RESERVED'
             )
 
-    def action_reject_reservation(self, reason=None):
+    def action_arrive_reservation(self):
         for order in self:
-            if order.x_tr_reservation_status != 'PENDING':
-                raise ValidationError(_("Seules les réservations en attente peuvent être rejetées."))
+            if order.x_tr_reservation_status != 'RESERVED':
+                raise ValidationError(_("Seules les réservations réservées peuvent être marquées arrivées."))
             old = order.x_tr_reservation_status
-            order.write({'x_tr_reservation_status': 'REJECTED', 'x_tr_rejection_reason': reason or ''})
-            order.action_cancel()
+            order.write({'x_tr_reservation_status': 'ARRIVED'})
             self.env['theresidence.webhook'].trigger_event(
                 'RESERVATION_STATUS_CHANGED', 'reservation', order.x_tr_uuid,
-                order.to_reservation_api_dict(), old, 'REJECTED'
+                order.to_reservation_api_dict(), old, 'ARRIVED'
             )
 
-    def action_checkin_reservation(self):
+    def action_release_reservation(self):
         for order in self:
-            if order.x_tr_reservation_status != 'APPROVED':
-                raise ValidationError(_("Seules les réservations approuvées peuvent être check-in."))
+            if order.x_tr_reservation_status not in ('RESERVED', 'ARRIVED'):
+                raise ValidationError(_("Seules les réservations réservées ou arrivées peuvent être libérées."))
             old = order.x_tr_reservation_status
-            order.x_tr_reservation_status = 'CHECKED_IN'
+            order.write({'x_tr_reservation_status': 'COMPLETED'})
+            if order.x_tr_space_id:
+                order.x_tr_space_id.write({'x_tr_is_occupied': False})
             self.env['theresidence.webhook'].trigger_event(
                 'RESERVATION_STATUS_CHANGED', 'reservation', order.x_tr_uuid,
-                order.to_reservation_api_dict(), old, 'CHECKED_IN'
+                order.to_reservation_api_dict(), old, 'COMPLETED'
             )
 
     def action_cancel_reservation(self):
@@ -186,8 +187,9 @@ class SaleOrder(models.Model):
             if order.x_tr_reservation_status in ('COMPLETED', 'CANCELLED'):
                 raise ValidationError(_("Cette réservation ne peut plus être annulée."))
             old = order.x_tr_reservation_status
-            order.x_tr_reservation_status = 'CANCELLED'
-            order.action_cancel()
+            if order.x_tr_space_id and old in ('RESERVED', 'ARRIVED'):
+                order.x_tr_space_id.write({'x_tr_is_occupied': False})
+            order.write({'x_tr_reservation_status': 'CANCELLED'})
             self.env['theresidence.webhook'].trigger_event(
                 'RESERVATION_CANCELLED', 'reservation', order.x_tr_uuid,
                 order.to_reservation_api_dict(), old, 'CANCELLED'
