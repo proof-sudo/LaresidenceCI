@@ -35,6 +35,10 @@ class CalendarEvent(models.Model):
         res = super().write(vals)
 
         # Sync inverse : changement de statut dans le calendrier POS → sale.order
+        # Ignoré si c'est notre propre code qui écrit (évite les boucles)
+        if self.env.context.get('tr_skip_calendar_sync'):
+            return res
+
         apt_status = vals.get('appointment_status')
         going_inactive = vals.get('active') is False
 
@@ -51,7 +55,10 @@ class CalendarEvent(models.Model):
 
             new_status = None
             if going_inactive:
-                new_status = 'CANCELLED'
+                # N'écraser que si la réservation est encore active
+                # (évite COMPLETED → CANCELLED lors du sync interne qui archive l'event)
+                if order.x_tr_reservation_status not in ('COMPLETED', 'CANCELLED'):
+                    new_status = 'CANCELLED'
             elif apt_status and apt_status in APT_STATUS_TO_TR:
                 new_status = APT_STATUS_TO_TR[apt_status]
 

@@ -232,7 +232,7 @@ class SaleOrder(models.Model):
             if 'waiting_list_capacity' in ce_fields:
                 update_vals['waiting_list_capacity'] = self.x_tr_guest_count
 
-        event.sudo().write(update_vals)
+        event.sudo().with_context(tr_skip_calendar_sync=True).write(update_vals)
 
         _logger.info(
             "[TR BRIDGE] calendar.event %s mis à jour → statut %s",
