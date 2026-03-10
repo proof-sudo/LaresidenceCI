@@ -251,6 +251,31 @@ class SaleOrder(models.Model):
                 order.to_reservation_api_dict(), old, 'CANCELLED'
             )
 
+    # === Alias API (compatibilité endpoints /approve /reject /check-in) ===
+
+    def action_approve_reservation(self):
+        """Alias : PENDING → RESERVED (approuver = réserver l'espace)."""
+        return self.action_reserve_reservation()
+
+    def action_reject_reservation(self, reason=''):
+        """PENDING → CANCELLED avec raison de rejet."""
+        for order in self:
+            if order.x_tr_reservation_status != 'PENDING':
+                raise ValidationError(_("Seules les réservations en attente peuvent être rejetées."))
+            old = order.x_tr_reservation_status
+            order.write({
+                'x_tr_reservation_status': 'CANCELLED',
+                'x_tr_rejection_reason': reason or '',
+            })
+            self.env['theresidence.webhook'].trigger_event(
+                'RESERVATION_STATUS_CHANGED', 'reservation', order.x_tr_uuid,
+                order.to_reservation_api_dict(), old, 'CANCELLED'
+            )
+
+    def action_checkin_reservation(self):
+        """Alias : RESERVED → ARRIVED (check-in = arrivée du membre)."""
+        return self.action_arrive_reservation()
+
     # === Actions POS (appelées par UUID depuis le frontend) ===
 
     @api.model

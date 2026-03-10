@@ -46,6 +46,23 @@ class ReservationsController(http.Controller):
     def create_reservation(self, **kwargs):
         try:
             data = json.loads(request.httprequest.data)
+
+            # ── Pre-check disponibilité AVANT toute création ──────────────
+            space_uuid = data.get('spaceId')
+            if space_uuid:
+                space = request.env['product.template'].sudo().search([
+                    ('x_tr_space_uuid', '=', space_uuid),
+                    ('x_tr_is_space', '=', True),
+                ], limit=1)
+                if space and data.get('startTime') and data.get('endTime'):
+                    avail = space.check_availability(data['startTime'], data['endTime'])
+                    if not avail.get('isAvailable'):
+                        return error_response(
+                            f"L'espace '{space.name}' n'est pas disponible pour ce créneau.",
+                            'SPACE_NOT_AVAILABLE', 409
+                        )
+            # ─────────────────────────────────────────────────────────────
+
             reservation = request.env['sale.order'].sudo().create_reservation_from_api(data)
             return success_response(reservation.to_reservation_api_dict(), 201)
         except Exception as e:

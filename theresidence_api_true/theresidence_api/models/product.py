@@ -128,6 +128,11 @@ class ProductTemplate(models.Model):
         
         return result
 
+    def action_free_space(self):
+        """Libère manuellement l'espace (remet x_tr_is_occupied à False)."""
+        for space in self.filtered('x_tr_is_space'):
+            space.write({'x_tr_is_occupied': False})
+
     def check_availability(self, start_time, end_time):
         self.ensure_one()
         if not self.x_tr_is_space:

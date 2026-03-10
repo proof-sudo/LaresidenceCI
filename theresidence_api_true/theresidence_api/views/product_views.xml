@@ -26,6 +26,15 @@
                             <field name="x_tr_duration_months" invisible="not x_tr_is_subscription_plan"/>
                         </group>
                     </group>
+                    <!-- Statut occupation + bouton libérer -->
+                    <group invisible="not x_tr_is_space" string="Statut d'occupation">
+                        <field name="x_tr_is_occupied" widget="boolean_toggle" string="Espace occupé"/>
+                        <button name="action_free_space" type="object"
+                                string="Libérer l'espace manuellement"
+                                class="btn-warning"
+                                invisible="not x_tr_is_occupied"
+                                confirm="Libérer cet espace manuellement (ne modifie pas les réservations en cours) ?"/>
+                    </group>
                     <group invisible="not x_tr_is_space">
                         <field name="x_tr_space_description" placeholder="Description détaillée de l'espace..."/>
                     </group>
@@ -44,6 +53,10 @@
                 <field name="x_tr_is_space" optional="hide"/>
                 <field name="x_tr_space_type_id" optional="hide"/>
                 <field name="x_tr_space_capacity" optional="hide"/>
+                <field name="x_tr_is_occupied" optional="show"
+                       string="Occupé"
+                       widget="boolean"
+                       invisible="not x_tr_is_space"/>
             </xpath>
         </field>
     </record>
