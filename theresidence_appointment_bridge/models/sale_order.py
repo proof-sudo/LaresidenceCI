@@ -304,6 +304,4 @@ class SaleOrder(models.Model):
                 lines.append(f"  • {label} × {opt.quantity}  ({opt.amount:.0f})")
         if self.x_tr_notes:
             lines.append(f"Notes : {self.x_tr_notes}")
-        if self.x_tr_uuid:
-            lines.append(f"UUID : {self.x_tr_uuid}")
         return "\n".join(lines)
