@@ -132,7 +132,12 @@ class SaleOrder(models.Model):
         end_time = datetime.fromisoformat(data['endTime'].replace('Z', '+00:00'))
         if end_time <= start_time:
             raise ValidationError(_("endTime doit être postérieur à startTime."))
-        
+
+        # Vérification disponibilité (garde-fou même si le controller a déjà vérifié)
+        avail = space.check_availability(start_time, end_time)
+        if not avail.get('isAvailable'):
+            raise ValidationError(_("L'espace '%s' n'est pas disponible pour ce créneau.") % space.name)
+
         order = self.create({
             'partner_id': partner.id,
             'x_tr_is_reservation': True,
@@ -145,12 +150,15 @@ class SaleOrder(models.Model):
         })
         
         # Créer la ligne de commande
-        product = space.product_variant_id
-        self.env['sale.order.line'].create({
-            'order_id': order.id,
-            'product_id': product.id,
-            'product_uom_qty': 1,
-        })
+        product = space.product_variant_ids[:1]
+        if product:
+            self.env['sale.order.line'].sudo().create({
+                'order_id': order.id,
+                'product_id': product.id,
+                'name': space.name,
+                'product_uom_qty': 1,
+                'price_unit': space.list_price or 0.0,
+            })
         
         # Créer les invités
         for inv_data in data.get('invitees', []):

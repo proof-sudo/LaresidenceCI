@@ -47,7 +47,6 @@ class WebhooksController(http.Controller):
         try:
             data = json.loads(request.httprequest.data)
             
-            # Trouver les types d'événements
             event_type_ids = []
             if data.get('eventTypes'):
                 event_types = request.env['theresidence.webhook.event.type'].sudo().search([

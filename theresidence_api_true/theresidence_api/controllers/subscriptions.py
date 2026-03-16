@@ -18,15 +18,12 @@ class SubscriptionsController(http.Controller):
         page = int(kwargs.get('page', 0))
         size = min(int(kwargs.get('size', 20)), 100)
         
-        # Utiliser is_subscription au lieu de x_tr_is_subscription
         domain = [('is_subscription', '=', True)]
         
         if kwargs.get('memberId'):
             domain.append(('partner_id.x_tr_uuid', '=', kwargs['memberId']))
         
         if kwargs.get('status'):
-            # Mapper les statuts API aux statuts Odoo 19
-            # Odoo 19 utilise: 1_draft, 2_renewal, 3_progress, 4_paused, 5_expired, 6_closed, 7_upsell
             status_mapping = {
                 'draft': '1_draft',
                 'active': '3_progress',
@@ -41,8 +38,7 @@ class SubscriptionsController(http.Controller):
             domain.append(('subscription_state', '=', odoo_status))
         
         if kwargs.get('planId'):
-            # Chercher par plan_id au lieu de x_tr_plan_id
-            domain.append(('plan_id.x_tr_space_uuid', '=', kwargs['planId']))
+            domain.append(('x_tr_plan_id.x_tr_space_uuid', '=', kwargs['planId']))
         
         total = request.env['sale.order'].sudo().search_count(domain)
         subscriptions = request.env['sale.order'].sudo().search(
@@ -90,11 +86,9 @@ class SubscriptionsController(http.Controller):
             return error_response('Subscription not found', 'SUBSCRIPTION_NOT_FOUND', 404)
         
         try:
-            # Utiliser la méthode standard Odoo 19 pour mettre en pause
             if hasattr(subscription, 'action_pause_subscription'):
                 subscription.action_pause_subscription()
             else:
-                # Fallback: changer directement le statut
                 subscription.write({'subscription_state': '4_paused'})
             
             return success_response(subscription.to_subscription_api_dict())
@@ -113,11 +107,9 @@ class SubscriptionsController(http.Controller):
             return error_response('Subscription not found', 'SUBSCRIPTION_NOT_FOUND', 404)
         
         try:
-            # Utiliser la méthode standard Odoo 19 pour reprendre
             if hasattr(subscription, 'action_resume_subscription'):
                 subscription.action_resume_subscription()
             else:
-                # Fallback: changer directement le statut
                 subscription.write({'subscription_state': '3_progress'})
             
             return success_response(subscription.to_subscription_api_dict())
@@ -136,13 +128,11 @@ class SubscriptionsController(http.Controller):
             return error_response('Subscription not found', 'SUBSCRIPTION_NOT_FOUND', 404)
         
         try:
-            # Utiliser la méthode standard Odoo 19 pour annuler
             if hasattr(subscription, 'action_cancel_subscription'):
                 subscription.action_cancel_subscription()
             elif hasattr(subscription, 'set_close'):
                 subscription.set_close()
             else:
-                # Fallback: changer directement le statut
                 subscription.write({'subscription_state': '6_closed'})
             
             return success_response(subscription.to_subscription_api_dict())

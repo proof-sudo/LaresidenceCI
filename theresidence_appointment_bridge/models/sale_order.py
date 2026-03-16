@@ -282,10 +282,19 @@ class SaleOrder(models.Model):
     def _build_event_description(self):
         self.ensure_one()
         lines = []
-        if self.x_tr_guest_count:
+        # Liste des invités
+        invitees = getattr(self, 'x_tr_invitee_ids', False)
+        if invitees:
+            lines.append(f"Invités ({len(invitees)}) :")
+            for inv in invitees:
+                inv_line = f"  • {inv.name or '?'}"
+                if inv.email:
+                    inv_line += f" <{inv.email}>"
+                if inv.phone:
+                    inv_line += f"  {inv.phone}"
+                lines.append(inv_line)
+        elif self.x_tr_guest_count:
             lines.append(f"Invités : {self.x_tr_guest_count}")
-        if self.x_tr_notes:
-            lines.append(f"Notes : {self.x_tr_notes}")
         # Options de réservation
         options = getattr(self, 'x_tr_option_ids', False)
         if options:
@@ -293,8 +302,8 @@ class SaleOrder(models.Model):
             for opt in options:
                 label = opt.name or (opt.option_def_id.name if opt.option_def_id else '')
                 lines.append(f"  • {label} × {opt.quantity}  ({opt.amount:.0f})")
+        if self.x_tr_notes:
+            lines.append(f"Notes : {self.x_tr_notes}")
         if self.x_tr_uuid:
             lines.append(f"UUID : {self.x_tr_uuid}")
-        if self.x_tr_qr_token:
-            lines.append(f"QR Token : {self.x_tr_qr_token}")
         return "\n".join(lines)
