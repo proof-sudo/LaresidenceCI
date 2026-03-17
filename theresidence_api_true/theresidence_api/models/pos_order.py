@@ -18,8 +18,6 @@ class PosOrder(models.Model):
         ('PAID',        'Payée'),
         ('COMPLETED',   'Terminée'),
     ], string="Statut commande mobile",
-       default='PENDING',
-       required=True,
        index=True,
        tracking=True,
     )
@@ -62,9 +60,15 @@ class PosOrder(models.Model):
     @api.model_create_multi
     def create(self, vals_list):
         for vals in vals_list:
-            if vals.get('x_tr_is_mobile_order') and not vals.get('x_tr_uuid'):
-                vals['x_tr_uuid'] = str(uuid.uuid4())
-                vals['x_tr_qr_token'] = f"order-{uuid.uuid4().hex[:12]}"
+            if vals.get('x_tr_is_mobile_order'):
+                if not vals.get('x_tr_uuid'):
+                    vals['x_tr_uuid'] = str(uuid.uuid4())
+                    vals['x_tr_qr_token'] = f"order-{uuid.uuid4().hex[:12]}"
+                if not vals.get('x_tr_order_status'):
+                    vals['x_tr_order_status'] = 'PENDING'
+            else:
+                # Commande POS normale : pas de statut mobile
+                vals.pop('x_tr_order_status', None)
         return super().create(vals_list)
 
     def to_order_api_dict(self):
