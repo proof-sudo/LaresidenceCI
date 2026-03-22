@@ -1,5 +1,6 @@
 from . import product_template
 from . import sale_order
+from . import pos_order
 from . import calendar_event
 from . import reservation_option
 from . import reservation_invitee

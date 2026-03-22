@@ -16,6 +16,10 @@ class ProductTemplate(models.Model):
     x_tr_space_description = fields.Text(string='Description espace')
     
     x_tr_is_occupied = fields.Boolean(string='Espace occupé', default=False)
+    x_tr_space_status = fields.Selection([
+        ('libre',   'Libre'),
+        ('réservé', 'Réservé'),
+    ], string='Statut espace', default='libre', index=True)
 
     # Champs pour les plans d'abonnement
     x_tr_is_subscription_plan = fields.Boolean(string='Est un plan d\'abonnement')
@@ -131,7 +135,7 @@ class ProductTemplate(models.Model):
     def action_free_space(self):
         """Libère manuellement l'espace (remet x_tr_is_occupied à False)."""
         for space in self.filtered('x_tr_is_space'):
-            space.write({'x_tr_is_occupied': False})
+            space.write({'x_tr_is_occupied': False, 'x_tr_space_status': 'libre'})
 
     def check_availability(self, start_time, end_time):
         self.ensure_one()

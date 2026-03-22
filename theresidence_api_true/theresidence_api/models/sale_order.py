@@ -209,6 +209,23 @@ class SaleOrder(models.Model):
                     "L'espace '%s' n'est pas disponible pour ce créneau."
                 ) % order.x_tr_space_id.name)
 
+    def _space_has_other_active_reservations(self, space):
+        """Retourne True si l'espace a d'autres réservations actives (hors self)."""
+        return self.env['sale.order'].search_count([
+            ('id', 'not in', self.ids),
+            ('x_tr_is_reservation', '=', True),
+            ('x_tr_reservation_status', 'in', ['PENDING', 'RESERVED', 'ARRIVED']),
+            ('x_tr_space_id', '=', space.id),
+        ]) > 0
+
+    def _mark_space_reserved(self, space):
+        space.write({'x_tr_is_occupied': True, 'x_tr_space_status': 'réservé'})
+
+    def _mark_space_free_if_no_active(self, space):
+        """Libère l'espace uniquement s'il n'a plus d'autres réservations actives."""
+        if not self._space_has_other_active_reservations(space):
+            space.write({'x_tr_is_occupied': False, 'x_tr_space_status': 'libre'})
+
     def action_reserve_reservation(self):
         for order in self:
             if order.x_tr_reservation_status != 'PENDING':
@@ -219,7 +236,7 @@ class SaleOrder(models.Model):
             old = order.x_tr_reservation_status
             order.write({'x_tr_reservation_status': 'RESERVED'})
             if order.x_tr_space_id:
-                order.x_tr_space_id.write({'x_tr_is_occupied': True})
+                order._mark_space_reserved(order.x_tr_space_id)
             self.env['theresidence.webhook'].trigger_event(
                 'RESERVATION_STATUS_CHANGED', 'reservation', order.x_tr_uuid,
                 order.to_reservation_api_dict(), old, 'RESERVED'
@@ -243,7 +260,7 @@ class SaleOrder(models.Model):
             old = order.x_tr_reservation_status
             order.write({'x_tr_reservation_status': 'COMPLETED'})
             if order.x_tr_space_id:
-                order.x_tr_space_id.write({'x_tr_is_occupied': False})
+                order._mark_space_free_if_no_active(order.x_tr_space_id)
             self.env['theresidence.webhook'].trigger_event(
                 'RESERVATION_STATUS_CHANGED', 'reservation', order.x_tr_uuid,
                 order.to_reservation_api_dict(), old, 'COMPLETED'
@@ -254,9 +271,9 @@ class SaleOrder(models.Model):
             if order.x_tr_reservation_status in ('COMPLETED', 'CANCELLED'):
                 raise ValidationError(_("Cette réservation ne peut plus être annulée."))
             old = order.x_tr_reservation_status
-            if order.x_tr_space_id and old in ('RESERVED', 'ARRIVED'):
-                order.x_tr_space_id.write({'x_tr_is_occupied': False})
             order.write({'x_tr_reservation_status': 'CANCELLED'})
+            if order.x_tr_space_id and old in ('RESERVED', 'ARRIVED'):
+                order._mark_space_free_if_no_active(order.x_tr_space_id)
             self.env['theresidence.webhook'].trigger_event(
                 'RESERVATION_CANCELLED', 'reservation', order.x_tr_uuid,
                 order.to_reservation_api_dict(), old, 'CANCELLED'
