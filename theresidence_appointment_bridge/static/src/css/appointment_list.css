@@ -1,0 +1,37 @@
+/* ============================================================ */
+/* The Residence — Override vue liste pos_appointment           */
+/* Affiche le nom complet (espace — client) sans troncature     */
+/* ============================================================ */
+
+/* Supprime la troncature sur tous les éléments de nom dans la liste appointment */
+.o-appointment-list-item .o-appointment-name,
+.o_appointment_booking .o-appointment-name,
+.appointment-booking-list .appointment-name,
+[class*='appointment'] [class*='name'] {
+    white-space: normal !important;
+    overflow: visible !important;
+    text-overflow: unset !important;
+    word-break: break-word;
+    font-size: 11px !important;
+    line-height: 1.3;
+}
+
+/* Cible les titres/noms dans les colonnes de réservation POS */
+.o_appointment_booking_type_column .o_appointment_item_name,
+.o_appointment_booking_item .o_appointment_item_name,
+.o_appointment_item .o_appointment_item_name {
+    white-space: normal !important;
+    overflow: visible !important;
+    text-overflow: unset !important;
+    word-break: break-word;
+    font-size: 11px !important;
+    line-height: 1.3;
+}
+
+/* Augmente légèrement la hauteur des cartes pour accommoder le nom complet */
+.o_appointment_booking_item,
+.o-appointment-booking-item,
+[class*='appointment'][class*='item'] {
+    min-height: auto !important;
+    height: auto !important;
+}
