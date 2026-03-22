@@ -74,6 +74,7 @@ class ReservationsController(http.Controller):
                         )
             # ─────────────────────────────────────────────────────────────
 
+            _logger.info(f"[TR] create_reservation - startTime reçu: {data.get('startTime')!r}, endTime reçu: {data.get('endTime')!r}")
             reservation = request.env['sale.order'].sudo().create_reservation_from_api(data)
             return success_response(reservation.to_reservation_api_dict(), 201)
         except Exception as e:
