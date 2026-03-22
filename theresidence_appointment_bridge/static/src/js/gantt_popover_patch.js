@@ -25,7 +25,7 @@ patch(POSAppointmentBookingGanttRenderer.prototype, {
                     ["x_tr_calendar_event_id", "=", record.id],
                     ["x_tr_is_reservation", "=", true],
                 ],
-                ["x_tr_reservation_status", "order_line", "x_tr_pos_order_id"],
+                ["x_tr_reservation_status", "x_tr_pos_order_id"],
                 { limit: 1 }
             );
         } catch (e) {
@@ -37,7 +37,6 @@ patch(POSAppointmentBookingGanttRenderer.prototype, {
         }
 
         const status = saleOrders[0].x_tr_reservation_status;
-        const hasLines = (saleOrders[0].order_line || []).length > 0;
         const alreadyLoaded = !!saleOrders[0].x_tr_pos_order_id;
         const calendarEventId = record.id;
 
@@ -107,7 +106,7 @@ patch(POSAppointmentBookingGanttRenderer.prototype, {
 
         // Bouton "Charger la commande" : visible si le sale.order a des lignes
         // et n'a pas encore été chargé dans le POS
-        if (hasLines && !alreadyLoaded && !["COMPLETED", "CANCELLED"].includes(status)) {
+        if (!alreadyLoaded && !["COMPLETED", "CANCELLED"].includes(status)) {
             buttons.push({
                 class: "btn btn-sm btn-warning mt-1",
                 onClick: async () => {
