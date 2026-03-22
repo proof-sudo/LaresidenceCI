@@ -1,37 +1,35 @@
 /* ============================================================ */
-/* The Residence — Override vue liste pos_appointment           */
-/* Affiche le nom complet (espace — client) sans troncature     */
+/* The Residence — Enrichissement cartes vue liste POS          */
 /* ============================================================ */
 
-/* Supprime la troncature sur tous les éléments de nom dans la liste appointment */
-.o-appointment-list-item .o-appointment-name,
-.o_appointment_booking .o-appointment-name,
-.appointment-booking-list .appointment-name,
-[class*='appointment'] [class*='name'] {
+/* Petit libellé grisé en majuscules */
+.tr-lbl {
+    display: block;
+    font-size: 9px !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.6px;
+    color: #aaa !important;
+    text-transform: uppercase;
+    margin-top: 4px;
+    line-height: 1.2;
+}
+
+/* Valeur associée au libellé */
+.tr-val {
+    display: block;
+    font-size: 11px !important;
+    font-weight: 500 !important;
+    color: #2c3e50 !important;
+    line-height: 1.3;
+    word-break: break-word;
+    white-space: normal !important;
+}
+
+/* Supprime la troncature sur tout élément enrichi */
+[data-tr-enhanced] {
     white-space: normal !important;
     overflow: visible !important;
     text-overflow: unset !important;
-    word-break: break-word;
-    font-size: 11px !important;
-    line-height: 1.3;
-}
-
-/* Cible les titres/noms dans les colonnes de réservation POS */
-.o_appointment_booking_type_column .o_appointment_item_name,
-.o_appointment_booking_item .o_appointment_item_name,
-.o_appointment_item .o_appointment_item_name {
-    white-space: normal !important;
-    overflow: visible !important;
-    text-overflow: unset !important;
-    word-break: break-word;
-    font-size: 11px !important;
-    line-height: 1.3;
-}
-
-/* Augmente légèrement la hauteur des cartes pour accommoder le nom complet */
-.o_appointment_booking_item,
-.o-appointment-booking-item,
-[class*='appointment'][class*='item'] {
-    min-height: auto !important;
     height: auto !important;
+    min-height: 0 !important;
 }
