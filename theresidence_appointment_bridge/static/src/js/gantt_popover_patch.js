@@ -95,35 +95,32 @@ patch(POSAppointmentBookingGanttRenderer.prototype, {
                 text: _t("Libérer l'espace"),
             });
         }
-        // Bouton "Charger la commande" : avant Annuler pour rester dans la zone visible
-        if (!["COMPLETED", "CANCELLED"].includes(status)) {
-            buttons.push({
-                class: "btn btn-sm btn-warning me-1",
-                onClick: async () => {
-                    try {
-                        const result = await this.orm.call(
-                            "sale.order",
-                            "pos_load_reservation_to_pos",
-                            [calendarEventId]
-                        );
-                        this.model.fetchData();
-                        notification?.add(
-                            _t("Commande %s chargée dans le POS", result.pos_order_name),
-                            { type: "success", sticky: false }
-                        );
-                    } catch (e) {
-                        const msg = e?.data?.message || e?.message || _t("Erreur inconnue");
-                        console.error("[TR BRIDGE] Erreur chargement POS:", msg);
-                        notification?.add(msg, {
-                            title: _t("Erreur chargement POS"),
-                            type: "danger",
-                            sticky: false,
-                        });
-                    }
-                },
-                text: _t("Charger la commande"),
-            });
-        }
+        buttons.push({
+            class: "btn btn-sm btn-warning me-1",
+            onClick: async () => {
+                try {
+                    const result = await this.orm.call(
+                        "sale.order",
+                        "pos_load_reservation_to_pos",
+                        [calendarEventId]
+                    );
+                    this.model.fetchData();
+                    notification?.add(
+                        "Commande " + result.pos_order_name + " chargée dans le POS",
+                        { type: "success", sticky: false }
+                    );
+                } catch (e) {
+                    const msg = e?.data?.message || e?.message || "Erreur inconnue";
+                    console.error("[TR BRIDGE] Erreur chargement POS:", msg);
+                    notification?.add(msg, {
+                        title: "Erreur chargement POS",
+                        type: "danger",
+                        sticky: false,
+                    });
+                }
+            },
+            text: "Charger la commande",
+        });
 
         if (!["COMPLETED", "CANCELLED"].includes(status)) {
             buttons.push({

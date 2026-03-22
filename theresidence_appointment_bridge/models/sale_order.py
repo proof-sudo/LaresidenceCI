@@ -264,16 +264,9 @@ class SaleOrder(models.Model):
                 "Aucune réservation TR trouvée pour l'événement calendrier %s."
             ) % calendar_event_id)
 
-        if not order.order_line:
-            raise ValidationError(_("Cette réservation ne contient aucune ligne à transférer."))
-
-        # Protection anti-double chargement
-        if order.x_tr_pos_order_id and order.x_tr_pos_order_id.state not in ('cancel',):
-            raise ValidationError(_(
-                "Cette réservation a déjà été chargée dans le POS (commande %s)."
-            ) % (order.x_tr_pos_order_id.name or order.x_tr_pos_order_id.id))
-
-        session = self.env['pos.session'].sudo().search([('state', '=', 'opened')], limit=1)
+        session = self.env['pos.session'].sudo().search(
+            [('state', 'in', ('opened', 'opening_control'))], limit=1
+        )
         if not session:
             raise ValidationError(_("Aucune session POS active."))
 
