@@ -297,7 +297,7 @@ class SaleOrder(models.Model):
                 'price_subtotal': tax_result['total_excluded'],
                 'price_subtotal_incl': tax_result['total_included'],
                 'tax_ids': [(6, 0, taxes.ids)],
-                'product_uom_id': line.product_uom.id if line.product_uom else False,
+                'product_uom_id': line.product_uom_id.id if line.product_uom_id else False,
             })
 
         pos_order.sudo()._compute_prices()
@@ -345,7 +345,7 @@ class SaleOrder(models.Model):
                 'price_subtotal': tax_result['total_excluded'],
                 'price_subtotal_incl': tax_result['total_included'],
                 'tax_ids': [(6, 0, taxes.ids)],
-                'product_uom_id': line.product_uom.id if line.product_uom else False,
+                'product_uom_id': line.product_uom_id.id if line.product_uom_id else False,
             })
 
         pos_order.sudo()._compute_prices()
