@@ -34,15 +34,16 @@ class CalendarEvent(models.Model):
     def write(self, vals):
         res = super().write(vals)
 
-        # Sync inverse : changement de statut dans le calendrier POS → sale.order
+        # Sync inverse : changement dans le calendrier POS → sale.order
         # Ignoré si c'est notre propre code qui écrit (évite les boucles)
         if self.env.context.get('tr_skip_calendar_sync'):
             return res
 
         apt_status = vals.get('appointment_status')
         going_inactive = vals.get('active') is False
+        dates_changed = 'start' in vals or 'stop' in vals
 
-        if not apt_status and not going_inactive:
+        if not apt_status and not going_inactive and not dates_changed:
             return res
 
         for event in self:
@@ -53,27 +54,37 @@ class CalendarEvent(models.Model):
             if not order:
                 continue
 
+            update_vals = {}
+
+            # ── Sync dates ────────────────────────────────────────────────────
+            # Quand l'utilisateur déplace/modifie le créneau dans le calendrier POS,
+            # on répercute les nouvelles dates sur x_tr_start_time / x_tr_end_time.
+            if dates_changed:
+                if 'start' in vals and vals['start']:
+                    update_vals['x_tr_start_time'] = vals['start']
+                if 'stop' in vals and vals['stop']:
+                    update_vals['x_tr_end_time'] = vals['stop']
+
+            # ── Sync statut ───────────────────────────────────────────────────
             new_status = None
             if going_inactive:
-                # N'écraser que si la réservation est encore active
-                # (évite COMPLETED → CANCELLED lors du sync interne qui archive l'event)
                 if order.x_tr_reservation_status not in ('COMPLETED', 'CANCELLED'):
                     new_status = 'CANCELLED'
             elif apt_status and apt_status in APT_STATUS_TO_TR:
                 new_status = APT_STATUS_TO_TR[apt_status]
 
-            if not new_status or order.x_tr_reservation_status == new_status:
+            if new_status and order.x_tr_reservation_status != new_status:
+                update_vals['x_tr_reservation_status'] = new_status
+
+            if not update_vals:
                 continue
 
-            # On écrit directement pour éviter la boucle de sync
-            # (super().write() sur sale.order déclencherait _sync_update_calendar_event)
-            order.sudo().with_context(tr_skip_calendar_sync=True).write({
-                'x_tr_reservation_status': new_status,
-            })
+            # On écrit avec tr_skip_calendar_sync pour éviter la boucle
+            order.sudo().with_context(tr_skip_calendar_sync=True).write(update_vals)
 
             _logger.info(
-                "[TR BRIDGE] Sync inverse : calendar.event %s → sale.order %s statut %s",
-                event.id, order.x_tr_uuid, new_status,
+                "[TR BRIDGE] Sync inverse : calendar.event %s → sale.order %s vals=%s",
+                event.id, order.x_tr_uuid, list(update_vals.keys()),
             )
 
         return res

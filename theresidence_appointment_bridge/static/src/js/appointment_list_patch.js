@@ -49,15 +49,31 @@ async function loadEventData() {
 }
 
 // ─── Formatage ──────────────────────────────────────────────────────────────
+/**
+ * Odoo renvoie les Datetime en JSON sous la forme "YYYY-MM-DD HH:MM:SS" (espace, pas 'T', pas 'Z').
+ * new Date("YYYY-MM-DD HH:MM:SS") est interprété en HEURE LOCALE par les navigateurs,
+ * ce qui décale la date si le serveur est en UTC et le client dans un autre fuseau.
+ * On normalise en remplaçant l'espace par 'T' et en ajoutant 'Z' (UTC explicite).
+ */
+function parseOdooDatetime(str) {
+    if (!str) return null;
+    // Déjà UTC explicite (se termine par Z ou +HH:MM)
+    if (/Z$|[+-]\d{2}:\d{2}$/.test(str)) return new Date(str);
+    // Format Odoo "YYYY-MM-DD HH:MM:SS" ou ISO sans fuseau "YYYY-MM-DDTHH:MM:SS"
+    return new Date(str.replace(" ", "T") + "Z");
+}
+
 function formatDate(isoStr) {
     if (!isoStr) return "";
-    const d = new Date(isoStr);
+    const d = parseOdooDatetime(isoStr);
+    if (!d || isNaN(d)) return "";
     return d.toLocaleDateString("fr-FR", { day: "2-digit", month: "short", year: "numeric" });
 }
 
 function formatTime(isoStr) {
     if (!isoStr) return "";
-    const d = new Date(isoStr);
+    const d = parseOdooDatetime(isoStr);
+    if (!d || isNaN(d)) return "";
     return d.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
 }
 

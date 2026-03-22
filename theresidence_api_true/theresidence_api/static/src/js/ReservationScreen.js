@@ -59,15 +59,25 @@ export class ReservationPanel extends Component {
         return labels[status] || status;
     }
 
+    _parseDate(isoString) {
+        if (!isoString) return null;
+        // Odoo renvoie "YYYY-MM-DDTHH:MM:SS" sans fuseau horaire (UTC implicite).
+        // Sans le suffixe 'Z', new Date() l'interprète en heure locale et décale la date.
+        if (/Z$|[+-]\d{2}:\d{2}$/.test(isoString)) return new Date(isoString);
+        return new Date(isoString.replace(" ", "T") + "Z");
+    }
+
     formatTime(isoString) {
         if (!isoString) return "";
-        const d = new Date(isoString);
+        const d = this._parseDate(isoString);
+        if (!d || isNaN(d)) return "";
         return d.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
     }
 
     formatDate(isoString) {
         if (!isoString) return "";
-        const d = new Date(isoString);
+        const d = this._parseDate(isoString);
+        if (!d || isNaN(d)) return "";
         return d.toLocaleDateString("fr-FR", { day: "2-digit", month: "short" }) + " · ";
     }
 
