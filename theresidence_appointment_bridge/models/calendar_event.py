@@ -111,3 +111,9 @@ class CalendarEvent(models.Model):
         if not order:
             raise ValidationError(_("Aucune réservation TR liée à cet événement."))
         order.action_cancel_reservation()
+
+    def action_tr_load_to_pos(self):
+        order = self._get_tr_order()
+        if not order:
+            raise ValidationError(_("Aucune réservation TR liée à cet événement."))
+        return order.action_load_to_pos()

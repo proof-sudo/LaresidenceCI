@@ -147,8 +147,11 @@ for record in records:
             <!-- Remplace le bouton natif "Cancel" par notre bouton Annuler TR -->
             <xpath expr="//button[@name='set_cancelled']" position="replace">
                 <button name="action_tr_cancel" type="object"
-                        string="Annuler" class="btn-danger"
+                        string="Annuler" class="btn-danger mx-1"
                         invisible="x_tr_reservation_status not in ('PENDING', 'RESERVED', 'ARRIVED')"/>
+                <button name="action_tr_load_to_pos" type="object"
+                        string="Charger la commande" class="btn-warning mx-1"
+                        invisible="not x_tr_reservation_status"/>
                 <!-- Bouton natif Cancel conservé pour les events non-TR -->
                 <button name="set_cancelled" type="object"
                         string="Cancel" class="btn-secondary"
