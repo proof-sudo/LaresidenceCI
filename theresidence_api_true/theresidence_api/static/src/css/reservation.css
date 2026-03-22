@@ -198,11 +198,14 @@
 .tr-status-badge.cancelled  { background: #fdedec; color: #e74c3c; }
 .tr-status-badge.completed  { background: #f5eef8; color: #8e44ad; }
 .tr-time {
-    font-size: 13px;
+    font-size: 12px;
     color: #666;
     display: flex;
     align-items: center;
-    gap: 5px;
+    gap: 4px;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    text-align: right;
 }
 
 /* Body carte */
@@ -227,6 +230,13 @@
 .tr-member strong {
     font-size: 15px;
     color: #2c3e50;
+}
+.tr-space-name {
+    font-size: 11px;
+    color: #555;
+    line-height: 1.3;
+    word-break: break-word;
+    white-space: normal;
 }
 
 /* Actions carte */
