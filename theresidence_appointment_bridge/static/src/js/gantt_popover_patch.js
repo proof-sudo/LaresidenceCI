@@ -25,7 +25,7 @@ patch(POSAppointmentBookingGanttRenderer.prototype, {
                     ["x_tr_calendar_event_id", "=", record.id],
                     ["x_tr_is_reservation", "=", true],
                 ],
-                ["x_tr_reservation_status", "x_tr_pos_order_id"],
+                ["x_tr_reservation_status"],
                 { limit: 1 }
             );
         } catch (e) {
@@ -37,7 +37,6 @@ patch(POSAppointmentBookingGanttRenderer.prototype, {
         }
 
         const status = saleOrders[0].x_tr_reservation_status;
-        const alreadyLoaded = !!saleOrders[0].x_tr_pos_order_id;
         const calendarEventId = record.id;
 
         // Accès au service notification (disponible sur l'env OWL)
@@ -104,9 +103,9 @@ patch(POSAppointmentBookingGanttRenderer.prototype, {
             });
         }
 
-        // Bouton "Charger la commande" : visible si le sale.order a des lignes
-        // et n'a pas encore été chargé dans le POS
-        if (!alreadyLoaded && !["COMPLETED", "CANCELLED"].includes(status)) {
+        // Bouton "Charger la commande" : toujours visible pour les statuts non terminaux
+        // Le backend gère la validation (pas de lignes, déjà chargée, session fermée)
+        if (!["COMPLETED", "CANCELLED"].includes(status)) {
             buttons.push({
                 class: "btn btn-sm btn-warning mt-1",
                 onClick: async () => {
@@ -132,14 +131,6 @@ patch(POSAppointmentBookingGanttRenderer.prototype, {
                     }
                 },
                 text: _t("Charger la commande"),
-            });
-        }
-
-        if (alreadyLoaded) {
-            buttons.push({
-                class: "btn btn-sm btn-outline-secondary mt-1 disabled",
-                onClick: () => {},
-                text: _t("✓ Déjà chargée en POS"),
             });
         }
 
