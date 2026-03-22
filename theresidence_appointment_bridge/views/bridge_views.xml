@@ -40,7 +40,7 @@
                         string="Charger la commande"
                         class="oe_stat_button btn-warning"
                         icon="fa-shopping-cart"
-                        invisible="not x_tr_is_reservation"/>
+                        invisible="not x_tr_is_reservation or x_tr_reservation_status != 'ARRIVED'"/>
             </xpath>
             <!-- On ajoute le lien calendar.event après x_tr_space_id dans l'onglet réservation -->
             <xpath expr="//field[@name='x_tr_space_id']" position="after">
@@ -151,7 +151,7 @@ for record in records:
                         invisible="x_tr_reservation_status not in ('PENDING', 'RESERVED', 'ARRIVED')"/>
                 <button name="action_tr_load_to_pos" type="object"
                         string="Charger la commande" class="btn-warning mx-1"
-                        invisible="not x_tr_reservation_status"/>
+                        invisible="x_tr_reservation_status != 'ARRIVED'"/>
                 <!-- Bouton natif Cancel conservé pour les events non-TR -->
                 <button name="set_cancelled" type="object"
                         string="Cancel" class="btn-secondary"

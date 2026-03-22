@@ -249,83 +249,60 @@ class SaleOrder(models.Model):
     # ─────────────────────────────────────────────────────────────
     # Chargement des lignes de réservation dans le POS
     # ─────────────────────────────────────────────────────────────
-    @api.model
-    def pos_load_reservation_to_pos(self, calendar_event_id):
+
+    def _lines_match_pos_order(self, pos_order):
+        """True si les lignes du sale.order correspondent déjà au pos.order."""
+        sale_set = {
+            (l.product_id.id, l.product_uom_qty, l.price_unit)
+            for l in self.order_line
+        }
+        pos_set = {
+            (l.product_id.id, l.qty, l.price_unit)
+            for l in pos_order.lines
+        }
+        return sale_set == pos_set
+
+    def _do_load_to_pos(self):
         """
-        Appelé depuis le popover Gantt POS via le bouton "Charger la commande".
-        Crée un pos.order en draft à partir des lignes du sale.order de réservation.
+        Logique commune : crée ou met à jour un pos.order depuis les lignes du sale.order.
+        - Auto-confirme le sale.order si encore en brouillon.
+        - Met à jour le pos.order existant si des lignes ont changé.
+        - Bloque si déjà chargé sans modification.
         """
-        order = self.sudo().search([
-            ('x_tr_calendar_event_id', '=', calendar_event_id),
-            ('x_tr_is_reservation', '=', True),
-        ], limit=1)
-        if not order:
-            raise ValidationError(_(
-                "Aucune réservation TR trouvée pour l'événement calendrier %s."
-            ) % calendar_event_id)
-
-        session = self.env['pos.session'].sudo().search(
-            [('state', 'in', ('opened', 'opening_control'))], limit=1
-        )
-        if not session:
-            raise ValidationError(_("Aucune session POS active."))
-
-        pos_order = self.env['pos.order'].sudo().create({
-            'session_id': session.id,
-            'partner_id': order.partner_id.id if order.partner_id else False,
-            'amount_tax': 0.0,
-            'amount_total': 0.0,
-            'amount_paid': 0.0,
-            'amount_return': 0.0,
-        })
-
-        for line in order.order_line:
-            taxes = line.product_id.taxes_id.filtered(
-                lambda t: t.company_id.id == self.env.company.id
-            )
-            tax_result = taxes.compute_all(
-                line.price_unit,
-                quantity=line.product_uom_qty,
-                product=line.product_id,
-                partner=order.partner_id,
-            )
-            self.env['pos.order.line'].sudo().create({
-                'order_id': pos_order.id,
-                'product_id': line.product_id.id,
-                'qty': line.product_uom_qty,
-                'price_unit': line.price_unit,
-                'price_subtotal': tax_result['total_excluded'],
-                'price_subtotal_incl': tax_result['total_included'],
-                'tax_ids': [(6, 0, taxes.ids)],
-                'product_uom_id': line.product_uom_id.id if line.product_uom_id else False,
-            })
-
-        pos_order.sudo()._compute_prices()
-        order.sudo().write({'x_tr_pos_order_id': pos_order.id})
-
-        _logger.info(
-            "[TR BRIDGE] Réservation %s chargée dans POS → commande %s",
-            order.x_tr_uuid, pos_order.name,
-        )
-        return {'pos_order_name': pos_order.name or str(pos_order.id)}
-
-    def action_load_to_pos(self):
-        """Bouton depuis le formulaire sale.order."""
         self.ensure_one()
+
+        # Auto-confirmation du sale.order si brouillon
+        if self.state == 'draft':
+            self.sudo().action_confirm()
+
         session = self.env['pos.session'].sudo().search(
             [('state', 'in', ('opened', 'opening_control'))], limit=1
         )
         if not session:
             raise ValidationError(_("Aucune session POS active."))
 
-        pos_order = self.env['pos.order'].sudo().create({
-            'session_id': session.id,
-            'partner_id': self.partner_id.id if self.partner_id else False,
-            'amount_tax': 0.0,
-            'amount_total': 0.0,
-            'amount_paid': 0.0,
-            'amount_return': 0.0,
-        })
+        is_update = False
+        existing = self.x_tr_pos_order_id
+
+        if existing and existing.state not in ('cancel',):
+            if self._lines_match_pos_order(existing):
+                raise ValidationError(_(
+                    "Cette réservation est déjà chargée dans le POS (commande %s) "
+                    "et aucune modification n'a été détectée."
+                ) % (existing.name or ''))
+            # Lignes modifiées : on vide et recrée
+            existing.sudo().lines.unlink()
+            pos_order = existing
+            is_update = True
+        else:
+            pos_order = self.env['pos.order'].sudo().create({
+                'session_id': session.id,
+                'partner_id': self.partner_id.id if self.partner_id else False,
+                'amount_tax': 0.0,
+                'amount_total': 0.0,
+                'amount_paid': 0.0,
+                'amount_return': 0.0,
+            })
 
         for line in self.order_line:
             taxes = line.product_id.taxes_id.filtered(
@@ -349,18 +326,45 @@ class SaleOrder(models.Model):
             })
 
         pos_order.sudo()._compute_prices()
-        self.sudo().write({'x_tr_pos_order_id': pos_order.id})
+
+        if not is_update:
+            self.sudo().write({'x_tr_pos_order_id': pos_order.id})
 
         _logger.info(
-            "[TR BRIDGE] Réservation %s chargée dans POS → commande %s",
+            "[TR BRIDGE] Réservation %s : pos.order %s %s",
             self.x_tr_uuid, pos_order.name,
+            "mis à jour" if is_update else "créé",
         )
+        return pos_order
+
+    @api.model
+    def pos_load_reservation_to_pos(self, calendar_event_id):
+        """Appelé depuis la vue calendar.event POS."""
+        order = self.sudo().search([
+            ('x_tr_calendar_event_id', '=', calendar_event_id),
+            ('x_tr_is_reservation', '=', True),
+        ], limit=1)
+        if not order:
+            raise ValidationError(_(
+                "Aucune réservation TR trouvée pour l'événement calendrier %s."
+            ) % calendar_event_id)
+
+        pos_order = order._do_load_to_pos()
+        return {'pos_order_name': pos_order.name or str(pos_order.id)}
+
+    def action_load_to_pos(self):
+        """Bouton depuis le formulaire sale.order."""
+        self.ensure_one()
+        pos_order = self._do_load_to_pos()
         return {
             'type': 'ir.actions.client',
             'tag': 'display_notification',
             'params': {
                 'title': _("Commande chargée"),
-                'message': _("Commande %s créée dans le POS.") % (pos_order.name or ''),
+                'message': _("Commande %s %s dans le POS.") % (
+                    pos_order.name or '',
+                    _("mise à jour") if self.x_tr_pos_order_id == pos_order else _("créée"),
+                ),
                 'type': 'success',
                 'sticky': False,
             },
