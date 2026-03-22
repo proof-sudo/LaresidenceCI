@@ -309,6 +309,63 @@ class SaleOrder(models.Model):
         )
         return {'pos_order_name': pos_order.name or str(pos_order.id)}
 
+    def action_load_to_pos(self):
+        """Bouton depuis le formulaire sale.order."""
+        self.ensure_one()
+        session = self.env['pos.session'].sudo().search(
+            [('state', 'in', ('opened', 'opening_control'))], limit=1
+        )
+        if not session:
+            raise ValidationError(_("Aucune session POS active."))
+
+        pos_order = self.env['pos.order'].sudo().create({
+            'session_id': session.id,
+            'partner_id': self.partner_id.id if self.partner_id else False,
+            'amount_tax': 0.0,
+            'amount_total': 0.0,
+            'amount_paid': 0.0,
+            'amount_return': 0.0,
+        })
+
+        for line in self.order_line:
+            taxes = line.product_id.taxes_id.filtered(
+                lambda t: t.company_id.id == self.env.company.id
+            )
+            tax_result = taxes.compute_all(
+                line.price_unit,
+                quantity=line.product_uom_qty,
+                product=line.product_id,
+                partner=self.partner_id,
+            )
+            self.env['pos.order.line'].sudo().create({
+                'order_id': pos_order.id,
+                'product_id': line.product_id.id,
+                'qty': line.product_uom_qty,
+                'price_unit': line.price_unit,
+                'price_subtotal': tax_result['total_excluded'],
+                'price_subtotal_incl': tax_result['total_included'],
+                'tax_ids': [(6, 0, taxes.ids)],
+                'product_uom_id': line.product_uom.id if line.product_uom else False,
+            })
+
+        pos_order.sudo()._compute_prices()
+        self.sudo().write({'x_tr_pos_order_id': pos_order.id})
+
+        _logger.info(
+            "[TR BRIDGE] Réservation %s chargée dans POS → commande %s",
+            self.x_tr_uuid, pos_order.name,
+        )
+        return {
+            'type': 'ir.actions.client',
+            'tag': 'display_notification',
+            'params': {
+                'title': _("Commande chargée"),
+                'message': _("Commande %s créée dans le POS.") % (pos_order.name or ''),
+                'type': 'success',
+                'sticky': False,
+            },
+        }
+
     # ─────────────────────────────────────────────────────────────
     # Action depuis le popover Gantt POS (calendar.event → sale.order)
     # ─────────────────────────────────────────────────────────────

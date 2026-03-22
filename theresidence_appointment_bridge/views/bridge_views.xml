@@ -33,6 +33,15 @@
         <field name="model">sale.order</field>
         <field name="inherit_id" ref="theresidence_api.view_sale_order_form_inherit_theresidence"/>
         <field name="arch" type="xml">
+            <!-- Bouton "Charger la commande" dans la barre de boutons -->
+            <xpath expr="//div[@name='button_box']" position="inside">
+                <button name="action_load_to_pos"
+                        type="object"
+                        string="Charger la commande"
+                        class="oe_stat_button btn-warning"
+                        icon="fa-shopping-cart"
+                        invisible="not x_tr_is_reservation"/>
+            </xpath>
             <!-- On ajoute le lien calendar.event après x_tr_space_id dans l'onglet réservation -->
             <xpath expr="//field[@name='x_tr_space_id']" position="after">
                 <field name="x_tr_calendar_event_id"
