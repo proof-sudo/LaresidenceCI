@@ -95,19 +95,10 @@ patch(POSAppointmentBookingGanttRenderer.prototype, {
                 text: _t("Libérer l'espace"),
             });
         }
+        // Bouton "Charger la commande" : avant Annuler pour rester dans la zone visible
         if (!["COMPLETED", "CANCELLED"].includes(status)) {
             buttons.push({
-                class: "btn btn-sm btn-danger",
-                onClick: () => doAction("cancel"),
-                text: _t("Annuler"),
-            });
-        }
-
-        // Bouton "Charger la commande" : toujours visible pour les statuts non terminaux
-        // Le backend gère la validation (pas de lignes, déjà chargée, session fermée)
-        if (!["COMPLETED", "CANCELLED"].includes(status)) {
-            buttons.push({
-                class: "btn btn-sm btn-warning mt-1",
+                class: "btn btn-sm btn-warning me-1",
                 onClick: async () => {
                     try {
                         const result = await this.orm.call(
@@ -131,6 +122,14 @@ patch(POSAppointmentBookingGanttRenderer.prototype, {
                     }
                 },
                 text: _t("Charger la commande"),
+            });
+        }
+
+        if (!["COMPLETED", "CANCELLED"].includes(status)) {
+            buttons.push({
+                class: "btn btn-sm btn-danger",
+                onClick: () => doAction("cancel"),
+                text: _t("Annuler"),
             });
         }
 
