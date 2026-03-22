@@ -213,6 +213,9 @@ class SaleOrder(models.Model):
         for order in self:
             if order.x_tr_reservation_status != 'PENDING':
                 raise ValidationError(_("Seules les réservations en attente peuvent être réservées."))
+            # Confirme automatiquement le sale.order si encore en brouillon
+            if order.state == 'draft':
+                order.action_confirm()
             old = order.x_tr_reservation_status
             order.write({'x_tr_reservation_status': 'RESERVED'})
             if order.x_tr_space_id:
