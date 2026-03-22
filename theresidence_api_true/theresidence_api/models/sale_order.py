@@ -1,9 +1,12 @@
 # -*- coding: utf-8 -*-
 
+import logging
 import uuid
 from datetime import datetime, timedelta, timezone
 from odoo import models, fields, api, _
 from odoo.exceptions import ValidationError
+
+_logger = logging.getLogger(__name__)
 
 
 def _parse_dt(dt_str):
@@ -290,6 +293,15 @@ class SaleOrder(models.Model):
             order.write({'x_tr_reservation_status': 'CANCELLED'})
             if order.x_tr_space_id and old in ('RESERVED', 'ARRIVED'):
                 order._mark_space_free_if_no_active(order.x_tr_space_id)
+            # Annuler le sale.order Odoo si encore annulable (draft ou sale)
+            if order.state in ('draft', 'sent', 'sale'):
+                try:
+                    order.action_cancel()
+                except Exception as e:
+                    _logger.warning(
+                        "[TR] Impossible d'annuler le sale.order %s : %s",
+                        order.name, str(e)
+                    )
             self.env['theresidence.webhook'].trigger_event(
                 'RESERVATION_CANCELLED', 'reservation', order.x_tr_uuid,
                 order.to_reservation_api_dict(), old, 'CANCELLED'
