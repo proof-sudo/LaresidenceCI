@@ -1,34 +1,42 @@
 /** @odoo-module */
 
 /**
- * Patch de la vue liste POS Appointments pour :
- * - Afficher le nom complet (espace — client) sans troncature
- * - Afficher la date en plus de l'heure
+ * MutationObserver : dès qu'un élément avec text-overflow:ellipsis
+ * apparaît dans la vue POS Appointments, on supprime la troncature
+ * et on réduit la police pour afficher le nom complet (espace — client).
  */
 
-// Injection CSS directe en fallback pour cibler les bons éléments au runtime
-const style = document.createElement("style");
-style.textContent = `
-    /* Cible générique : tout élément de texte dans un item appointment */
-    .o_appointment_booking_list .fw-bolder,
-    .o_appointment_booking_list .text-truncate,
-    .o_appointment_booking_list [class*="name"],
-    .o_appointment_booking_list span.fw-bold,
-    .o_pos_appointment [class*="name"],
-    .o_pos_appointment .text-truncate {
-        white-space: normal !important;
-        overflow: visible !important;
-        text-overflow: unset !important;
-        word-break: break-word !important;
-        font-size: 11px !important;
-        line-height: 1.4 !important;
+function fixTruncatedElements(root) {
+    root.querySelectorAll("*").forEach((el) => {
+        const computed = window.getComputedStyle(el);
+        if (computed.textOverflow === "ellipsis" || computed.overflow === "hidden") {
+            el.style.setProperty("text-overflow", "unset", "important");
+            el.style.setProperty("overflow", "visible", "important");
+            el.style.setProperty("white-space", "normal", "important");
+            el.style.setProperty("word-break", "break-word", "important");
+            el.style.setProperty("font-size", "11px", "important");
+            el.style.setProperty("line-height", "1.4", "important");
+            // Remonte sur le parent pour libérer la hauteur fixe si besoin
+            const parent = el.parentElement;
+            if (parent) {
+                const ps = window.getComputedStyle(parent);
+                if (ps.overflow === "hidden" || ps.height.endsWith("px")) {
+                    parent.style.setProperty("overflow", "visible", "important");
+                    parent.style.setProperty("height", "auto", "important");
+                }
+            }
+        }
+    });
+}
+
+const observer = new MutationObserver((mutations) => {
+    for (const mutation of mutations) {
+        for (const node of mutation.addedNodes) {
+            if (node.nodeType === 1) {
+                fixTruncatedElements(node);
+            }
+        }
     }
-    /* Cartes flexibles en hauteur */
-    .o_appointment_booking_list .card,
-    .o_appointment_booking_list li,
-    .o_appointment_booking_list [class*="item"] {
-        height: auto !important;
-        min-height: 0 !important;
-    }
-`;
-document.head.appendChild(style);
+});
+
+observer.observe(document.body, { childList: true, subtree: true });
