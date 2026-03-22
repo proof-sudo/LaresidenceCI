@@ -252,31 +252,49 @@ class SaleOrder(models.Model):
 
     def _find_option_product(self, opt):
         """
-        Retrouve le product.product correspondant à une option de réservation.
-        Recherche par default_code (code de l'option) en priorité, puis par nom.
-        Retourne False si aucun produit trouvé.
+        Retrouve (ou crée) le product.product correspondant à une option de réservation.
+        Priorité :
+          1. Recherche par default_code = option_def.code (avec ou sans available_in_pos)
+          2. Recherche par nom = opt.name / option_def.name
+          3. Création automatique d'un produit de type Service si introuvable
+        Le produit est systématiquement activé pour le POS avant d'être retourné.
         """
         opt_def = opt.option_def_id
-        Product = self.env['product.product'].sudo()
-
-        if opt_def and opt_def.code:
-            product = Product.search([
-                ('default_code', '=', opt_def.code),
-                ('available_in_pos', '=', True),
-            ], limit=1)
-            if product:
-                return product
-
         label = opt.name or (opt_def.name if opt_def else '')
-        if label:
-            product = Product.search([
-                ('name', '=', label),
-                ('available_in_pos', '=', True),
-            ], limit=1)
-            if product:
-                return product
+        code = opt_def.code if opt_def else ''
+        Product = self.env['product.product'].sudo()
+        product = False
 
-        return False
+        # 1. Par référence interne (default_code)
+        if code:
+            product = Product.search([('default_code', '=', code)], limit=1)
+
+        # 2. Par nom exact (sur le template)
+        if not product and label:
+            product = Product.search([('name', '=', label)], limit=1)
+
+        # 3. Création automatique si introuvable
+        if not product and label:
+            _logger.info(
+                "[TR BRIDGE] Création produit POS pour l'option '%s' (code=%s)",
+                label, code,
+            )
+            template = self.env['product.template'].sudo().create({
+                'name': label,
+                'default_code': code or False,
+                'type': 'service',
+                'available_in_pos': True,
+                'sale_ok': True,
+                'purchase_ok': False,
+                'list_price': opt.unit_price or 0.0,
+            })
+            product = template.product_variant_ids[:1]
+
+        # Activer pour le POS si ce n'est pas déjà le cas
+        if product and not product.available_in_pos:
+            product.sudo().write({'available_in_pos': True})
+
+        return product
 
     def _lines_match_pos_order(self, pos_order):
         """True si les lignes du sale.order (+ options) correspondent déjà au pos.order."""
