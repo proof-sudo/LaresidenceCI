@@ -2,9 +2,20 @@
 
 import json
 import logging
+from datetime import datetime, timezone
 from odoo import http
 from odoo.http import request
 from .main import API_PREFIX, api_auth, success_response, error_response, paginated_response
+
+
+def _parse_dt(dt_str):
+    """Parse ISO 8601 (avec ou sans timezone) → naive UTC."""
+    if not dt_str:
+        return None
+    dt = datetime.fromisoformat(str(dt_str).replace('Z', '+00:00'))
+    if dt.tzinfo is not None:
+        dt = dt.astimezone(timezone.utc).replace(tzinfo=None)
+    return dt
 
 _logger = logging.getLogger(__name__)
 
@@ -85,11 +96,9 @@ class ReservationsController(http.Controller):
             data = json.loads(request.httprequest.data)
             vals = {}
             if 'startTime' in data:
-                from datetime import datetime
-                vals['x_tr_start_time'] = datetime.fromisoformat(data['startTime'].replace('Z', '+00:00'))
+                vals['x_tr_start_time'] = _parse_dt(data['startTime'])
             if 'endTime' in data:
-                from datetime import datetime
-                vals['x_tr_end_time'] = datetime.fromisoformat(data['endTime'].replace('Z', '+00:00'))
+                vals['x_tr_end_time'] = _parse_dt(data['endTime'])
             if 'guestCount' in data:
                 vals['x_tr_guest_count'] = data['guestCount']
             if 'notes' in data:

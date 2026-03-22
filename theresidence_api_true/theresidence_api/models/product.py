@@ -1,8 +1,18 @@
 # -*- coding: utf-8 -*-
 
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from odoo import models, fields, api
+
+
+def _parse_dt(dt_str):
+    """Parse ISO 8601 (avec ou sans timezone) → naive UTC."""
+    if not dt_str:
+        return None
+    dt = datetime.fromisoformat(str(dt_str).replace('Z', '+00:00'))
+    if dt.tzinfo is not None:
+        dt = dt.astimezone(timezone.utc).replace(tzinfo=None)
+    return dt
 
 
 class ProductTemplate(models.Model):
@@ -143,9 +153,9 @@ class ProductTemplate(models.Model):
             return {'isAvailable': False, 'reason': 'Not a space'}
         
         if isinstance(start_time, str):
-            start_time = datetime.fromisoformat(start_time.replace('Z', '+00:00'))
+            start_time = _parse_dt(start_time)
         if isinstance(end_time, str):
-            end_time = datetime.fromisoformat(end_time.replace('Z', '+00:00'))
+            end_time = _parse_dt(end_time)
         
         # Rechercher les réservations conflictuelles
         conflicting = self.env['sale.order'].sudo().search_count([

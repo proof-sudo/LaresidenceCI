@@ -1,9 +1,25 @@
 # -*- coding: utf-8 -*-
 
 import uuid
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from odoo import models, fields, api, _
 from odoo.exceptions import ValidationError
+
+
+def _parse_dt(dt_str):
+    """
+    Parse une chaîne ISO 8601 vers un datetime naïf UTC.
+    - "2026-03-23T13:00:00Z"       → 13:00 UTC
+    - "2026-03-23T13:00:00+01:00"  → 12:00 UTC  (France CET)
+    - "2026-03-23T13:00:00+02:00"  → 11:00 UTC  (France CEST)
+    - "2026-03-23T13:00:00"        → 13:00 UTC  (supposé UTC, inchangé)
+    """
+    if not dt_str:
+        return None
+    dt = datetime.fromisoformat(str(dt_str).replace('Z', '+00:00'))
+    if dt.tzinfo is not None:
+        dt = dt.astimezone(timezone.utc).replace(tzinfo=None)
+    return dt
 
 
 class SaleOrderLine(models.Model):
@@ -128,8 +144,8 @@ class SaleOrder(models.Model):
         
         if not data.get('startTime') or not data.get('endTime'):
             raise ValidationError(_("Les champs startTime et endTime sont obligatoires."))
-        start_time = datetime.fromisoformat(data['startTime'].replace('Z', '+00:00'))
-        end_time = datetime.fromisoformat(data['endTime'].replace('Z', '+00:00'))
+        start_time = _parse_dt(data['startTime'])
+        end_time = _parse_dt(data['endTime'])
         if end_time <= start_time:
             raise ValidationError(_("endTime doit être postérieur à startTime."))
 
