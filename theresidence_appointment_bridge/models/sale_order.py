@@ -250,15 +250,42 @@ class SaleOrder(models.Model):
     # Chargement des lignes de réservation dans le POS
     # ─────────────────────────────────────────────────────────────
 
+    def _find_option_product(self, opt):
+        """
+        Retrouve le product.product correspondant à une option de réservation.
+        Recherche par default_code (code de l'option) en priorité, puis par nom.
+        Retourne False si aucun produit trouvé.
+        """
+        opt_def = opt.option_def_id
+        Product = self.env['product.product'].sudo()
+
+        if opt_def and opt_def.code:
+            product = Product.search([
+                ('default_code', '=', opt_def.code),
+                ('available_in_pos', '=', True),
+            ], limit=1)
+            if product:
+                return product
+
+        label = opt.name or (opt_def.name if opt_def else '')
+        if label:
+            product = Product.search([
+                ('name', '=', label),
+                ('available_in_pos', '=', True),
+            ], limit=1)
+            if product:
+                return product
+
+        return False
+
     def _lines_match_pos_order(self, pos_order):
         """True si les lignes du sale.order (+ options) correspondent déjà au pos.order."""
         expected = {
             (l.product_id.id, l.product_uom_qty, l.price_unit)
             for l in self.order_line
         }
-        # Ajouter les options qui ont un produit POS configuré
         for opt in self.x_tr_option_ids:
-            product = opt.option_def_id.pos_product_id if opt.option_def_id else False
+            product = self._find_option_product(opt)
             if product:
                 expected.add((product.id, float(opt.quantity), opt.unit_price))
         pos_set = {
@@ -330,14 +357,15 @@ class SaleOrder(models.Model):
                 'product_uom_id': line.product_uom_id.id if line.product_uom_id else False,
             })
 
-        # Ajouter les lignes d'options (si un produit POS est configuré sur la définition)
+        # Ajouter les lignes d'options (recherche du produit par code puis par nom)
         options_added = 0
         for opt in self.x_tr_option_ids:
-            product = opt.option_def_id.pos_product_id if opt.option_def_id else False
+            product = self._find_option_product(opt)
             if not product:
                 _logger.debug(
-                    "[TR BRIDGE] Option '%s' ignorée : pas de produit POS configuré.",
+                    "[TR BRIDGE] Option '%s' ignorée : aucun produit POS trouvé (code=%s).",
                     opt.name or (opt.option_def_id.name if opt.option_def_id else '?'),
+                    opt.option_def_id.code if opt.option_def_id else '?',
                 )
                 continue
             taxes = product.taxes_id.filtered(

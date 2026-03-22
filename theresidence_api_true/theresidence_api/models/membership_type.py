@@ -64,13 +64,6 @@ class TheResidenceReservationOptionDef(models.Model):
     sequence = fields.Integer(string='Séquence', default=10)
     active = fields.Boolean(default=True)
     x_uuid = fields.Char(string='UUID', readonly=True, copy=False, default=lambda self: str(uuid.uuid4()))
-    pos_product_id = fields.Many2one(
-        'product.product',
-        string='Produit POS',
-        help="Produit Odoo utilisé lors du chargement de cette option dans une commande POS. "
-             "Si non défini, l'option ne sera pas ajoutée au POS.",
-        domain=[('available_in_pos', '=', True)],
-    )
 
     _sql_constraints = [('code_unique', 'unique(code)', 'Le code doit être unique.')]
 
