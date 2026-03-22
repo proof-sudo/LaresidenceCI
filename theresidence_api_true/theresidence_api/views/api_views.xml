@@ -293,6 +293,7 @@
                 <field name="scope"/>
                 <field name="price"/>
                 <field name="currency_id" groups="base.group_multi_currency"/>
+                <field name="pos_product_id"/>
             </list>
         </field>
     </record>
@@ -312,6 +313,7 @@
                         <group>
                             <field name="price"/>
                             <field name="currency_id" groups="base.group_multi_currency"/>
+                            <field name="pos_product_id"/>
                             <field name="x_uuid" readonly="1"/>
                             <field name="active"/>
                         </group>

@@ -251,16 +251,21 @@ class SaleOrder(models.Model):
     # ─────────────────────────────────────────────────────────────
 
     def _lines_match_pos_order(self, pos_order):
-        """True si les lignes du sale.order correspondent déjà au pos.order."""
-        sale_set = {
+        """True si les lignes du sale.order (+ options) correspondent déjà au pos.order."""
+        expected = {
             (l.product_id.id, l.product_uom_qty, l.price_unit)
             for l in self.order_line
         }
+        # Ajouter les options qui ont un produit POS configuré
+        for opt in self.x_tr_option_ids:
+            product = opt.option_def_id.pos_product_id if opt.option_def_id else False
+            if product:
+                expected.add((product.id, float(opt.quantity), opt.unit_price))
         pos_set = {
             (l.product_id.id, l.qty, l.price_unit)
             for l in pos_order.lines
         }
-        return sale_set == pos_set
+        return expected == pos_set
 
     def _do_load_to_pos(self):
         """
@@ -324,6 +329,42 @@ class SaleOrder(models.Model):
                 'tax_ids': [(6, 0, taxes.ids)],
                 'product_uom_id': line.product_uom_id.id if line.product_uom_id else False,
             })
+
+        # Ajouter les lignes d'options (si un produit POS est configuré sur la définition)
+        options_added = 0
+        for opt in self.x_tr_option_ids:
+            product = opt.option_def_id.pos_product_id if opt.option_def_id else False
+            if not product:
+                _logger.debug(
+                    "[TR BRIDGE] Option '%s' ignorée : pas de produit POS configuré.",
+                    opt.name or (opt.option_def_id.name if opt.option_def_id else '?'),
+                )
+                continue
+            taxes = product.taxes_id.filtered(
+                lambda t: t.company_id.id == self.env.company.id
+            )
+            tax_result = taxes.compute_all(
+                opt.unit_price,
+                quantity=opt.quantity,
+                product=product,
+                partner=self.partner_id,
+            )
+            self.env['pos.order.line'].sudo().create({
+                'order_id': pos_order.id,
+                'product_id': product.id,
+                'qty': opt.quantity,
+                'price_unit': opt.unit_price,
+                'price_subtotal': tax_result['total_excluded'],
+                'price_subtotal_incl': tax_result['total_included'],
+                'tax_ids': [(6, 0, taxes.ids)],
+            })
+            options_added += 1
+
+        if options_added:
+            _logger.info(
+                "[TR BRIDGE] %d option(s) ajoutée(s) au pos.order %s.",
+                options_added, pos_order.name,
+            )
 
         pos_order.sudo()._compute_prices()
 
