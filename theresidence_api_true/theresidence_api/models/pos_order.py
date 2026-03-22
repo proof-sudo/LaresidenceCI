@@ -4,6 +4,22 @@ import uuid
 from odoo import models, fields, api, _
 from odoo.exceptions import ValidationError
 
+class PosOrderLine(models.Model):
+    _inherit = 'pos.order.line'
+
+    translated_product_name = fields.Char(
+        string='Nom produit traduit',
+        compute='_compute_translated_product_name',
+        store=False,
+    )
+
+    def _compute_translated_product_name(self):
+        for line in self:
+            line.translated_product_name = (
+                line.product_id.with_context(lang=self.env.lang).name or ''
+            )
+
+
 class PosOrder(models.Model):
     _inherit = 'pos.order'
 
