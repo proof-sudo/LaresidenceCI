@@ -2,27 +2,35 @@
 /* The Residence — Enrichissement cartes vue liste POS          */
 /* ============================================================ */
 
-/* Petit libellé grisé en majuscules */
-.tr-lbl {
-    display: block;
-    font-size: 11px !important;
-    font-weight: 700 !important;
-    letter-spacing: 0.6px;
-    color: #aaa !important;
-    text-transform: uppercase;
-    margin-top: 5px;
-    line-height: 1.2;
+/* Ligne label + valeur inline */
+.tr-row {
+    display: flex;
+    align-items: baseline;
+    gap: 5px;
+    margin-top: 2px;
+    line-height: 1.3;
 }
 
-/* Valeur associée au libellé */
+/* Libellé inline compact */
+.tr-lbl {
+    flex-shrink: 0;
+    font-size: 10px !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.4px;
+    color: #aaa !important;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+
+/* Valeur inline */
 .tr-val {
-    display: block;
-    font-size: 13px !important;
+    font-size: 12px !important;
     font-weight: 500 !important;
     color: #2c3e50 !important;
-    line-height: 1.4;
     word-break: break-word;
     white-space: normal !important;
+    overflow: visible !important;
+    min-width: 0;
 }
 
 /* Supprime la troncature sur tout élément enrichi */

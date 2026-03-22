@@ -77,10 +77,7 @@ function enhanceElement(el) {
         const date = formatDate(ev.start);
         const start = formatTime(ev.start);
         const stop = formatTime(ev.stop);
-        dateHtml = `
-            <span class="tr-lbl">PRÉVU</span>
-            <span class="tr-val">${date} · ${start}${stop ? " – " + stop : ""}</span>
-        `;
+        dateHtml = `<div class="tr-row"><span class="tr-lbl">Prévu</span><span class="tr-val">${date} · ${start}${stop ? " – " + stop : ""}</span></div>`;
     }
 
     el.setAttribute(ENHANCED_ATTR, "1");
@@ -90,10 +87,8 @@ function enhanceElement(el) {
     el.style.setProperty("height", "auto", "important");
 
     el.innerHTML = `
-        <span class="tr-lbl">ESPACE</span>
-        <span class="tr-val">${space.trim()}</span>
-        <span class="tr-lbl">CLIENT</span>
-        <span class="tr-val">${(client || "").trim()}</span>
+        <div class="tr-row"><span class="tr-lbl">Espace</span><span class="tr-val">${space.trim()}</span></div>
+        <div class="tr-row"><span class="tr-lbl">Client</span><span class="tr-val">${(client || "").trim()}</span></div>
         ${dateHtml}
     `;
 
