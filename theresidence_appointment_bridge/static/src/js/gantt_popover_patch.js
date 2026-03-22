@@ -25,7 +25,7 @@ patch(POSAppointmentBookingGanttRenderer.prototype, {
                     ["x_tr_calendar_event_id", "=", record.id],
                     ["x_tr_is_reservation", "=", true],
                 ],
-                ["x_tr_reservation_status"],
+                ["x_tr_reservation_status", "order_line", "x_tr_pos_order_id"],
                 { limit: 1 }
             );
         } catch (e) {
@@ -37,6 +37,8 @@ patch(POSAppointmentBookingGanttRenderer.prototype, {
         }
 
         const status = saleOrders[0].x_tr_reservation_status;
+        const hasLines = (saleOrders[0].order_line || []).length > 0;
+        const alreadyLoaded = !!saleOrders[0].x_tr_pos_order_id;
         const calendarEventId = record.id;
 
         // Accès au service notification (disponible sur l'env OWL)
@@ -100,6 +102,45 @@ patch(POSAppointmentBookingGanttRenderer.prototype, {
                 class: "btn btn-sm btn-danger",
                 onClick: () => doAction("cancel"),
                 text: _t("Annuler"),
+            });
+        }
+
+        // Bouton "Charger la commande" : visible si le sale.order a des lignes
+        // et n'a pas encore été chargé dans le POS
+        if (hasLines && !alreadyLoaded && !["COMPLETED", "CANCELLED"].includes(status)) {
+            buttons.push({
+                class: "btn btn-sm btn-warning mt-1",
+                onClick: async () => {
+                    try {
+                        const result = await this.orm.call(
+                            "sale.order",
+                            "pos_load_reservation_to_pos",
+                            [calendarEventId]
+                        );
+                        this.model.fetchData();
+                        notification?.add(
+                            _t("Commande %s chargée dans le POS", result.pos_order_name),
+                            { type: "success", sticky: false }
+                        );
+                    } catch (e) {
+                        const msg = e?.data?.message || e?.message || _t("Erreur inconnue");
+                        console.error("[TR BRIDGE] Erreur chargement POS:", msg);
+                        notification?.add(msg, {
+                            title: _t("Erreur chargement POS"),
+                            type: "danger",
+                            sticky: false,
+                        });
+                    }
+                },
+                text: _t("Charger la commande"),
+            });
+        }
+
+        if (alreadyLoaded) {
+            buttons.push({
+                class: "btn btn-sm btn-outline-secondary mt-1 disabled",
+                onClick: () => {},
+                text: _t("✓ Déjà chargée en POS"),
             });
         }
 

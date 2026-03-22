@@ -35,6 +35,13 @@ class SaleOrder(models.Model):
         readonly=True,
         help="calendar.event miroir créé pour pos_appointment.",
     )
+    x_tr_pos_order_id = fields.Many2one(
+        'pos.order',
+        string='Commande POS chargée',
+        copy=False,
+        readonly=True,
+        help="Commande POS créée lors du transfert des lignes depuis cette réservation.",
+    )
 
     # ─────────────────────────────────────────────────────────────
     # Création : on crée le calendar.event miroir si c'est une réservation
@@ -238,6 +245,76 @@ class SaleOrder(models.Model):
             "[TR BRIDGE] calendar.event %s mis à jour → statut %s",
             event.id, self.x_tr_reservation_status
         )
+
+    # ─────────────────────────────────────────────────────────────
+    # Chargement des lignes de réservation dans le POS
+    # ─────────────────────────────────────────────────────────────
+    @api.model
+    def pos_load_reservation_to_pos(self, calendar_event_id):
+        """
+        Appelé depuis le popover Gantt POS via le bouton "Charger la commande".
+        Crée un pos.order en draft à partir des lignes du sale.order de réservation.
+        """
+        order = self.sudo().search([
+            ('x_tr_calendar_event_id', '=', calendar_event_id),
+            ('x_tr_is_reservation', '=', True),
+        ], limit=1)
+        if not order:
+            raise ValidationError(_(
+                "Aucune réservation TR trouvée pour l'événement calendrier %s."
+            ) % calendar_event_id)
+
+        if not order.order_line:
+            raise ValidationError(_("Cette réservation ne contient aucune ligne à transférer."))
+
+        # Protection anti-double chargement
+        if order.x_tr_pos_order_id and order.x_tr_pos_order_id.state not in ('cancel',):
+            raise ValidationError(_(
+                "Cette réservation a déjà été chargée dans le POS (commande %s)."
+            ) % (order.x_tr_pos_order_id.name or order.x_tr_pos_order_id.id))
+
+        session = self.env['pos.session'].sudo().search([('state', '=', 'opened')], limit=1)
+        if not session:
+            raise ValidationError(_("Aucune session POS active."))
+
+        pos_order = self.env['pos.order'].sudo().create({
+            'session_id': session.id,
+            'partner_id': order.partner_id.id if order.partner_id else False,
+            'amount_tax': 0.0,
+            'amount_total': 0.0,
+            'amount_paid': 0.0,
+            'amount_return': 0.0,
+        })
+
+        for line in order.order_line:
+            taxes = line.product_id.taxes_id.filtered(
+                lambda t: t.company_id.id == self.env.company.id
+            )
+            tax_result = taxes.compute_all(
+                line.price_unit,
+                quantity=line.product_uom_qty,
+                product=line.product_id,
+                partner=order.partner_id,
+            )
+            self.env['pos.order.line'].sudo().create({
+                'order_id': pos_order.id,
+                'product_id': line.product_id.id,
+                'qty': line.product_uom_qty,
+                'price_unit': line.price_unit,
+                'price_subtotal': tax_result['total_excluded'],
+                'price_subtotal_incl': tax_result['total_included'],
+                'tax_ids': [(6, 0, taxes.ids)],
+                'product_uom_id': line.product_uom.id if line.product_uom else False,
+            })
+
+        pos_order.sudo()._compute_prices()
+        order.sudo().write({'x_tr_pos_order_id': pos_order.id})
+
+        _logger.info(
+            "[TR BRIDGE] Réservation %s chargée dans POS → commande %s",
+            order.x_tr_uuid, pos_order.name,
+        )
+        return {'pos_order_name': pos_order.name or str(pos_order.id)}
 
     # ─────────────────────────────────────────────────────────────
     # Action depuis le popover Gantt POS (calendar.event → sale.order)
