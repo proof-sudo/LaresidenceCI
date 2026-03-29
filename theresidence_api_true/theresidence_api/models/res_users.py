@@ -88,5 +88,4 @@ class ResUsers(models.Model):
                     (group.id, user.id)
                 )
         self.invalidate_recordset(list(GROUP_XMLIDS.keys()))
-        self.env['ir.ui.menu'].clear_caches()
         self.env.registry.clear_cache()
