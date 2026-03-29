@@ -3,6 +3,7 @@
 
     <!-- ─────────────────────────────────────────────────────────
          event.registration — Vue formulaire
+         Onglet "The Residence" avec les champs de synchronisation
     ───────────────────────────────────────────────────────────── -->
     <record id="view_registration_form_tr" model="ir.ui.view">
         <field name="name">event.registration.form.tr</field>
@@ -32,32 +33,16 @@
                                    nolabel="1"
                                    mode="list">
                                 <list string="Invités nominatifs">
-                                    <field name="name"            string="Nom"/>
-                                    <field name="email"           string="Email"/>
-                                    <field name="phone"           string="Téléphone"/>
-                                    <field name="state"           string="Statut"/>
+                                    <field name="name"             string="Nom"/>
+                                    <field name="email"            string="Email"/>
+                                    <field name="phone"            string="Téléphone"/>
+                                    <field name="state"            string="Statut"/>
                                     <field name="x_tr_external_id" string="ID Externe" optional="show"/>
                                 </list>
                             </field>
                         </group>
                     </page>
                 </notebook>
-            </xpath>
-        </field>
-    </record>
-
-    <!-- ─────────────────────────────────────────────────────────
-         event.registration — Vue liste
-    ───────────────────────────────────────────────────────────── -->
-    <record id="view_registration_tree_tr" model="ir.ui.view">
-        <field name="name">event.registration.tree.tr</field>
-        <field name="model">event.registration</field>
-        <field name="inherit_id" ref="event.view_event_registration_list_main"/>
-        <field name="arch" type="xml">
-            <xpath expr="//list//field[@name='state']" position="before">
-                <field name="x_tr_guests_count" string="Invités déclarés"    optional="show"/>
-                <field name="x_tr_is_attendee"  string="Invité nominatif"    optional="show"/>
-                <field name="x_tr_external_id"  string="ID Externe TR"       optional="show"/>
             </xpath>
         </field>
     </record>
