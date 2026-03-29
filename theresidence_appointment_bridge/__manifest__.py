@@ -13,7 +13,8 @@
         - Synchronise les statuts sale.order ↔ calendar.event
         - Les réservations apparaissent nativement dans le menu POS Appointments
     """,
-    'author': 'Neurones Technologies',
+    'author': 'Djakaridja Traore',
+    'website': 'mailto:djakaridjatraore@outlook.com',
     'license': 'LGPL-3',
     'depends': [
         'theresidence_api',

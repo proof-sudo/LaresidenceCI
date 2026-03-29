@@ -18,8 +18,8 @@
         Ce module hérite des modules standards Odoo et ajoute
         les champs et endpoints API nécessaires.
     """,
-    'author': 'Neurones Technologies',
-    'website': 'https://www.neurones.ci',
+    'author': 'Djakaridja Traore',
+    'website': 'mailto:djakaridjatraore@outlook.com',
     'license': 'LGPL-3',
     'depends': [
         'base',

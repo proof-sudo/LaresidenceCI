@@ -11,7 +11,8 @@
         - Quand une commande mobile est envoyée en cuisine : statut → CONFIRMED + webhook
         - Quand tous les articles sont marqués prêts en cuisine : statut → READY + webhook
     """,
-    'author': 'Neurones Technologies',
+    'author': 'Djakaridja Traore',
+    'website': 'mailto:djakaridjatraore@outlook.com',
     'license': 'LGPL-3',
     'depends': [
         'theresidence_api',

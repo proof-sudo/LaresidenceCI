@@ -17,7 +17,8 @@
         - PUT    /v1/external/events/<id>/registrations/<reg_id>
         - DELETE /v1/external/events/<id>/registrations/<reg_id>
     """,
-    'author': 'Neurones Technologies',
+    'author': 'Djakaridja Traore',
+    'website': 'mailto:djakaridjatraore@outlook.com',
     'license': 'LGPL-3',
     'depends': [
         'event',
