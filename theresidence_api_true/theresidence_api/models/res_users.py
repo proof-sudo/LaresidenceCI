@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from odoo import api, fields, models
+from odoo import fields, models
 
 GROUP_XMLIDS = {
     'x_tr_admin':         'theresidence_api.group_tr_admin',
@@ -49,13 +49,31 @@ class ResUsers(models.Model):
         return self.env.ref(xmlid, raise_if_not_found=False)
 
     def _compute_tr_groups(self):
-        groups = {
-            fname: self._get_tr_group(xmlid)
+        if not self.ids:
+            return
+        # Requête directe sur la table de liaison res_groups_users_rel
+        # pour éviter les problèmes de compatibilité ORM Odoo 19
+        self.env.cr.execute(
+            """
+            SELECT r.uid, r.gid
+            FROM res_groups_users_rel r
+            WHERE r.uid IN %s
+            """,
+            (tuple(self.ids),)
+        )
+        memberships = {}
+        for uid, gid in self.env.cr.fetchall():
+            memberships.setdefault(uid, set()).add(gid)
+
+        group_ids = {
+            fname: (self._get_tr_group(xmlid).id
+                    if self._get_tr_group(xmlid) else None)
             for fname, xmlid in GROUP_XMLIDS.items()
         }
         for user in self:
-            for fname, group in groups.items():
-                user[fname] = bool(group and user in group.users)
+            user_groups = memberships.get(user.id, set())
+            for fname, gid in group_ids.items():
+                user[fname] = bool(gid and gid in user_groups)
 
     def _set_tr_group(self, fname):
         xmlid = GROUP_XMLIDS[fname]
@@ -64,6 +82,16 @@ class ResUsers(models.Model):
             return
         for user in self:
             if user[fname]:
-                user.groups_id = [(4, group.id)]
+                self.env.cr.execute(
+                    "INSERT INTO res_groups_users_rel (gid, uid) "
+                    "VALUES (%s, %s) ON CONFLICT DO NOTHING",
+                    (group.id, user.id)
+                )
             else:
-                user.groups_id = [(3, group.id)]
+                self.env.cr.execute(
+                    "DELETE FROM res_groups_users_rel WHERE gid = %s AND uid = %s",
+                    (group.id, user.id)
+                )
+        # Invalider le cache de sécurité
+        self.env['ir.rule'].clear_caches()
+        self.env.registry.clear_cache()
