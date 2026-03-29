@@ -48,7 +48,6 @@ class ResUsers(models.Model):
     def _get_tr_group(self, xmlid):
         return self.env.ref(xmlid, raise_if_not_found=False)
 
-    @api.depends('id')
     def _compute_tr_groups(self):
         groups = {
             fname: self._get_tr_group(xmlid)
