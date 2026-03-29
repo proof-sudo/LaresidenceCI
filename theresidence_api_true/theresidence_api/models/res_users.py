@@ -48,7 +48,7 @@ class ResUsers(models.Model):
     def _get_tr_group(self, xmlid):
         return self.env.ref(xmlid, raise_if_not_found=False)
 
-    @api.depends('groups_id')
+    @api.depends('id')
     def _compute_tr_groups(self):
         groups = {
             fname: self._get_tr_group(xmlid)
@@ -56,7 +56,7 @@ class ResUsers(models.Model):
         }
         for user in self:
             for fname, group in groups.items():
-                user[fname] = bool(group and group in user.groups_id)
+                user[fname] = bool(group and user in group.users)
 
     def _set_tr_group(self, fname):
         xmlid = GROUP_XMLIDS[fname]
