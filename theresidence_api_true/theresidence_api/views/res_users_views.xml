@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- Hérite la vue formulaire utilisateur pour ajouter
+         la section des droits The Residence -->
+    <record id="view_users_form_tr" model="ir.ui.view">
+        <field name="name">res.users.form.tr</field>
+        <field name="model">res.users</field>
+        <field name="inherit_id" ref="base.view_users_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//notebook" position="inside">
+                <page string="The Residence" name="tr_access_rights">
+                    <group string="Droits d'accès The Residence">
+                        <field name="groups_id"
+                               widget="many2many_checkboxes"
+                               domain="[('name', 'like', 'The Residence /')]"
+                               nolabel="1"/>
+                    </group>
+                    <div class="alert alert-info mt-2" role="alert">
+                        <b>Administrateur TR</b> donne accès à tout (implique automatiquement tous les autres rôles).
+                        Les rôles individuels peuvent être combinés librement pour les autres profils.
+                    </div>
+                </page>
+            </xpath>
+        </field>
+    </record>
+
+</odoo>

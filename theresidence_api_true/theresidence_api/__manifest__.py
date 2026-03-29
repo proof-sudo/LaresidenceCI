@@ -33,6 +33,7 @@
         'security/ir.model.access.csv',
         'data/reference_data.xml',
         'views/api_views.xml',
+        'views/res_users_views.xml',
         'views/res_partner_views.xml',
         'views/product_views.xml',
         'views/sale_order_views.xml',
