@@ -5,7 +5,7 @@ import logging
 from datetime import datetime, timezone
 from odoo import http
 from odoo.http import request
-from theresidence_api.controllers.main import API_PREFIX, api_auth, success_response, error_response
+from odoo.addons.theresidence_api.controllers.main import API_PREFIX, api_auth, success_response, error_response
 
 _logger = logging.getLogger(__name__)
 
