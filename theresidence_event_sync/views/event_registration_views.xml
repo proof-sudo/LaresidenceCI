@@ -3,14 +3,13 @@
 
     <!-- ─────────────────────────────────────────────────────────
          event.registration — Vue formulaire
-         Ajoute les champs TR dans un onglet dédié
     ───────────────────────────────────────────────────────────── -->
     <record id="view_registration_form_tr" model="ir.ui.view">
         <field name="name">event.registration.form.tr</field>
         <field name="model">event.registration</field>
-        <field name="inherit_id" ref="event.view_registration_form"/>
+        <field name="inherit_id" ref="event.view_event_registration_form"/>
         <field name="arch" type="xml">
-            <sheet position="inside">
+            <xpath expr="//sheet" position="inside">
                 <notebook>
                     <page string="The Residence" name="tr_sync">
                         <group string="Synchronisation backend">
@@ -25,42 +24,41 @@
                             <field name="x_tr_parent_registration_id"
                                    readonly="1"
                                    string="Inscription parente"
-                                   attrs="{'invisible': [('x_tr_is_attendee', '=', False)]}"/>
+                                   invisible="not x_tr_is_attendee"/>
                         </group>
                         <group string="Invités nominatifs"
-                               attrs="{'invisible': [('x_tr_is_attendee', '=', True)]}">
+                               invisible="x_tr_is_attendee">
                             <field name="x_tr_attendee_ids"
                                    nolabel="1"
                                    mode="list">
                                 <list string="Invités nominatifs">
-                                    <field name="name" string="Nom"/>
-                                    <field name="email" string="Email"/>
-                                    <field name="mobile" string="Téléphone"/>
-                                    <field name="state" string="Statut"/>
+                                    <field name="name"            string="Nom"/>
+                                    <field name="email"           string="Email"/>
+                                    <field name="mobile"          string="Téléphone"/>
+                                    <field name="state"           string="Statut"/>
                                     <field name="x_tr_external_id" string="ID Externe" optional="show"/>
                                 </list>
                             </field>
                         </group>
                     </page>
                 </notebook>
-            </sheet>
+            </xpath>
         </field>
     </record>
 
     <!-- ─────────────────────────────────────────────────────────
          event.registration — Vue liste
-         Ajoute colonnes ID externe, UUID membre, invités
     ───────────────────────────────────────────────────────────── -->
     <record id="view_registration_tree_tr" model="ir.ui.view">
         <field name="name">event.registration.tree.tr</field>
         <field name="model">event.registration</field>
-        <field name="inherit_id" ref="event.view_registration_tree"/>
+        <field name="inherit_id" ref="event.view_event_registration_list_main"/>
         <field name="arch" type="xml">
-            <field name="state" position="before">
-                <field name="x_tr_guests_count" string="Invités déclarés" optional="show"/>
-                <field name="x_tr_is_attendee"  string="Invité nominatif" optional="show"/>
-                <field name="x_tr_external_id"  string="ID Externe TR"    optional="show"/>
-            </field>
+            <xpath expr="//list//field[@name='state']" position="before">
+                <field name="x_tr_guests_count" string="Invités déclarés"    optional="show"/>
+                <field name="x_tr_is_attendee"  string="Invité nominatif"    optional="show"/>
+                <field name="x_tr_external_id"  string="ID Externe TR"       optional="show"/>
+            </xpath>
         </field>
     </record>
 
