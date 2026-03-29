@@ -343,5 +343,6 @@
                   name="Pré-commandes Mobiles"
                   parent="point_of_sale.menu_point_root"
                   action="action_mobile_order"
+                  groups="theresidence_api.group_tr_orders,theresidence_api.group_tr_admin"
                   sequence="50"/>
 </odoo>

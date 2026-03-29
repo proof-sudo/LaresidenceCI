@@ -109,6 +109,7 @@
         name="Membres"
         parent="menu_theresidence_root"
         action="action_theresidence_members"
+        groups="theresidence_api.group_tr_members,theresidence_api.group_tr_admin"
         sequence="5"/>
 
 </odoo>

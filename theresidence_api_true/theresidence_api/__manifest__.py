@@ -29,6 +29,7 @@
         'point_of_sale',
     ],
     'data': [
+        'security/groups.xml',
         'security/ir.model.access.csv',
         'data/reference_data.xml',
         'views/api_views.xml',

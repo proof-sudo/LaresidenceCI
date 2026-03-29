@@ -1,18 +1,26 @@
 id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
-access_theresidence_api_key,theresidence.api.key,model_theresidence_api_key,base.group_system,1,1,1,1
-access_theresidence_webhook,theresidence.webhook,model_theresidence_webhook,base.group_system,1,1,1,1
-access_theresidence_webhook_event_type,theresidence.webhook.event.type,model_theresidence_webhook_event_type,base.group_system,1,1,1,1
-access_theresidence_webhook_event,theresidence.webhook.event,model_theresidence_webhook_event,base.group_system,1,1,1,1
-access_theresidence_membership_type,theresidence.membership.type,model_theresidence_membership_type,base.group_user,1,0,0,0
-access_theresidence_membership_type_admin,theresidence.membership.type.admin,model_theresidence_membership_type,base.group_system,1,1,1,1
-access_theresidence_space_type,theresidence.space.type,model_theresidence_space_type,base.group_user,1,0,0,0
-access_theresidence_space_type_admin,theresidence.space.type.admin,model_theresidence_space_type,base.group_system,1,1,1,1
-access_theresidence_reservation_option_def,theresidence.reservation.option.def,model_theresidence_reservation_option_def,base.group_user,1,0,0,0
-access_theresidence_reservation_option_def_admin,theresidence.reservation.option.def.admin,model_theresidence_reservation_option_def,base.group_system,1,1,1,1
-access_theresidence_menu_kind,theresidence.menu.kind,model_theresidence_menu_kind,base.group_user,1,0,0,0
-access_theresidence_menu_kind_admin,theresidence.menu.kind.admin,model_theresidence_menu_kind,base.group_system,1,1,1,1
-access_theresidence_reservation_invitee,theresidence.reservation.invitee,model_theresidence_reservation_invitee,base.group_user,1,1,1,1
-access_theresidence_reservation_option,theresidence.reservation.option,model_theresidence_reservation_option,base.group_user,1,1,1,1
-access_mobile_order,mobile_order,model_mobile_order,point_of_sale.group_pos_manager,1,1,1,1
-access_mobile_order_line,mobile_order_line,model_mobile_order_line,point_of_sale.group_pos_manager,1,1,1,1
-access_wizard_reject,mobile_order_reject_wizard,model_mobile_order_reject_wizard,point_of_sale.group_pos_manager,1,1,1,0
+
+# ── Clés API & Webhooks (admin uniquement) ──────────────────────────────────
+access_theresidence_api_key,theresidence.api.key,model_theresidence_api_key,theresidence_api.group_tr_admin,1,1,1,1
+access_theresidence_webhook,theresidence.webhook,model_theresidence_webhook,theresidence_api.group_tr_admin,1,1,1,1
+access_theresidence_webhook_event_type,theresidence.webhook.event.type,model_theresidence_webhook_event_type,theresidence_api.group_tr_admin,1,1,1,1
+access_theresidence_webhook_event,theresidence.webhook.event,model_theresidence_webhook_event,theresidence_api.group_tr_admin,1,1,1,1
+
+# ── Données de référence (config : lecture, admin : écriture) ────────────────
+access_theresidence_membership_type_config,theresidence.membership.type.config,model_theresidence_membership_type,theresidence_api.group_tr_config,1,0,0,0
+access_theresidence_membership_type_admin,theresidence.membership.type.admin,model_theresidence_membership_type,theresidence_api.group_tr_admin,1,1,1,1
+access_theresidence_space_type_config,theresidence.space.type.config,model_theresidence_space_type,theresidence_api.group_tr_config,1,0,0,0
+access_theresidence_space_type_admin,theresidence.space.type.admin,model_theresidence_space_type,theresidence_api.group_tr_admin,1,1,1,1
+access_theresidence_reservation_option_def_config,theresidence.reservation.option.def.config,model_theresidence_reservation_option_def,theresidence_api.group_tr_config,1,0,0,0
+access_theresidence_reservation_option_def_admin,theresidence.reservation.option.def.admin,model_theresidence_reservation_option_def,theresidence_api.group_tr_admin,1,1,1,1
+access_theresidence_menu_kind_config,theresidence.menu.kind.config,model_theresidence_menu_kind,theresidence_api.group_tr_config,1,0,0,0
+access_theresidence_menu_kind_admin,theresidence.menu.kind.admin,model_theresidence_menu_kind,theresidence_api.group_tr_admin,1,1,1,1
+
+# ── Réservations ─────────────────────────────────────────────────────────────
+access_theresidence_reservation_invitee,theresidence.reservation.invitee,model_theresidence_reservation_invitee,theresidence_api.group_tr_reservations,1,1,1,1
+access_theresidence_reservation_option,theresidence.reservation.option,model_theresidence_reservation_option,theresidence_api.group_tr_reservations,1,1,1,1
+
+# ── Commandes mobiles ─────────────────────────────────────────────────────────
+access_mobile_order,mobile_order,model_mobile_order,theresidence_api.group_tr_orders,1,1,1,1
+access_mobile_order_line,mobile_order_line,model_mobile_order_line,theresidence_api.group_tr_orders,1,1,1,1
+access_wizard_reject,mobile_order_reject_wizard,model_mobile_order_reject_wizard,theresidence_api.group_tr_orders,1,1,1,0

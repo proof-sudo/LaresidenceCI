@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ═══════════════════════════════════════════════════════
+         CATÉGORIE
+    ═══════════════════════════════════════════════════════════ -->
+    <record id="module_category_theresidence" model="ir.module.category">
+        <field name="name">The Residence</field>
+        <field name="description">Droits d'accès pour le module The Residence</field>
+        <field name="sequence">100</field>
+    </record>
+
+    <!-- ═══════════════════════════════════════════════════════
+         GROUPES
+    ═══════════════════════════════════════════════════════════ -->
+
+    <!-- Membres -->
+    <record id="group_tr_members" model="res.groups">
+        <field name="name">Gestionnaire Membres</field>
+        <field name="category_id" ref="module_category_theresidence"/>
+        <field name="comment">Accès à la liste et au détail des membres (res.partner TR).</field>
+    </record>
+
+    <!-- Réservations -->
+    <record id="group_tr_reservations" model="res.groups">
+        <field name="name">Gestionnaire Réservations</field>
+        <field name="category_id" ref="module_category_theresidence"/>
+        <field name="comment">Accès aux réservations d'espaces et aux options associées.</field>
+    </record>
+
+    <!-- Abonnements -->
+    <record id="group_tr_subscriptions" model="res.groups">
+        <field name="name">Gestionnaire Abonnements</field>
+        <field name="category_id" ref="module_category_theresidence"/>
+        <field name="comment">Accès aux abonnements membres.</field>
+    </record>
+
+    <!-- Commandes -->
+    <record id="group_tr_orders" model="res.groups">
+        <field name="name">Gestionnaire Commandes</field>
+        <field name="category_id" ref="module_category_theresidence"/>
+        <field name="comment">Accès aux commandes mobiles (restaurant, bar).</field>
+    </record>
+
+    <!-- Configuration (clés API, webhooks, référence) -->
+    <record id="group_tr_config" model="res.groups">
+        <field name="name">Configuration TR</field>
+        <field name="category_id" ref="module_category_theresidence"/>
+        <field name="comment">Accès à la configuration : clés API, webhooks, données de référence.</field>
+    </record>
+
+    <!-- Administrateur — accès complet (implique tous les groupes) -->
+    <record id="group_tr_admin" model="res.groups">
+        <field name="name">Administrateur TR</field>
+        <field name="category_id" ref="module_category_theresidence"/>
+        <field name="comment">Accès complet à toutes les fonctionnalités The Residence.</field>
+        <field name="implied_ids" eval="[
+            Command.link(ref('group_tr_members')),
+            Command.link(ref('group_tr_reservations')),
+            Command.link(ref('group_tr_subscriptions')),
+            Command.link(ref('group_tr_orders')),
+            Command.link(ref('group_tr_config')),
+        ]"/>
+    </record>
+
+</odoo>

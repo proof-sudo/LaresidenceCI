@@ -178,12 +178,14 @@
         name="Réservations"
         parent="menu_theresidence_root"
         action="action_theresidence_reservations"
+        groups="theresidence_api.group_tr_reservations,theresidence_api.group_tr_admin"
         sequence="1"/>
 
     <menuitem id="menu_theresidence_subscriptions"
         name="Abonnements"
         parent="menu_theresidence_root"
         action="action_theresidence_subscriptions"
+        groups="theresidence_api.group_tr_subscriptions,theresidence_api.group_tr_admin"
         sequence="2"/>
 
 </odoo>
