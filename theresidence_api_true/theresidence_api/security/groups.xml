@@ -1,47 +1,34 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
 
-    <!-- Catégorie The Residence -->
-    <record model="ir.module.category" id="module_category_theresidence">
-        <field name="name">The Residence</field>
-        <field name="sequence">70</field>
-        <field name="description">Gestion du Business Club The Residence</field>
-    </record>
-
     <!-- Gestionnaire Membres -->
     <record id="group_tr_members" model="res.groups">
-        <field name="name">Gestionnaire Membres</field>
-        <field name="category_id" ref="module_category_theresidence"/>
+        <field name="name">The Residence / Gestionnaire Membres</field>
     </record>
 
     <!-- Gestionnaire Réservations -->
     <record id="group_tr_reservations" model="res.groups">
-        <field name="name">Gestionnaire Réservations</field>
-        <field name="category_id" ref="module_category_theresidence"/>
+        <field name="name">The Residence / Gestionnaire Réservations</field>
     </record>
 
     <!-- Gestionnaire Abonnements -->
     <record id="group_tr_subscriptions" model="res.groups">
-        <field name="name">Gestionnaire Abonnements</field>
-        <field name="category_id" ref="module_category_theresidence"/>
+        <field name="name">The Residence / Gestionnaire Abonnements</field>
     </record>
 
     <!-- Gestionnaire Commandes -->
     <record id="group_tr_orders" model="res.groups">
-        <field name="name">Gestionnaire Commandes</field>
-        <field name="category_id" ref="module_category_theresidence"/>
+        <field name="name">The Residence / Gestionnaire Commandes</field>
     </record>
 
     <!-- Configuration -->
     <record id="group_tr_config" model="res.groups">
-        <field name="name">Configuration</field>
-        <field name="category_id" ref="module_category_theresidence"/>
+        <field name="name">The Residence / Configuration</field>
     </record>
 
     <!-- Administrateur — implique tous les groupes -->
     <record id="group_tr_admin" model="res.groups">
-        <field name="name">Administrateur</field>
-        <field name="category_id" ref="module_category_theresidence"/>
+        <field name="name">The Residence / Administrateur</field>
         <field name="implied_ids" eval="[
             Command.link(ref('group_tr_members')),
             Command.link(ref('group_tr_reservations')),
