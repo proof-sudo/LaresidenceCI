@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from odoo import fields, models
+from odoo import api, fields, models
 
 GROUP_XMLIDS = {
     'x_tr_admin':         'theresidence_api.group_tr_admin',
@@ -48,17 +48,12 @@ class ResUsers(models.Model):
     def _get_tr_group(self, xmlid):
         return self.env.ref(xmlid, raise_if_not_found=False)
 
+    @api.depends('write_date')
     def _compute_tr_groups(self):
         if not self.ids:
             return
-        # Requête directe sur la table de liaison res_groups_users_rel
-        # pour éviter les problèmes de compatibilité ORM Odoo 19
         self.env.cr.execute(
-            """
-            SELECT r.uid, r.gid
-            FROM res_groups_users_rel r
-            WHERE r.uid IN %s
-            """,
+            "SELECT r.uid, r.gid FROM res_groups_users_rel r WHERE r.uid IN %s",
             (tuple(self.ids),)
         )
         memberships = {}
@@ -92,6 +87,6 @@ class ResUsers(models.Model):
                     "DELETE FROM res_groups_users_rel WHERE gid = %s AND uid = %s",
                     (group.id, user.id)
                 )
-        # Invalider le cache des champs TR pour forcer un recalcul immédiat
         self.invalidate_recordset(list(GROUP_XMLIDS.keys()))
+        self.env['ir.ui.menu'].clear_caches()
         self.env.registry.clear_cache()
