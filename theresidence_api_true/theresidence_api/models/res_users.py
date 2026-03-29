@@ -93,5 +93,4 @@ class ResUsers(models.Model):
                     (group.id, user.id)
                 )
         # Invalider le cache de sécurité
-        self.env['ir.rule'].clear_caches()
         self.env.registry.clear_cache()
