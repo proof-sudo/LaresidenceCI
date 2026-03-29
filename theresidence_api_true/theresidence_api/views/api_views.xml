@@ -385,7 +385,6 @@
     <menuitem id="menu_theresidence_root"
         name="The Residence API"
         web_icon="theresidence_api,static/description/icon.svg"
-        groups="theresidence_api.group_tr_admin,theresidence_api.group_tr_members,theresidence_api.group_tr_reservations,theresidence_api.group_tr_subscriptions,theresidence_api.group_tr_orders,theresidence_api.group_tr_config"
         sequence="100"/>
 
     <menuitem id="menu_theresidence_config"

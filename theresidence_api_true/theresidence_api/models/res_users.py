@@ -82,15 +82,6 @@ class ResUsers(models.Model):
             return
         for user in self:
             if user[fname]:
-                self.env.cr.execute(
-                    "INSERT INTO res_groups_users_rel (gid, uid) "
-                    "VALUES (%s, %s) ON CONFLICT DO NOTHING",
-                    (group.id, user.id)
-                )
+                user.sudo().write({'groups_id': [(4, group.id)]})
             else:
-                self.env.cr.execute(
-                    "DELETE FROM res_groups_users_rel WHERE gid = %s AND uid = %s",
-                    (group.id, user.id)
-                )
-        # Invalider le cache de sécurité
-        self.env.registry.clear_cache()
+                user.sudo().write({'groups_id': [(3, group.id)]})
