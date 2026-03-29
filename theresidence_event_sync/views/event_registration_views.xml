@@ -34,7 +34,7 @@
                                 <list string="Invités nominatifs">
                                     <field name="name"            string="Nom"/>
                                     <field name="email"           string="Email"/>
-                                    <field name="mobile"          string="Téléphone"/>
+                                    <field name="phone"           string="Téléphone"/>
                                     <field name="state"           string="Statut"/>
                                     <field name="x_tr_external_id" string="ID Externe" optional="show"/>
                                 </list>

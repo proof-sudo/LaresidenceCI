@@ -248,7 +248,7 @@ class EventSyncController(http.Controller):
                 'x_tr_guests_count': int(data.get('guestsCount', 0)),
                 'name': data.get('name', ''),
                 'email': data.get('email', ''),
-                'mobile': data.get('phone', ''),
+                'phone': data.get('phone', ''),
                 'state': odoo_state,
                 'x_tr_is_attendee': False,
             }
@@ -304,7 +304,7 @@ class EventSyncController(http.Controller):
             if 'email' in data:
                 vals['email'] = data['email']
             if 'phone' in data:
-                vals['mobile'] = data['phone']
+                vals['phone'] = data['phone']
 
             if vals:
                 reg.sudo().write(vals)
@@ -416,7 +416,7 @@ class EventSyncController(http.Controller):
                 'x_tr_is_attendee': True,
                 'name': data.get('fullName', ''),
                 'email': data.get('email', ''),
-                'mobile': data.get('phone', ''),
+                'phone': data.get('phone', ''),
                 'state': 'open',
             })
             _logger.info(
@@ -467,7 +467,7 @@ class EventSyncController(http.Controller):
             if 'email' in data:
                 vals['email'] = data['email']
             if 'phone' in data:
-                vals['mobile'] = data['phone']
+                vals['phone'] = data['phone']
 
             if vals:
                 attendee.sudo().write(vals)

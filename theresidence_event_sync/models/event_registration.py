@@ -53,7 +53,7 @@ class EventRegistration(models.Model):
             'memberUuid': self.x_tr_member_uuid or '',
             'name': self.name or '',
             'email': self.email or '',
-            'phone': self.mobile or '',
+            'phone': self.phone or '',
             'guestsCount': self.x_tr_guests_count or 0,
             'state': self.state or '',
             'isAttendee': self.x_tr_is_attendee,
