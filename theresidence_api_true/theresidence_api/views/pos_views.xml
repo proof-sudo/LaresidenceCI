@@ -97,6 +97,7 @@
         name="Commandes"
         parent="menu_theresidence_root"
         action="action_theresidence_orders"
+        groups="theresidence_api.group_tr_orders,theresidence_api.group_tr_admin"
         sequence="3"/>
 
 

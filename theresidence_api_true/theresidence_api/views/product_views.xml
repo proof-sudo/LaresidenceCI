@@ -110,12 +110,14 @@
         name="Espaces"
         parent="menu_theresidence_root"
         action="action_theresidence_spaces"
+        groups="theresidence_api.group_tr_reservations,theresidence_api.group_tr_config,theresidence_api.group_tr_admin"
         sequence="6"/>
 
     <menuitem id="menu_theresidence_subscription_plans"
         name="Plans d'abonnement"
         parent="menu_theresidence_root"
         action="action_theresidence_subscription_plans"
+        groups="theresidence_api.group_tr_subscriptions,theresidence_api.group_tr_admin"
         sequence="7"/>
 
 </odoo>
