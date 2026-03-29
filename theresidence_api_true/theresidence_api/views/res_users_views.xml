@@ -11,10 +11,12 @@
             <xpath expr="//notebook" position="inside">
                 <page string="The Residence" name="tr_access_rights">
                     <group string="Droits d'accès The Residence">
-                        <field name="groups_id"
-                               widget="many2many_checkboxes"
-                               domain="[('name', 'like', 'The Residence /')]"
-                               nolabel="1"/>
+                        <field name="x_tr_admin"/>
+                        <field name="x_tr_members"/>
+                        <field name="x_tr_reservations"/>
+                        <field name="x_tr_subscriptions"/>
+                        <field name="x_tr_orders"/>
+                        <field name="x_tr_config"/>
                     </group>
                     <div class="alert alert-info mt-2" role="alert">
                         <b>Administrateur TR</b> donne accès à tout (implique automatiquement tous les autres rôles).
