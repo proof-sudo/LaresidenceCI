@@ -25,6 +25,8 @@
     ],
     'data': [
         'security/ir.model.access.csv',
+        'views/event_event_views.xml',
+        'views/event_registration_views.xml',
     ],
     'installable': True,
     'application': False,

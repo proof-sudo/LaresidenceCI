@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ─────────────────────────────────────────────────────────
+         event.event — Vue formulaire
+         Ajoute un onglet "The Residence" avec les champs TR
+    ───────────────────────────────────────────────────────────── -->
+    <record id="view_event_form_tr" model="ir.ui.view">
+        <field name="name">event.event.form.tr</field>
+        <field name="model">event.event</field>
+        <field name="inherit_id" ref="event.view_event_form"/>
+        <field name="arch" type="xml">
+            <notebook position="inside">
+                <page string="The Residence" name="tr_sync">
+                    <group string="Synchronisation backend">
+                        <field name="x_tr_external_id" readonly="1"
+                               help="UUID de l'événement dans le backend The Residence."/>
+                    </group>
+                    <group string="Audience (types de membres)">
+                        <field name="x_tr_audience_ids"
+                               widget="many2many_tags"
+                               options="{'color_field': 'color'}"
+                               help="Laisser vide = ouvert à tous les membres."/>
+                    </group>
+                </page>
+            </notebook>
+        </field>
+    </record>
+
+    <!-- ─────────────────────────────────────────────────────────
+         event.event — Vue liste
+         Ajoute la colonne ID externe TR
+    ───────────────────────────────────────────────────────────── -->
+    <record id="view_event_tree_tr" model="ir.ui.view">
+        <field name="name">event.event.tree.tr</field>
+        <field name="model">event.event</field>
+        <field name="inherit_id" ref="event.view_event_tree"/>
+        <field name="arch" type="xml">
+            <field name="date_begin" position="before">
+                <field name="x_tr_external_id" string="ID Externe TR" optional="show"/>
+            </field>
+        </field>
+    </record>
+
+</odoo>
