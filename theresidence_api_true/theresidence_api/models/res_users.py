@@ -92,4 +92,6 @@ class ResUsers(models.Model):
                     "DELETE FROM res_groups_users_rel WHERE gid = %s AND uid = %s",
                     (group.id, user.id)
                 )
+        # Invalider le cache des champs TR pour forcer un recalcul immédiat
+        self.invalidate_recordset(list(GROUP_XMLIDS.keys()))
         self.env.registry.clear_cache()
