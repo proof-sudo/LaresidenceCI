@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!--
+        Étend le formulaire pos.printer pour rendre le champ epson_printer_ip
+        visible (et obligatoire) pour les deux types ePOS Direct.
+        Le champ product_categories_ids est déjà visible dans le formulaire de base
+        pour toutes les imprimantes d'ordre — aucune modification nécessaire.
+    -->
+    <record id="view_pos_printer_epos_direct_form" model="ir.ui.view">
+        <field name="name">pos.printer.epos.direct.form</field>
+        <field name="model">pos.printer</field>
+        <field name="inherit_id" ref="point_of_sale.view_pos_printer_form"/>
+        <field name="arch" type="xml">
+            <field name="epson_printer_ip" position="attributes">
+                <attribute name="invisible">
+                    printer_type not in ('epson_epos', 'epos_direct', 'epos_direct_kitchen')
+                </attribute>
+                <attribute name="required">
+                    printer_type in ('epos_direct', 'epos_direct_kitchen')
+                </attribute>
+                <attribute name="help">
+                    Adresse IP de l'imprimante Epson ePOS (ex: 192.168.1.50).
+                    L'imprimante doit avoir le service ePOS-Print activé.
+                    Préfixe http:// ou https:// optionnel.
+                </attribute>
+            </field>
+        </field>
+    </record>
+</odoo>
