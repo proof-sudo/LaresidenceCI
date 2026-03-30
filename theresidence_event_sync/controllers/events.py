@@ -98,7 +98,7 @@ class EventSyncController(http.Controller):
                 'date_begin': start_dt,
                 'date_end': end_dt,
                 'x_tr_external_id': data['externalId'],
-                'seats_availability': 'limited' if capacity else 'unlimited',
+                'seats_limited': bool(capacity),
                 'seats_max': capacity,
             }
             if data.get('description'):
@@ -153,7 +153,7 @@ class EventSyncController(http.Controller):
             if 'capacity' in data:
                 capacity = data['capacity'] or 0
                 vals['seats_max'] = capacity
-                vals['seats_availability'] = 'limited' if capacity else 'unlimited'
+                vals['seats_limited'] = bool(capacity)
             if 'audienceUuids' in data:
                 audience_ids = _resolve_audience(data['audienceUuids'] or [])
                 vals['x_tr_audience_ids'] = [(6, 0, audience_ids)]

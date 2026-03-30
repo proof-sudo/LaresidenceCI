@@ -33,7 +33,7 @@ class EventEvent(models.Model):
             'dateBegin': self.date_begin.strftime('%Y-%m-%dT%H:%M:%SZ') if self.date_begin else '',
             'dateEnd': self.date_end.strftime('%Y-%m-%dT%H:%M:%SZ') if self.date_end else '',
             'capacity': self.seats_max or 0,
-            'seatsAvailable': self.seats_available if self.seats_availability == 'limited' else None,
+            'seatsAvailable': self.seats_available if self.seats_limited else None,
             'active': self.active,
             'audience': [
                 {'odooId': p.id, 'name': p.name, 'uuid': p.x_tr_space_uuid or ''}
