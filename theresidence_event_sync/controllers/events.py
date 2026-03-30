@@ -69,6 +69,7 @@ class EventSyncController(http.Controller):
         """
         try:
             data = json.loads(request.httprequest.data)
+            _logger.debug('[TR EVENT SYNC] create_event payload: %s', data)
 
             if not data.get('externalId'):
                 return error_response('externalId est obligatoire', 'MISSING_FIELD', 400)
@@ -114,7 +115,7 @@ class EventSyncController(http.Controller):
             return success_response(event.to_sync_dict(), 201)
 
         except Exception as e:
-            _logger.error('[TR EVENT SYNC] Erreur create_event : %s', str(e))
+            _logger.error('[TR EVENT SYNC] Erreur create_event : %s', str(e), exc_info=True)
             return error_response(str(e), 'INVALID_REQUEST', 400)
 
     @http.route(f'{API_PREFIX}/events/<string:external_id>', type='http', auth='public', methods=['PUT'], csrf=False)
@@ -135,11 +136,13 @@ class EventSyncController(http.Controller):
         }
         """
         try:
+            _logger.debug('[TR EVENT SYNC] update_event externalId=%s', external_id)
             event = _resolve_event(external_id)
             if not event:
                 return error_response(f"Événement '{external_id}' introuvable", 'NOT_FOUND', 404)
 
             data = json.loads(request.httprequest.data)
+            _logger.debug('[TR EVENT SYNC] update_event payload: %s', data)
             vals = {}
 
             if 'title' in data:
@@ -167,7 +170,7 @@ class EventSyncController(http.Controller):
             return success_response(event.to_sync_dict())
 
         except Exception as e:
-            _logger.error('[TR EVENT SYNC] Erreur update_event : %s', str(e))
+            _logger.error('[TR EVENT SYNC] Erreur update_event : %s', str(e), exc_info=True)
             return error_response(str(e), 'INVALID_REQUEST', 400)
 
     @http.route(f'{API_PREFIX}/events/<string:external_id>', type='http', auth='public', methods=['DELETE'], csrf=False)
@@ -187,7 +190,7 @@ class EventSyncController(http.Controller):
             return success_response({'odooId': event.id, 'externalId': external_id, 'archived': True})
 
         except Exception as e:
-            _logger.error('[TR EVENT SYNC] Erreur delete_event : %s', str(e))
+            _logger.error('[TR EVENT SYNC] Erreur delete_event : %s', str(e), exc_info=True)
             return error_response(str(e), 'INVALID_REQUEST', 400)
 
     # ═══════════════════════════════════════════════════════════════
@@ -216,11 +219,13 @@ class EventSyncController(http.Controller):
         }
         """
         try:
+            _logger.debug('[TR EVENT SYNC] create_registration eventId=%s', external_id)
             event = _resolve_event(external_id)
             if not event:
                 return error_response(f"Événement '{external_id}' introuvable", 'NOT_FOUND', 404)
 
             data = json.loads(request.httprequest.data)
+            _logger.debug('[TR EVENT SYNC] create_registration payload: %s', data)
 
             if not data.get('externalRegistrationId'):
                 return error_response('externalRegistrationId est obligatoire', 'MISSING_FIELD', 400)
@@ -263,7 +268,7 @@ class EventSyncController(http.Controller):
             return success_response(reg.to_sync_dict(), 201)
 
         except Exception as e:
-            _logger.error('[TR EVENT SYNC] Erreur create_registration : %s', str(e))
+            _logger.error('[TR EVENT SYNC] Erreur create_registration : %s', str(e), exc_info=True)
             return error_response(str(e), 'INVALID_REQUEST', 400)
 
     @http.route(
@@ -313,7 +318,7 @@ class EventSyncController(http.Controller):
             return success_response(reg.to_sync_dict())
 
         except Exception as e:
-            _logger.error('[TR EVENT SYNC] Erreur update_registration : %s', str(e))
+            _logger.error('[TR EVENT SYNC] Erreur update_registration : %s', str(e), exc_info=True)
             return error_response(str(e), 'INVALID_REQUEST', 400)
 
     @http.route(
@@ -343,7 +348,7 @@ class EventSyncController(http.Controller):
             return success_response({'odooId': reg.id, 'externalId': external_reg_id, 'state': 'cancel'})
 
         except Exception as e:
-            _logger.error('[TR EVENT SYNC] Erreur cancel_registration : %s', str(e))
+            _logger.error('[TR EVENT SYNC] Erreur cancel_registration : %s', str(e), exc_info=True)
             return error_response(str(e), 'INVALID_REQUEST', 400)
 
     # ═══════════════════════════════════════════════════════════════
@@ -426,7 +431,7 @@ class EventSyncController(http.Controller):
             return success_response(attendee.to_sync_dict(), 201)
 
         except Exception as e:
-            _logger.error('[TR EVENT SYNC] Erreur create_attendee : %s', str(e))
+            _logger.error('[TR EVENT SYNC] Erreur create_attendee : %s', str(e), exc_info=True)
             return error_response(str(e), 'INVALID_REQUEST', 400)
 
     @http.route(
@@ -476,7 +481,7 @@ class EventSyncController(http.Controller):
             return success_response(attendee.to_sync_dict())
 
         except Exception as e:
-            _logger.error('[TR EVENT SYNC] Erreur update_attendee : %s', str(e))
+            _logger.error('[TR EVENT SYNC] Erreur update_attendee : %s', str(e), exc_info=True)
             return error_response(str(e), 'INVALID_REQUEST', 400)
 
     @http.route(
@@ -509,7 +514,7 @@ class EventSyncController(http.Controller):
             return success_response({'odooId': odoo_id, 'externalId': external_attendee_id, 'deleted': True})
 
         except Exception as e:
-            _logger.error('[TR EVENT SYNC] Erreur delete_attendee : %s', str(e))
+            _logger.error('[TR EVENT SYNC] Erreur delete_attendee : %s', str(e), exc_info=True)
             return error_response(str(e), 'INVALID_REQUEST', 400)
 
 

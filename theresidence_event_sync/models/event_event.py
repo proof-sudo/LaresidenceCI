@@ -1,6 +1,9 @@
 # -*- coding: utf-8 -*-
 
+import logging
 from odoo import models, fields
+
+_logger = logging.getLogger(__name__)
 
 
 class EventEvent(models.Model):
@@ -26,6 +29,7 @@ class EventEvent(models.Model):
     def to_sync_dict(self):
         """Représentation JSON retournée après création/mise à jour."""
         self.ensure_one()
+        _logger.debug('[TR EVENT SYNC] to_sync_dict event id=%s externalId=%s', self.id, self.x_tr_external_id)
         return {
             'odooId': self.id,
             'externalId': self.x_tr_external_id or '',
