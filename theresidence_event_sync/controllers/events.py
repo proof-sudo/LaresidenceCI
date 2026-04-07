@@ -522,17 +522,6 @@ class EventSyncController(http.Controller):
 # Helpers
 # ─────────────────────────────────────────────────────────────────
 
-# def _resolve_partner(data):
-#     """Retrouve le res.partner depuis memberOdooId ou memberUuid."""
-#     if data.get('memberOdooId'):
-#         partner = request.env['res.partner'].sudo().browse(int(data['memberOdooId']))
-#         if partner.exists():
-#             return partner
-#     if data.get('memberUuid'):
-#         return request.env['res.partner'].sudo().search(
-#             [('x_tr_uuid', '=', data['memberUuid'])], limit=1
-#         ) or False
-#     return False
 def _resolve_partner(data):
     """Retrouve le res.partner depuis memberOdooId ou memberUuid."""
     if data.get('memberOdooId'):
