@@ -1,8 +1,22 @@
-from odoo import models
+from odoo import models, fields
 
 
 class MrpBomLine(models.Model):
     _inherit = 'mrp.bom.line'
+
+    product_standard_price = fields.Float(
+        related='product_id.standard_price',
+        string='Prix (Coût)',
+        readonly=True,
+        digits='Product Price',
+        help="Coût unitaire du composant (standard_price du produit).",
+    )
+    currency_id = fields.Many2one(
+        related='bom_id.company_id.currency_id',
+        string='Devise',
+        readonly=True,
+        store=False,
+    )
 
     def _get_bom_finished_products(self, boms):
         """Retourne les produits finis des BoMs données."""

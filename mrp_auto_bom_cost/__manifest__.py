@@ -10,6 +10,9 @@
     """,
     'category': 'Manufacturing',
     'depends': ['mrp_account'],
+    'data': [
+        'views/mrp_bom_views.xml',
+    ],
     'author': 'La Residence',
     'installable': True,
     'auto_install': False,
