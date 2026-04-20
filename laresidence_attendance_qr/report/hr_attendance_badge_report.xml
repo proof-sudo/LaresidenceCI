@@ -1,16 +1,4 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
-
-    <!-- Utilise le format A4 par défaut — une seule feuille, 2 badges par ligne -->
-    <record id="action_report_attendance_badge" model="ir.actions.report">
-        <field name="name">Badge QR Presence</field>
-        <field name="model">hr.employee</field>
-        <field name="report_type">qweb-pdf</field>
-        <field name="report_name">laresidence_attendance_qr.report_attendance_badge_document</field>
-        <field name="report_file">laresidence_attendance_qr.report_attendance_badge_document</field>
-        <field name="print_report_name">'Badge QR - %s' % (object.name).replace('/', '')</field>
-        <field name="binding_model_id" ref="hr.model_hr_employee"/>
-        <field name="binding_type">report</field>
-    </record>
-
+<!-- Pas de nouveau rapport — on hérite du template hr.print_employee_badge directement -->
 </odoo>

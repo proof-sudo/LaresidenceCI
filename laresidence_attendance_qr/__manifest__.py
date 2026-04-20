@@ -24,7 +24,6 @@
     ],
     'data': [
         'security/ir.model.access.csv',
-        'views/hr_employee_views.xml',
         'report/hr_attendance_badge_report.xml',
         'report/hr_attendance_badge_template.xml',
     ],
