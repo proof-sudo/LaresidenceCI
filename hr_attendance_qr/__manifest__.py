@@ -17,7 +17,7 @@
         - Badge imprimable (PDF QWeb) avec photo, infos, QR
         - Régénération du token avec confirmation
     """,
-    'author': 'La Résidence CI',
+    'author': 'Djakaridja Traore',
     'license': 'LGPL-3',
     'depends': [
         'hr_attendance',

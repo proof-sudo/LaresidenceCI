@@ -7,13 +7,9 @@
         <field name="inherit_id" ref="hr.view_employee_form"/>
         <field name="arch" type="xml">
 
-            <!-- Injection dans le groupe "Attendance/Point of Sale" de la page HR Settings -->
-            <xpath expr="//page[@name='hr_settings']//group[@name='identification_group']" position="inside">
-
-                <!-- Séparateur visuel -->
+            <!-- Ciblage du champ barcode directement — compatible toutes versions -->
+            <xpath expr="//field[@name='barcode']" position="after">
                 <separator string="Badge QR Présence" colspan="2"/>
-
-                <!-- Token (lecture seule, visible HR) -->
                 <label for="attendance_qr_token"/>
                 <div class="o_row">
                     <field name="attendance_qr_token" readonly="1"/>
@@ -23,21 +19,14 @@
                         string="Régénérer"
                         class="btn btn-link"
                         icon="fa-refresh"
-                        confirm="L'ancien QR ne fonctionnera plus. Les badges imprimés devront être réimprimés. Continuer ?"
+                        confirm="L'ancien QR ne fonctionnera plus. Les badges devront être réimprimés. Continuer ?"
                         groups="hr.group_hr_manager"
                     />
                 </div>
-
-                <!-- Aperçu QR + bouton imprimer -->
                 <label string="QR Code"/>
                 <div>
-                    <field
-                        name="attendance_qr_image"
-                        widget="image"
-                        readonly="1"
-                        options="{'size': [120, 120]}"
-                    />
-                    <div style="margin-top: 6px;">
+                    <field name="attendance_qr_image" widget="image" readonly="1" options="{'size': [120, 120]}"/>
+                    <div style="margin-top:6px;">
                         <button
                             name="action_print_attendance_badge"
                             type="object"
@@ -47,7 +36,6 @@
                         />
                     </div>
                 </div>
-
             </xpath>
 
         </field>
