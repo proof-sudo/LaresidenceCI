@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 {
     'name': 'La Résidence — Pointage QR Badge',
-    'version': '17.0.1.0.0',
+    'version': '19.0.1',
     'category': 'Human Resources/Attendances',
     'summary': 'Pointage présence via QR code — fonctionne sur tout appareil',
     'description': """
