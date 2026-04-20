@@ -9,117 +9,86 @@
                 height: 54mm;
                 page-break-after: always;
                 font-family: Arial, Helvetica, sans-serif;
-                position: relative;
-                overflow: hidden;
                 background: #ffffff;
                 display: flex;
                 flex-direction: column;
+                overflow: hidden;
             ">
-                <!-- Barre supérieure -->
+                <!-- ① Barre supérieure société -->
                 <div style="
                     background: #1a1a2e;
-                    height: 11mm;
-                    width: 100%;
+                    height: 10mm;
                     display: flex;
                     align-items: center;
                     padding: 0 3mm;
                     flex-shrink: 0;
                 ">
                     <t t-if="employee.company_id.logo">
-                        <img
-                            t-att-src="image_data_uri(employee.company_id.logo)"
-                            style="max-height: 7mm; max-width: 22mm; object-fit: contain;"
-                            alt="Logo"
-                        />
+                        <img t-att-src="image_data_uri(employee.company_id.logo)"
+                             style="max-height:7mm; max-width:20mm; object-fit:contain;"/>
                     </t>
-                    <span style="color:#ffffff; font-size:6.5pt; font-weight:bold; margin-left:2mm; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:50mm;">
+                    <span style="color:#fff; font-size:6pt; font-weight:bold; margin-left:2mm; overflow:hidden; white-space:nowrap;">
                         <t t-esc="employee.company_id.name"/>
                     </span>
                 </div>
 
-                <!-- Corps principal : photo + infos + QR -->
-                <div style="
-                    display: flex;
-                    padding: 2mm 3mm;
-                    gap: 2.5mm;
-                    flex: 1;
-                    overflow: hidden;
-                ">
-                    <!-- Photo employé -->
-                    <div style="flex-shrink: 0; display: flex; flex-direction: column; align-items: center; gap: 1mm;">
+                <!-- ② Corps : photo | infos + QR -->
+                <div style="display:flex; flex:1; padding:2mm 2.5mm; gap:2mm; overflow:hidden;">
+
+                    <!-- Photo -->
+                    <div style="flex-shrink:0; width:18mm;">
                         <t t-if="employee.image_128">
-                            <img
-                                t-att-src="image_data_uri(employee.image_128)"
-                                style="
-                                    width: 20mm;
-                                    height: 20mm;
-                                    object-fit: cover;
-                                    border-radius: 2mm;
-                                    border: 0.4mm solid #dee2e6;
-                                "
-                                alt="Photo"
-                            />
+                            <img t-att-src="image_data_uri(employee.image_128)"
+                                 style="width:18mm; height:18mm; object-fit:cover; border-radius:2mm; border:0.3mm solid #ccc;"/>
                         </t>
                         <t t-else="">
-                            <div style="
-                                width: 20mm;
-                                height: 20mm;
-                                background: #e9ecef;
-                                border-radius: 2mm;
-                                display: flex;
-                                align-items: center;
-                                justify-content: center;
-                                font-size: 16pt;
-                                color: #6c757d;
-                            ">&#128100;</div>
+                            <div style="width:18mm; height:18mm; background:#e9ecef; border-radius:2mm; display:flex; align-items:center; justify-content:center; font-size:14pt; color:#999;">&#128100;</div>
                         </t>
                     </div>
 
-                    <!-- Infos texte -->
-                    <div style="flex: 1; overflow: hidden; display: flex; flex-direction: column; justify-content: center; gap: 0.8mm;">
-                        <div style="font-size: 8.5pt; font-weight: bold; color: #1a1a2e; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                    <!-- Nom + poste -->
+                    <div style="flex:1; display:flex; flex-direction:column; justify-content:center; overflow:hidden; gap:0.8mm;">
+                        <div style="font-size:8pt; font-weight:bold; color:#1a1a2e; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
                             <t t-esc="employee.name"/>
                         </div>
-                        <div style="font-size: 6.5pt; color: #495057; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                        <div style="font-size:6pt; color:#495057; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
                             <t t-esc="employee.job_title or (employee.job_id and employee.job_id.name) or ''"/>
                         </div>
-                        <div style="font-size: 5.5pt; color: #6c757d; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                        <div style="font-size:5.5pt; color:#6c757d; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
                             <t t-esc="employee.department_id and employee.department_id.name or ''"/>
+                        </div>
+
+                        <!-- ③ QR Code — entre le poste et le code-barres -->
+                        <div style="margin-top:1.5mm;">
+                            <t t-if="employee.attendance_qr_image">
+                                <img t-att-src="image_data_uri(employee.attendance_qr_image)"
+                                     style="width:16mm; height:16mm; display:block;"/>
+                                <span style="font-size:4pt; color:#888;">Scan pour pointer</span>
+                            </t>
+                            <t t-else="">
+                                <span style="font-size:5pt; color:#dc3545;">QR non disponible</span>
+                            </t>
                         </div>
                     </div>
 
-                    <!-- QR Code -->
-                    <div style="flex-shrink: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.5mm;">
-                        <t t-if="employee.attendance_qr_image">
-                            <img
-                                t-att-src="image_data_uri(employee.attendance_qr_image)"
-                                style="width: 19mm; height: 19mm;"
-                                alt="QR Pointage"
-                            />
-                            <span style="font-size: 4.5pt; color: #6c757d; text-align: center;">Pointage</span>
-                        </t>
-                        <t t-else="">
-                            <span style="font-size: 5pt; color: #dc3545; text-align: center;">QR<br/>absent</span>
-                        </t>
-                    </div>
                 </div>
 
-                <!-- Pied de page -->
+                <!-- ④ Pied — code-barres / ID badge -->
                 <div style="
-                    background: #f8f9fa;
-                    border-top: 0.3mm solid #dee2e6;
-                    height: 7mm;
-                    display: flex;
-                    align-items: center;
-                    padding: 0 3mm;
-                    justify-content: space-between;
-                    flex-shrink: 0;
+                    background:#f8f9fa;
+                    border-top:0.3mm solid #dee2e6;
+                    height:6mm;
+                    display:flex;
+                    align-items:center;
+                    padding:0 3mm;
+                    justify-content:space-between;
+                    flex-shrink:0;
                 ">
-                    <span style="font-size: 5pt; color: #6c757d;">
-                        ID: <t t-esc="employee.barcode or str(employee.id)"/>
+                    <span style="font-size:5pt; color:#6c757d; font-family:monospace;">
+                        <t t-esc="employee.barcode or str(employee.id)"/>
                     </span>
-                    <span style="font-size: 5pt; color: #6c757d; font-style: italic;">
-                        Scannez pour pointer
+                    <span style="font-size:4.5pt; color:#adb5bd; font-style:italic;">
+                        La Résidence CI
                     </span>
                 </div>
 

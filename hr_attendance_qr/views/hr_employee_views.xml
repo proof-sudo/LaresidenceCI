@@ -7,48 +7,47 @@
         <field name="inherit_id" ref="hr.view_employee_form"/>
         <field name="arch" type="xml">
 
-            <xpath expr="//notebook" position="inside">
-                <page string="Badge QR" name="attendance_qr" groups="hr.group_hr_user">
+            <!-- Injection dans le groupe "Attendance/Point of Sale" de la page HR Settings -->
+            <xpath expr="//page[@name='hr_settings']//group[@name='identification_group']" position="inside">
 
-                    <group>
-                        <group string="Token de pointage">
-                            <field name="attendance_qr_token" readonly="1"/>
-                            <div colspan="2" style="margin-top: 8px;">
-                                <button
-                                    name="action_regenerate_qr_token"
-                                    type="object"
-                                    string="Régénérer le token QR"
-                                    class="btn-secondary"
-                                    icon="fa-refresh"
-                                    confirm="Attention : l'ancien QR code ne fonctionnera plus. Tous les badges imprimés devront être réimprimés. Continuer ?"
-                                    groups="hr.group_hr_manager"
-                                />
-                            </div>
-                        </group>
+                <!-- Séparateur visuel -->
+                <separator string="Badge QR Présence" colspan="2"/>
 
-                        <group string="Aperçu QR Code">
-                            <field
-                                name="attendance_qr_image"
-                                widget="image"
-                                readonly="1"
-                                options="{'size': [160, 160]}"
-                                nolabel="1"
-                            />
-                        </group>
-                    </group>
+                <!-- Token (lecture seule, visible HR) -->
+                <label for="attendance_qr_token"/>
+                <div class="o_row">
+                    <field name="attendance_qr_token" readonly="1"/>
+                    <button
+                        name="action_regenerate_qr_token"
+                        type="object"
+                        string="Régénérer"
+                        class="btn btn-link"
+                        icon="fa-refresh"
+                        confirm="L'ancien QR ne fonctionnera plus. Les badges imprimés devront être réimprimés. Continuer ?"
+                        groups="hr.group_hr_manager"
+                    />
+                </div>
 
-                    <div style="margin-top: 16px; border-top: 1px solid #dee2e6; padding-top: 12px;">
+                <!-- Aperçu QR + bouton imprimer -->
+                <label string="QR Code"/>
+                <div>
+                    <field
+                        name="attendance_qr_image"
+                        widget="image"
+                        readonly="1"
+                        options="{'size': [120, 120]}"
+                    />
+                    <div style="margin-top: 6px;">
                         <button
                             name="action_print_attendance_badge"
                             type="object"
                             string="Imprimer le badge"
-                            class="btn-primary"
+                            class="btn btn-primary btn-sm"
                             icon="fa-print"
-                            groups="hr.group_hr_user"
                         />
                     </div>
+                </div>
 
-                </page>
             </xpath>
 
         </field>

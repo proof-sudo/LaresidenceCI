@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 {
     'name': 'HR Attendance QR Code',
-    'version': '17.0.1.0.0',
+    'version': '17.0.1.0.1',
     'category': 'Human Resources/Attendances',
     'summary': 'Pointage présence via QR code — fonctionne sur tout appareil',
     'description': """
