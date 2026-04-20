@@ -28,7 +28,6 @@
         'report/hr_attendance_badge_report.xml',
         'report/hr_attendance_badge_template.xml',
     ],
-    'post_init_hook': 'post_init_hook',
     'installable': True,
     'application': False,
     'auto_install': False,
