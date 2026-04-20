@@ -1,25 +1,74 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
 
-<!-- Hérite du badge original Odoo — ajoute le QR après le poste, retire le barcode -->
-<template id="print_employee_badge_qr" inherit_id="hr.print_employee_badge">
+<!-- Template complet — pas d'xpath, design original + QR, sans barcode -->
+<template id="print_employee_badge_custom">
+    <t t-call="web.basic_layout">
+        <div class="page">
+            <div class="oe_structure"/>
+            <t t-foreach="docs" t-as="employee">
+                <div class="col-md-6">
+                    <div class="oe_structure"/>
+                    <table style="width:243pt; border:1pt solid black; border-collapse:separate; border-radius:8pt; margin:5pt;">
+                        <tr>
+                            <!-- Logo société + photo employé -->
+                            <td style="width:33%;" valign="center" align="center">
+                                <table style="width:77pt;" class="table-borderless">
+                                    <tr>
+                                        <td align="center" valign="center" style="padding:4pt;">
+                                            <t t-if="employee.company_id.logo">
+                                                <img t-att-src="image_data_uri(employee.company_id.logo)"
+                                                     style="max-height:40pt; max-width:70pt; object-fit:contain;"
+                                                     alt="Logo"/>
+                                            </t>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td align="center" valign="center" style="padding:4pt;">
+                                            <img t-att-src="image_data_uri(employee.avatar_1920)"
+                                                 style="max-height:75pt; max-width:70pt; object-fit:cover; border-radius:4pt;"
+                                                 alt="Photo"/>
+                                        </td>
+                                    </tr>
+                                </table>
+                            </td>
 
-    <!-- Injection du QR après la ligne du poste -->
-    <xpath expr="//tr[td/div/span[@t-out='employee.job_id.name']]" position="after">
-        <tr>
-            <td align="center" style="padding-top:4pt;">
-                <t t-if="employee.attendance_qr_image">
-                    <img t-att-src="image_data_uri(employee.attendance_qr_image)"
-                         style="max-height:65pt; max-width:90%;"
-                         alt="QR Code"/>
-                </t>
-            </td>
-        </tr>
-    </xpath>
-
-    <!-- Suppression du barcode -->
-    <xpath expr="//tr[td/div[@t-if='employee.barcode']]" position="replace"/>
-
+                            <!-- Nom, poste, QR code -->
+                            <td style="width:67%;" valign="center" align="center">
+                                <table style="width:155pt;" class="table-borderless">
+                                    <tr>
+                                        <td align="center" style="padding-bottom:2pt;">
+                                            <div style="font-size:14pt; font-weight:bold;">
+                                                <span t-out="employee.name"/>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td align="center" style="padding-bottom:4pt;">
+                                            <div style="font-size:9pt; color:#555;">
+                                                <span t-out="employee.job_id.name or ''"/>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td align="center">
+                                            <t t-if="employee.attendance_qr_image">
+                                                <img t-att-src="image_data_uri(employee.attendance_qr_image)"
+                                                     style="max-height:65pt; max-width:90%; object-fit:contain;"
+                                                     alt="QR Code"/>
+                                            </t>
+                                        </td>
+                                    </tr>
+                                </table>
+                            </td>
+                        </tr>
+                    </table>
+                    <div class="oe_structure"/>
+                </div>
+            </t>
+            <div class="oe_structure"/>
+        </div>
+    </t>
 </template>
 
 </odoo>
