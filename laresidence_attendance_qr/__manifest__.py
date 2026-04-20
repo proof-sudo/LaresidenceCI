@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 {
-    'name': 'HR Attendance QR Code',
-    'version': '17.0.1.0.1',
+    'name': 'La Résidence — Pointage QR Badge',
+    'version': '17.0.1.0.0',
     'category': 'Human Resources/Attendances',
     'summary': 'Pointage présence via QR code — fonctionne sur tout appareil',
     'description': """
@@ -11,11 +11,11 @@
 
         Fonctionnalités :
         - Token sécurisé unique par employé (secrets.token_urlsafe)
-        - Image QR calculée et intégrée dans le badge PDF
-        - Endpoint public : /hr/attendance/qr/scan/<token>
-        - Logique bascule : présence ouverte → départ ; sinon → arrivée
+        - Image QR persistée en base de données (store=True)
+        - Endpoint public : /laresidence/attendance/qr/scan/<token>
+        - Logique bascule : présence ouverte -> départ ; sinon -> arrivée
         - Badge imprimable (PDF QWeb) avec photo, infos, QR
-        - Régénération du token avec confirmation
+        - Regeneration du token avec confirmation
     """,
     'author': 'Djakaridja Traore',
     'license': 'LGPL-3',

@@ -12,7 +12,7 @@ class HrAttendanceQrController(http.Controller):
     """Endpoint public pour le pointage par QR code."""
 
     @http.route(
-        '/hr/attendance/qr/scan/<string:token>',
+        '/laresidence/attendance/qr/scan/<string:token>',
         type='http',
         auth='public',
         methods=['GET'],
