@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="hr_employee_view_form_inherit_qr" model="ir.ui.view">
+        <field name="name">hr.employee.form.inherit.attendance.qr</field>
+        <field name="model">hr.employee</field>
+        <field name="inherit_id" ref="hr.view_employee_form"/>
+        <field name="arch" type="xml">
+
+            <xpath expr="//notebook" position="inside">
+                <page string="Badge QR" name="attendance_qr" groups="hr.group_hr_user">
+
+                    <group>
+                        <group string="Token de pointage">
+                            <field name="attendance_qr_token" readonly="1"/>
+                            <div colspan="2" style="margin-top: 8px;">
+                                <button
+                                    name="action_regenerate_qr_token"
+                                    type="object"
+                                    string="Régénérer le token QR"
+                                    class="btn-secondary"
+                                    icon="fa-refresh"
+                                    confirm="Attention : l'ancien QR code ne fonctionnera plus. Tous les badges imprimés devront être réimprimés. Continuer ?"
+                                    groups="hr.group_hr_manager"
+                                />
+                            </div>
+                        </group>
+
+                        <group string="Aperçu QR Code">
+                            <field
+                                name="attendance_qr_image"
+                                widget="image"
+                                readonly="1"
+                                options="{'size': [160, 160]}"
+                                nolabel="1"
+                            />
+                        </group>
+                    </group>
+
+                    <div style="margin-top: 16px; border-top: 1px solid #dee2e6; padding-top: 12px;">
+                        <button
+                            name="action_print_attendance_badge"
+                            type="object"
+                            string="Imprimer le badge"
+                            class="btn-primary"
+                            icon="fa-print"
+                            groups="hr.group_hr_user"
+                        />
+                    </div>
+
+                </page>
+            </xpath>
+
+        </field>
+    </record>
+
+</odoo>
