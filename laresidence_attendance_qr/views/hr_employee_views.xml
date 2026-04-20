@@ -23,7 +23,7 @@
                         groups="hr.group_hr_manager"
                     />
                 </div>
-                <label string="QR Code"/>
+                <label for="attendance_qr_image"/>
                 <div>
                     <field name="attendance_qr_image" widget="image" readonly="1" options="{'size': [120, 120]}"/>
                     <div style="margin-top:6px;">
