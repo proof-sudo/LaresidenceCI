@@ -1,72 +1,48 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
 
-<!-- Design identique au badge original Odoo + QR code après le poste -->
 <template id="report_attendance_badge_document">
     <t t-call="web.basic_layout">
         <div class="page">
-            <div class="oe_structure"/>
             <t t-foreach="docs" t-as="employee">
-                <div class="col-md-6">
-                    <div class="oe_structure"/>
-                    <table style="width:243pt; border: 1pt solid black; border-collapse:separate; border-radius:8pt; margin:5pt">
+                <div class="col-md-6" style="display:inline-block; vertical-align:top;">
+                    <table style="width:243pt; border:1pt solid black; border-collapse:separate; border-radius:8pt; margin:5pt;">
                         <tr>
-                            <!-- Colonne gauche : logo + photo -->
-                            <td style="width:33%;" valign="center">
-                                <table style="width:77pt;" class="table-borderless">
-                                    <tr>
-                                        <td align="center" valign="center">
-                                            <span t-if="employee.company_id.logo">
-                                                <img t-att-src="image_data_uri(employee.company_id.logo)" style="max-height:45pt;max-width:90%;" alt="Logo"/>
-                                            </span>
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <td align="center" valign="center">
-                                            <img t-att-src="image_data_uri(employee.avatar_1920)" style="max-height:85pt;max-width:90%;" alt="Photo"/>
-                                        </td>
-                                    </tr>
-                                </table>
+                            <!-- Colonne gauche : logo société en haut, photo employé en bas -->
+                            <td style="width:33%; padding:6pt;" valign="top" align="center">
+                                <div style="margin-bottom:8pt;">
+                                    <t t-if="employee.company_id.logo">
+                                        <img t-att-src="image_data_uri(employee.company_id.logo)"
+                                             style="width:60pt; height:40pt; object-fit:contain;"
+                                             alt="Logo"/>
+                                    </t>
+                                </div>
+                                <div>
+                                    <img t-att-src="image_data_uri(employee.avatar_1920)"
+                                         style="width:60pt; height:70pt; object-fit:cover; border-radius:4pt;"
+                                         alt="Photo"/>
+                                </div>
                             </td>
 
-                            <!-- Colonne droite : nom, poste, QR, code-barres -->
-                            <td style="width:67%;" valign="center">
-                                <table style="width:155pt;" class="table-borderless">
-                                    <tr>
-                                        <th>
-                                            <div style="font-size:15pt;margin-bottom:0pt;margin-top:0pt;" align="center">
-                                                <span t-out="employee.name"/>
-                                            </div>
-                                        </th>
-                                    </tr>
-                                    <tr>
-                                        <td>
-                                            <div align="center" style="font-size:10pt;margin-bottom:3pt;">
-                                                <span t-out="employee.job_id.name"/>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                    <!-- QR code après le poste -->
-                                    <tr>
-                                        <td align="center">
-                                            <t t-if="employee.attendance_qr_image">
-                                                <img t-att-src="image_data_uri(employee.attendance_qr_image)" style="max-height:60pt;max-width:90%;" alt="QR Code"/>
-                                            </t>
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <td>
-                                            <div t-if="employee.barcode" t-field="employee.barcode" t-options="{'widget': 'barcode', 'width': 600, 'height': 120, 'img_style': 'max-height:40pt;max-width:100%;', 'img_align': 'center'}"/>
-                                        </td>
-                                    </tr>
-                                </table>
+                            <!-- Colonne droite : nom, poste, QR code -->
+                            <td style="width:67%; padding:6pt;" valign="middle" align="center">
+                                <div style="font-size:13pt; font-weight:bold; margin-bottom:4pt;">
+                                    <span t-out="employee.name"/>
+                                </div>
+                                <div style="font-size:9pt; color:#555; margin-bottom:6pt;">
+                                    <span t-out="employee.job_id.name or ''"/>
+                                </div>
+                                <t t-if="employee.attendance_qr_image">
+                                    <img t-att-src="image_data_uri(employee.attendance_qr_image)"
+                                         style="width:80pt; height:80pt; object-fit:contain;"
+                                         alt="QR Code"/>
+                                    <div style="font-size:6pt; color:#888; margin-top:2pt;">Scanner pour pointer</div>
+                                </t>
                             </td>
                         </tr>
                     </table>
-                    <div class="oe_structure"/>
                 </div>
             </t>
-            <div class="oe_structure"/>
         </div>
     </t>
 </template>
