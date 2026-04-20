@@ -1,99 +1,73 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
 
+<!-- Design identique au badge original Odoo + QR code après le poste -->
 <template id="report_attendance_badge_document">
-    <t t-call="web.html_container">
-        <t t-foreach="docs" t-as="employee">
-            <div class="page" style="
-                width: 85.6mm;
-                height: 54mm;
-                page-break-after: always;
-                font-family: Arial, Helvetica, sans-serif;
-                background: #ffffff;
-                display: flex;
-                flex-direction: column;
-                overflow: hidden;
-            ">
-                <!-- ① Barre supérieure société -->
-                <div style="
-                    background: #1a1a2e;
-                    height: 10mm;
-                    display: flex;
-                    align-items: center;
-                    padding: 0 3mm;
-                    flex-shrink: 0;
-                ">
-                    <t t-if="employee.company_id.logo">
-                        <img t-att-src="image_data_uri(employee.company_id.logo)"
-                             style="max-height:7mm; max-width:20mm; object-fit:contain;"/>
-                    </t>
-                    <span style="color:#fff; font-size:6pt; font-weight:bold; margin-left:2mm; overflow:hidden; white-space:nowrap;">
-                        <t t-esc="employee.company_id.name"/>
-                    </span>
+    <t t-call="web.basic_layout">
+        <div class="page">
+            <div class="oe_structure"/>
+            <t t-foreach="docs" t-as="employee">
+                <div class="col-md-6">
+                    <div class="oe_structure"/>
+                    <table style="width:243pt; border: 1pt solid black; border-collapse:separate; border-radius:8pt; margin:5pt">
+                        <tr>
+                            <!-- Colonne gauche : logo + photo -->
+                            <td style="width:33%;" valign="center">
+                                <table style="width:77pt;" class="table-borderless">
+                                    <tr>
+                                        <td align="center" valign="center">
+                                            <span t-if="employee.company_id.logo">
+                                                <img t-att-src="image_data_uri(employee.company_id.logo)" style="max-height:45pt;max-width:90%;" alt="Logo"/>
+                                            </span>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td align="center" valign="center">
+                                            <img t-att-src="image_data_uri(employee.avatar_1920)" style="max-height:85pt;max-width:90%;" alt="Photo"/>
+                                        </td>
+                                    </tr>
+                                </table>
+                            </td>
+
+                            <!-- Colonne droite : nom, poste, QR, code-barres -->
+                            <td style="width:67%;" valign="center">
+                                <table style="width:155pt;" class="table-borderless">
+                                    <tr>
+                                        <th>
+                                            <div style="font-size:15pt;margin-bottom:0pt;margin-top:0pt;" align="center">
+                                                <span t-out="employee.name"/>
+                                            </div>
+                                        </th>
+                                    </tr>
+                                    <tr>
+                                        <td>
+                                            <div align="center" style="font-size:10pt;margin-bottom:3pt;">
+                                                <span t-out="employee.job_id.name"/>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    <!-- QR code après le poste -->
+                                    <tr>
+                                        <td align="center">
+                                            <t t-if="employee.attendance_qr_image">
+                                                <img t-att-src="image_data_uri(employee.attendance_qr_image)" style="max-height:60pt;max-width:90%;" alt="QR Code"/>
+                                            </t>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>
+                                            <div t-if="employee.barcode" t-field="employee.barcode" t-options="{'widget': 'barcode', 'width': 600, 'height': 120, 'img_style': 'max-height:40pt;max-width:100%;', 'img_align': 'center'}"/>
+                                        </td>
+                                    </tr>
+                                </table>
+                            </td>
+                        </tr>
+                    </table>
+                    <div class="oe_structure"/>
                 </div>
-
-                <!-- ② Corps : photo | infos + QR -->
-                <div style="display:flex; flex:1; padding:2mm 2.5mm; gap:2mm; overflow:hidden;">
-
-                    <!-- Photo -->
-                    <div style="flex-shrink:0; width:18mm;">
-                        <t t-if="employee.image_128">
-                            <img t-att-src="image_data_uri(employee.image_128)"
-                                 style="width:18mm; height:18mm; object-fit:cover; border-radius:2mm; border:0.3mm solid #ccc;"/>
-                        </t>
-                        <t t-else="">
-                            <div style="width:18mm; height:18mm; background:#e9ecef; border-radius:2mm; display:flex; align-items:center; justify-content:center; font-size:14pt; color:#999;">&#128100;</div>
-                        </t>
-                    </div>
-
-                    <!-- Nom + poste -->
-                    <div style="flex:1; display:flex; flex-direction:column; justify-content:center; overflow:hidden; gap:0.8mm;">
-                        <div style="font-size:8pt; font-weight:bold; color:#1a1a2e; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
-                            <t t-esc="employee.name"/>
-                        </div>
-                        <div style="font-size:6pt; color:#495057; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
-                            <t t-esc="employee.job_title or (employee.job_id and employee.job_id.name) or ''"/>
-                        </div>
-                        <div style="font-size:5.5pt; color:#6c757d; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
-                            <t t-esc="employee.department_id and employee.department_id.name or ''"/>
-                        </div>
-
-                        <!-- ③ QR Code — entre le poste et le code-barres -->
-                        <div style="margin-top:1.5mm;">
-                            <t t-if="employee.attendance_qr_image">
-                                <img t-att-src="image_data_uri(employee.attendance_qr_image)"
-                                     style="width:16mm; height:16mm; display:block;"/>
-                                <span style="font-size:4pt; color:#888;">Scan pour pointer</span>
-                            </t>
-                            <t t-else="">
-                                <span style="font-size:5pt; color:#dc3545;">QR non disponible</span>
-                            </t>
-                        </div>
-                    </div>
-
-                </div>
-
-                <!-- ④ Pied — code-barres / ID badge -->
-                <div style="
-                    background:#f8f9fa;
-                    border-top:0.3mm solid #dee2e6;
-                    height:6mm;
-                    display:flex;
-                    align-items:center;
-                    padding:0 3mm;
-                    justify-content:space-between;
-                    flex-shrink:0;
-                ">
-                    <span style="font-size:5pt; color:#6c757d; font-family:monospace;">
-                        <t t-esc="employee.barcode or str(employee.id)"/>
-                    </span>
-                    <span style="font-size:4.5pt; color:#adb5bd; font-style:italic;">
-                        La Résidence CI
-                    </span>
-                </div>
-
-            </div>
-        </t>
+            </t>
+            <div class="oe_structure"/>
+        </div>
     </t>
 </template>
 

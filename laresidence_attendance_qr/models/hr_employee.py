@@ -92,6 +92,10 @@ class HrEmployee(models.Model):
         }
 
     def action_print_attendance_badge(self):
+        # Auto-génère le token si l'employé n'en a pas encore
+        for emp in self:
+            if not emp.attendance_qr_token:
+                emp.attendance_qr_token = emp._generate_attendance_qr_token()
         return self.env.ref(
             'laresidence_attendance_qr.action_report_attendance_badge'
         ).report_action(self)

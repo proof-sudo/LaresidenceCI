@@ -7,30 +7,16 @@
         <field name="inherit_id" ref="hr.view_employee_form"/>
         <field name="arch" type="xml">
 
-            <!-- Ciblage du champ barcode directement — compatible toutes versions -->
+            <!-- Injection après le champ barcode -->
             <xpath expr="//field[@name='barcode']" position="after">
-                <separator string="Badge QR Présence" colspan="2"/>
-                <label for="attendance_qr_token"/>
-                <div class="o_row">
-                    <field name="attendance_qr_token" readonly="1"/>
-                    <button
-                        name="action_regenerate_qr_token"
-                        type="object"
-                        string="Régénérer"
-                        class="btn btn-link"
-                        icon="fa-refresh"
-                        confirm="L'ancien QR ne fonctionnera plus. Les badges devront être réimprimés. Continuer ?"
-                        groups="hr.group_hr_manager"
-                    />
-                </div>
                 <label for="attendance_qr_image"/>
                 <div>
-                    <field name="attendance_qr_image" widget="image" readonly="1" options="{'size': [120, 120]}"/>
-                    <div style="margin-top:6px;">
+                    <field name="attendance_qr_image" widget="image" readonly="1" options="{'size': [100, 100]}"/>
+                    <div style="margin-top:4px;">
                         <button
                             name="action_print_attendance_badge"
                             type="object"
-                            string="Imprimer le badge"
+                            string="Imprimer badge QR"
                             class="btn btn-primary btn-sm"
                             icon="fa-print"
                         />
