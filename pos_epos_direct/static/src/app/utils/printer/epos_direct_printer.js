@@ -4,14 +4,14 @@ import { BasePrinter } from "@point_of_sale/app/utils/printer/base_printer";
 import { _t } from "@web/core/l10n/translation";
 
 /**
- * EposDirectPrinter — Imprimante reçu CLIENT ePOS directe.
+ * EposDirectPrinter — Reçu client ePOS direct (réseau local).
  *
- * Bypasse entièrement html2canvas : au lieu de convertir le reçu HTML en image,
- * on envoie l'ID de la commande au serveur Odoo qui génère le XML ePOS texte
- * natif et l'envoie directement à l'imprimante.
+ * Flux :
+ *   1. orm.call → serveur Odoo génère le XML ESC/POS + retourne l'IP
+ *   2. fetch() → navigateur envoie le XML directement à l'imprimante (~2ms)
  *
- * Type imprimante : 'epos_direct'
- * Méthode serveur : pos.printer._send_epos_receipt(printer_id, order_id)
+ * Plus de round-trip cloud pour l'impression : le serveur sert uniquement
+ * à générer le XML (accès aux données commande/société).
  */
 export class EposDirectPrinter extends BasePrinter {
 
@@ -21,64 +21,75 @@ export class EposDirectPrinter extends BasePrinter {
         this.pos = pos;
     }
 
-    /**
-     * Surcharge printReceipt pour bypasser html2canvas.
-     * Le paramètre `receipt` (HTMLElement) est ignoré volontairement —
-     * on utilise l'ordre courant du POS store.
-     * @override
-     */
     async printReceipt(receipt) {
         const order = this.pos.get_order();
-
         if (!order) {
-            return this._error(
-                _t("Aucune commande active"),
-                _t("Aucune commande n'est sélectionnée dans la caisse.")
-            );
+            return this._error(_t("Aucune commande active"), _t("Aucune commande sélectionnée."));
         }
-
         const orderId = order.server_id;
         if (!orderId) {
-            return this._error(
-                _t("Commande non synchronisée"),
-                _t("La commande n'est pas encore enregistrée sur le serveur. Veuillez attendre la fin du paiement.")
-            );
+            return this._error(_t("Commande non synchronisée"), _t("Attendez la fin du paiement."));
         }
 
-        return this._callServer('_send_epos_receipt', orderId);
+        let result;
+        try {
+            result = await this.pos.env.services.orm.call(
+                'pos.printer', '_get_epos_receipt_xml', [this.printerId, orderId]
+            );
+        } catch (err) {
+            return this._error(_t("Erreur serveur"), err?.message || _t("Impossible de contacter Odoo."));
+        }
+
+        if (!result?.success) {
+            return this._error(_t("Erreur impression"), result?.message || _t("Erreur inconnue."));
+        }
+
+        return this._sendToDevice(result.ip, result.xml);
     }
 
-    /**
-     * Non utilisée (pas d'impression par image dans ce mode).
-     * @override
-     */
     sendPrintingJob(_img) {
         return Promise.resolve(true);
     }
 
-    // ── Utilitaires ──────────────────────────────────────────────────────────
+    async _sendToDevice(ip, xmlStr) {
+        const baseUrl = ip.startsWith('http') ? ip : 'http://' + ip;
+        const url = baseUrl.replace(/\/$/, '') + '/cgi-bin/epos/service.cgi';
 
-    async _callServer(method, orderId) {
+        let resp;
         try {
-            const result = await this.pos.env.services.orm.call(
-                'pos.printer',
-                method,
-                [this.printerId, orderId],
-            );
-
-            if (!result || !result.success) {
-                return this._error(
-                    _t("Erreur d'impression"),
-                    result?.message || _t("Erreur inconnue.")
-                );
-            }
-            return { successful: true };
+            resp = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'text/xml; charset=utf-8',
+                    'If-Modified-Since': 'Thu, 01 Jan 1970 00:00:00 GMT',
+                },
+                body: xmlStr,
+            });
         } catch (err) {
             return this._error(
-                _t("Erreur de connexion serveur"),
-                err?.message || _t("Impossible de contacter le serveur Odoo.")
+                _t("Imprimante inaccessible"),
+                _t("Vérifiez que l'imprimante est allumée et sur le même réseau. (%s)", ip)
             );
         }
+
+        if (!resp.ok) {
+            return this._error(_t("Erreur imprimante"), _t("HTTP %s", resp.status));
+        }
+
+        // Vérification réponse XML Epson
+        try {
+            const text = await resp.text();
+            const doc = new DOMParser().parseFromString(text, 'text/xml');
+            const response = doc.querySelector('response');
+            if (response && response.getAttribute('success') === 'false') {
+                const code = response.getAttribute('code') || '?';
+                return this._error(_t("Erreur imprimante"), _t("Code: %s", code));
+            }
+        } catch (_) {
+            // Certains firmware Epson ne renvoient pas de XML valide — on ignore
+        }
+
+        return { successful: true };
     }
 
     _error(title, body) {

@@ -4,17 +4,11 @@ import { BasePrinter } from "@point_of_sale/app/utils/printer/base_printer";
 import { _t } from "@web/core/l10n/translation";
 
 /**
- * EposDirectKitchenPrinter — Imprimante ticket CUISINE / BAR ePOS directe.
+ * EposDirectKitchenPrinter — Ticket cuisine/bar ePOS direct (réseau local).
  *
- * Conçue pour les imprimantes de station (cuisine, bar, grill, etc.).
- * Génère un ticket de préparation côté serveur :
- *   - Filtre les lignes selon les catégories configurées sur l'imprimante
- *   - Format grand, lisible, sans prix
- *   - Affiche le numéro de table si pos_restaurant est actif
- *   - Affiche les notes de ligne et de commande
- *
- * Type imprimante : 'epos_direct_kitchen'
- * Méthode serveur : pos.printer._send_epos_kitchen_ticket(printer_id, order_id)
+ * Flux :
+ *   1. orm.call → serveur Odoo filtre les lignes, génère XML + retourne l'IP
+ *   2. fetch() → navigateur envoie le XML directement à l'imprimante (~2ms)
  */
 export class EposDirectKitchenPrinter extends BasePrinter {
 
@@ -24,65 +18,79 @@ export class EposDirectKitchenPrinter extends BasePrinter {
         this.pos = pos;
     }
 
-    /**
-     * Surcharge printReceipt pour bypasser html2canvas.
-     * Appelé par le POS chaque fois qu'une commande est envoyée en préparation.
-     * Le paramètre `receipt` (HTMLElement) est ignoré — on récupère l'ordre
-     * courant et on délègue la génération/envoi du ticket au serveur.
-     * @override
-     */
     async printReceipt(receipt) {
         const order = this.pos.get_order();
-
         if (!order) {
+            return this._error(_t("Aucune commande active"), _t("Aucune commande sélectionnée."));
+        }
+        const orderId = order.server_id;
+        if (!orderId) {
+            return this._error(_t("Commande non synchronisée"), _t("Attendez la fin du paiement."));
+        }
+
+        let result;
+        try {
+            result = await this.pos.env.services.orm.call(
+                'pos.printer', '_get_epos_kitchen_xml', [this.printerId, orderId]
+            );
+        } catch (err) {
+            return this._error(_t("Erreur serveur"), err?.message || _t("Impossible de contacter Odoo."));
+        }
+
+        if (!result?.success) {
+            return this._error(_t("Erreur impression cuisine"), result?.message || _t("Erreur inconnue."));
+        }
+
+        // Aucune ligne pour cette station — pas une erreur
+        if (!result.xml) {
+            return { successful: true };
+        }
+
+        return this._sendToDevice(result.ip, result.xml);
+    }
+
+    sendPrintingJob(_img) {
+        return Promise.resolve(true);
+    }
+
+    async _sendToDevice(ip, xmlStr) {
+        const baseUrl = ip.startsWith('http') ? ip : 'http://' + ip;
+        const url = baseUrl.replace(/\/$/, '') + '/cgi-bin/epos/service.cgi';
+
+        let resp;
+        try {
+            resp = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'text/xml; charset=utf-8',
+                    'If-Modified-Since': 'Thu, 01 Jan 1970 00:00:00 GMT',
+                },
+                body: xmlStr,
+            });
+        } catch (err) {
             return this._error(
-                _t("Aucune commande active"),
-                _t("Aucune commande n'est sélectionnée dans la caisse.")
+                _t("Imprimante cuisine inaccessible"),
+                _t("Vérifiez que l'imprimante est allumée et sur le même réseau. (%s)", ip)
             );
         }
 
-        const orderId = order.server_id;
-        if (!orderId) {
-            return this._error(
-                _t("Commande non synchronisée"),
-                _t("La commande n'est pas encore enregistrée sur le serveur.")
-            );
+        if (!resp.ok) {
+            return this._error(_t("Erreur imprimante"), _t("HTTP %s", resp.status));
         }
 
         try {
-            const result = await this.pos.env.services.orm.call(
-                'pos.printer',
-                '_send_epos_kitchen_ticket',
-                [this.printerId, orderId],
-            );
-
-            // 'nothing_to_print' n'est pas une erreur — aucun article pour cette station
-            if (result?.message === 'nothing_to_print') {
-                return { successful: true };
+            const text = await resp.text();
+            const doc = new DOMParser().parseFromString(text, 'text/xml');
+            const response = doc.querySelector('response');
+            if (response && response.getAttribute('success') === 'false') {
+                const code = response.getAttribute('code') || '?';
+                return this._error(_t("Erreur imprimante"), _t("Code: %s", code));
             }
-
-            if (!result || !result.success) {
-                return this._error(
-                    _t("Erreur d'impression cuisine"),
-                    result?.message || _t("Erreur inconnue.")
-                );
-            }
-
-            return { successful: true };
-        } catch (err) {
-            return this._error(
-                _t("Erreur de connexion serveur"),
-                err?.message || _t("Impossible de contacter le serveur Odoo.")
-            );
+        } catch (_) {
+            // Firmware Epson sans XML valide — on ignore
         }
-    }
 
-    /**
-     * Non utilisée (pas d'impression par image dans ce mode).
-     * @override
-     */
-    sendPrintingJob(_img) {
-        return Promise.resolve(true);
+        return { successful: true };
     }
 
     _error(title, body) {
