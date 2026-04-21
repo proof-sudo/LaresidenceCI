@@ -20,7 +20,7 @@ class FrontdeskVisitor(models.Model):
         if not self.partner_id:
             return
         self.name = self.partner_id.name
-        self.phone = self.partner_id.phone or self.partner_id.mobile or False
+        self.phone = self.partner_id.phone  or False
         self.email = self.partner_id.email or False
         # Société : nom de la société parente si contact individuel, sinon nom du partner lui-même
         if self.partner_id.parent_id:
