@@ -9,8 +9,3 @@ class ResCompany(models.Model):
         selection_add=[('barcode_qr', 'Badge code-barres / QR Code (tablette)')],
         ondelete={'barcode_qr': 'set default'},
     )
-
-    attendance_kiosk_barcode_source = fields.Selection(
-        selection=[('front', 'Front Camera'), ('back', 'Back Camera')],
-        default='back',
-    )
