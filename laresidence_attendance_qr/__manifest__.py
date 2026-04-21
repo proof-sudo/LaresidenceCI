@@ -27,6 +27,11 @@
         'report/hr_attendance_badge_report.xml',
         'report/hr_attendance_badge_template.xml',
     ],
+    'assets': {
+        'hr_attendance.assets_public_attendance': [
+            'laresidence_attendance_qr/static/src/kiosk_qr_patch.xml',
+        ],
+    },
     'installable': True,
     'application': False,
     'auto_install': False,

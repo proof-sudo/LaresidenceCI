@@ -36,18 +36,13 @@ class HrEmployee(models.Model):
             _logger.error("laresidence_attendance_qr: pip install qrcode[pil]")
             return False
 
-        base_url = self.env['ir.config_parameter'].sudo().get_param(
-            'web.base.url', default='http://localhost:8069'
-        ).rstrip('/')
-        url = f"{base_url}/laresidence/attendance/qr/scan/{token}"
-
         qr = qrcode.QRCode(
             version=None,
             error_correction=qrcode.constants.ERROR_CORRECT_M,
             box_size=6,
             border=2,
         )
-        qr.add_data(url)
+        qr.add_data(token)
         qr.make(fit=True)
         img = qr.make_image(fill_color='black', back_color='white')
         buf = io.BytesIO()
