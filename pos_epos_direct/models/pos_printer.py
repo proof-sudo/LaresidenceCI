@@ -68,6 +68,48 @@ class PosPrinter(models.Model):
         },
     )
 
+    log_count = fields.Integer(compute='_compute_log_count', string='Logs')
+
+    def _compute_log_count(self):
+        for printer in self:
+            printer.log_count = self.env['pos.printer.log'].search_count(
+                [('printer_id', '=', printer.id)]
+            )
+
+    def action_view_logs(self):
+        return {
+            'type': 'ir.actions.act_window',
+            'name': 'Logs — %s' % self.name,
+            'res_model': 'pos.printer.log',
+            'view_mode': 'list,form',
+            'domain': [('printer_id', '=', self.id)],
+            'context': {'default_printer_id': self.id},
+        }
+
+    # ── Réception des logs depuis le JS (fire-and-forget) ────────────────────
+
+    @api.model
+    def _create_log(self, printer_id, vals):
+        """
+        Enregistre un log d'impression. Appelé depuis le JS en fire-and-forget
+        (pas d'await) pour ne pas bloquer l'interface caisse.
+        """
+        printer = self.browse(printer_id)
+        try:
+            self.env['pos.printer.log'].sudo().create({
+                'printer_id':   printer_id if printer.exists() else False,
+                'printer_name': printer.name if printer.exists() else '?',
+                'order_name':   vals.get('order_name', ''),
+                'job_type':     vals.get('job_type', 'receipt'),
+                'status':       vals.get('status', 'error'),
+                'duration_ms':  vals.get('duration_ms', 0),
+                'ip':           vals.get('ip', ''),
+                'message':      vals.get('message', ''),
+            })
+        except Exception:
+            _logger.exception("Impossible d'écrire le log d'impression")
+        return True
+
     # ── Chargement données POS ────────────────────────────────────────────────
 
     @api.model

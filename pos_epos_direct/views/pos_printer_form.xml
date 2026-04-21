@@ -11,6 +11,18 @@
         <field name="model">pos.printer</field>
         <field name="inherit_id" ref="point_of_sale.view_pos_printer_form"/>
         <field name="arch" type="xml">
+
+            <!-- Bouton smart Logs -->
+            <xpath expr="//sheet" position="before">
+                <div class="oe_button_box" name="button_box"
+                     invisible="printer_type not in ('epos_direct', 'epos_direct_kitchen')">
+                    <button name="action_view_logs" type="object"
+                            class="oe_stat_button" icon="fa-list-alt">
+                        <field name="log_count" widget="statinfo" string="Logs"/>
+                    </button>
+                </div>
+            </xpath>
+
             <field name="epson_printer_ip" position="attributes">
                 <attribute name="invisible">
                     printer_type not in ('epson_epos', 'epos_direct', 'epos_direct_kitchen')

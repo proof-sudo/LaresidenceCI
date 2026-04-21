@@ -3,13 +3,6 @@
 import { BasePrinter } from "@point_of_sale/app/utils/printer/base_printer";
 import { _t } from "@web/core/l10n/translation";
 
-/**
- * EposDirectKitchenPrinter — Ticket cuisine/bar ePOS direct (réseau local).
- *
- * Flux :
- *   1. orm.call → serveur Odoo filtre les lignes, génère XML + retourne l'IP
- *   2. fetch() → navigateur envoie le XML directement à l'imprimante (~2ms)
- */
 export class EposDirectKitchenPrinter extends BasePrinter {
 
     setup({ config, pos }) {
@@ -28,25 +21,37 @@ export class EposDirectKitchenPrinter extends BasePrinter {
             return this._error(_t("Commande non synchronisée"), _t("Attendez la fin du paiement."));
         }
 
+        const t0 = performance.now();
         let result;
         try {
             result = await this.pos.env.services.orm.call(
                 'pos.printer', '_get_epos_kitchen_xml', [this.printerId, orderId]
             );
         } catch (err) {
+            this._log('kitchen', 'error', Math.round(performance.now() - t0), '', err?.message || 'Erreur serveur', order.name);
             return this._error(_t("Erreur serveur"), err?.message || _t("Impossible de contacter Odoo."));
         }
 
         if (!result?.success) {
+            this._log('kitchen', 'error', Math.round(performance.now() - t0), result?.ip || '', result?.message || '', order.name);
             return this._error(_t("Erreur impression cuisine"), result?.message || _t("Erreur inconnue."));
         }
 
-        // Aucune ligne pour cette station — pas une erreur
+        // Aucune ligne pour cette station
         if (!result.xml) {
             return { successful: true };
         }
 
-        return this._sendToDevice(result.ip, result.xml);
+        const printResult = await this._sendToDevice(result.ip, result.xml);
+        const duration = Math.round(performance.now() - t0);
+
+        if (printResult.successful) {
+            this._log('kitchen', 'success', duration, result.ip, '', order.name);
+        } else {
+            this._log('kitchen', 'error', duration, result.ip, printResult.message?.body || '', order.name);
+        }
+
+        return printResult;
     }
 
     sendPrintingJob(_img) {
@@ -84,13 +89,19 @@ export class EposDirectKitchenPrinter extends BasePrinter {
             const response = doc.querySelector('response');
             if (response && response.getAttribute('success') === 'false') {
                 const code = response.getAttribute('code') || '?';
-                return this._error(_t("Erreur imprimante"), _t("Code: %s", code));
+                return this._error(_t("Erreur imprimante"), _t("Code Epson: %s", code));
             }
-        } catch (_) {
-            // Firmware Epson sans XML valide — on ignore
-        }
+        } catch (_) { /* firmware sans XML valide */ }
 
         return { successful: true };
+    }
+
+    /** Fire-and-forget : pas d'await, zéro impact sur la vitesse. */
+    _log(jobType, status, durationMs, ip, message, orderName) {
+        this.pos.env.services.orm.call('pos.printer', '_create_log', [
+            this.printerId,
+            { job_type: jobType, status, duration_ms: durationMs, ip, message, order_name: orderName || '' },
+        ]).catch(() => {});
     }
 
     _error(title, body) {

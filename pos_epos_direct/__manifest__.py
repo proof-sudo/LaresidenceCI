@@ -23,6 +23,8 @@ Avantages par rapport à l'implémentation native :
     'license': 'LGPL-3',
     'depends': ['point_of_sale'],
     'data': [
+        'security/ir.model.access.csv',
+        'views/pos_printer_log_views.xml',
         'views/pos_printer_form.xml',
     ],
     'assets': {

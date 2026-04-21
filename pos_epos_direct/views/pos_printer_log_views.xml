@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- Liste des logs -->
+    <record id="view_pos_printer_log_list" model="ir.ui.view">
+        <field name="name">pos.printer.log.list</field>
+        <field name="model">pos.printer.log</field>
+        <field name="arch" type="xml">
+            <list string="Logs d'impression" decoration-danger="status == 'error'" default_order="create_date desc">
+                <field name="create_date" string="Date"/>
+                <field name="printer_name" string="Imprimante"/>
+                <field name="order_name" string="Commande"/>
+                <field name="job_type" string="Type"/>
+                <field name="status" string="Statut" widget="badge"
+                       decoration-success="status == 'success'"
+                       decoration-danger="status == 'error'"/>
+                <field name="duration_ms" string="Durée (ms)"/>
+                <field name="ip" string="IP"/>
+                <field name="message" string="Détails" optional="show"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- Formulaire log (lecture seule) -->
+    <record id="view_pos_printer_log_form" model="ir.ui.view">
+        <field name="name">pos.printer.log.form</field>
+        <field name="model">pos.printer.log</field>
+        <field name="arch" type="xml">
+            <form string="Log d'impression" create="false" edit="false">
+                <sheet>
+                    <group>
+                        <group>
+                            <field name="create_date" string="Date"/>
+                            <field name="printer_id" string="Imprimante"/>
+                            <field name="printer_name" string="Nom imprimante"/>
+                            <field name="order_name" string="Commande"/>
+                        </group>
+                        <group>
+                            <field name="job_type" string="Type"/>
+                            <field name="status" string="Statut" widget="badge"
+                                   decoration-success="status == 'success'"
+                                   decoration-danger="status == 'error'"/>
+                            <field name="duration_ms" string="Durée (ms)"/>
+                            <field name="ip" string="IP imprimante"/>
+                        </group>
+                    </group>
+                    <group string="Détails" invisible="not message">
+                        <field name="message" nolabel="1"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <!-- Action fenêtre globale -->
+    <record id="action_pos_printer_log" model="ir.actions.act_window">
+        <field name="name">Logs d'impression ePOS</field>
+        <field name="res_model">pos.printer.log</field>
+        <field name="view_mode">list,form</field>
+        <field name="context">{'search_default_filter_today': 1}</field>
+    </record>
+
+    <!-- Filtres de recherche -->
+    <record id="view_pos_printer_log_search" model="ir.ui.view">
+        <field name="name">pos.printer.log.search</field>
+        <field name="model">pos.printer.log</field>
+        <field name="arch" type="xml">
+            <search string="Logs d'impression">
+                <field name="printer_name" string="Imprimante"/>
+                <field name="order_name" string="Commande"/>
+                <filter name="filter_errors" string="Erreurs uniquement"
+                        domain="[('status','=','error')]"/>
+                <filter name="filter_today" string="Aujourd'hui"
+                        domain="[('create_date','&gt;=', (context_today()).strftime('%Y-%m-%d'))]"/>
+                <filter name="filter_week" string="Cette semaine"
+                        domain="[('create_date','&gt;=', (context_today() - relativedelta(days=7)).strftime('%Y-%m-%d'))]"/>
+                <separator/>
+                <group expand="0" string="Grouper par">
+                    <filter name="group_printer" string="Imprimante" context="{'group_by': 'printer_name'}"/>
+                    <filter name="group_status" string="Statut" context="{'group_by': 'status'}"/>
+                    <filter name="group_type" string="Type" context="{'group_by': 'job_type'}"/>
+                    <filter name="group_date" string="Date" context="{'group_by': 'create_date:day'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- Menu POS > Configuration > Logs ePOS -->
+    <menuitem id="menu_pos_printer_log"
+              name="Logs impression ePOS"
+              parent="point_of_sale.menu_point_config"
+              action="action_pos_printer_log"
+              sequence="99"
+              groups="point_of_sale.group_pos_manager"/>
+
+</odoo>

@@ -3,16 +3,6 @@
 import { BasePrinter } from "@point_of_sale/app/utils/printer/base_printer";
 import { _t } from "@web/core/l10n/translation";
 
-/**
- * EposDirectPrinter — Reçu client ePOS direct (réseau local).
- *
- * Flux :
- *   1. orm.call → serveur Odoo génère le XML ESC/POS + retourne l'IP
- *   2. fetch() → navigateur envoie le XML directement à l'imprimante (~2ms)
- *
- * Plus de round-trip cloud pour l'impression : le serveur sert uniquement
- * à générer le XML (accès aux données commande/société).
- */
 export class EposDirectPrinter extends BasePrinter {
 
     setup({ config, pos }) {
@@ -31,20 +21,32 @@ export class EposDirectPrinter extends BasePrinter {
             return this._error(_t("Commande non synchronisée"), _t("Attendez la fin du paiement."));
         }
 
+        const t0 = performance.now();
         let result;
         try {
             result = await this.pos.env.services.orm.call(
                 'pos.printer', '_get_epos_receipt_xml', [this.printerId, orderId]
             );
         } catch (err) {
+            this._log('receipt', 'error', Math.round(performance.now() - t0), '', err?.message || 'Erreur serveur', order.name);
             return this._error(_t("Erreur serveur"), err?.message || _t("Impossible de contacter Odoo."));
         }
 
         if (!result?.success) {
+            this._log('receipt', 'error', Math.round(performance.now() - t0), result?.ip || '', result?.message || '', order.name);
             return this._error(_t("Erreur impression"), result?.message || _t("Erreur inconnue."));
         }
 
-        return this._sendToDevice(result.ip, result.xml);
+        const printResult = await this._sendToDevice(result.ip, result.xml);
+        const duration = Math.round(performance.now() - t0);
+
+        if (printResult.successful) {
+            this._log('receipt', 'success', duration, result.ip, '', order.name);
+        } else {
+            this._log('receipt', 'error', duration, result.ip, printResult.message?.body || '', order.name);
+        }
+
+        return printResult;
     }
 
     sendPrintingJob(_img) {
@@ -76,20 +78,25 @@ export class EposDirectPrinter extends BasePrinter {
             return this._error(_t("Erreur imprimante"), _t("HTTP %s", resp.status));
         }
 
-        // Vérification réponse XML Epson
         try {
             const text = await resp.text();
             const doc = new DOMParser().parseFromString(text, 'text/xml');
             const response = doc.querySelector('response');
             if (response && response.getAttribute('success') === 'false') {
                 const code = response.getAttribute('code') || '?';
-                return this._error(_t("Erreur imprimante"), _t("Code: %s", code));
+                return this._error(_t("Erreur imprimante"), _t("Code Epson: %s", code));
             }
-        } catch (_) {
-            // Certains firmware Epson ne renvoient pas de XML valide — on ignore
-        }
+        } catch (_) { /* firmware sans XML valide */ }
 
         return { successful: true };
+    }
+
+    /** Fire-and-forget : pas d'await, zéro impact sur la vitesse. */
+    _log(jobType, status, durationMs, ip, message, orderName) {
+        this.pos.env.services.orm.call('pos.printer', '_create_log', [
+            this.printerId,
+            { job_type: jobType, status, duration_ms: durationMs, ip, message, order_name: orderName || '' },
+        ]).catch(() => {});
     }
 
     _error(title, body) {
