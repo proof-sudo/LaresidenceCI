@@ -10,4 +10,7 @@ class ResCompany(models.Model):
         ondelete={'barcode_qr': 'set default'},
     )
 
-    attendance_kiosk_barcode_source = fields.Selection(default='back')
+    attendance_kiosk_barcode_source = fields.Selection(
+        selection=[('front', 'Front Camera'), ('back', 'Back Camera')],
+        default='back',
+    )
