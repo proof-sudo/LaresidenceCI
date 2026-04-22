@@ -67,11 +67,6 @@
         <field name="group_ids" eval="[(6, 0, [ref('base.group_erp_manager')])]"/>
     </record>
 
-    <!-- Guest House → admin seulement (non utilisé) -->
-    <record id="booking_engine.booking_engine_menu_root" model="ir.ui.menu">
-        <field name="group_ids" eval="[(6, 0, [ref('base.group_erp_manager')])]"/>
-    </record>
-
     <!-- Knowledge → admin seulement (non utilisé) -->
     <record id="knowledge.knowledge_menu_root" model="ir.ui.menu">
         <field name="group_ids" eval="[(6, 0, [ref('base.group_erp_manager')])]"/>

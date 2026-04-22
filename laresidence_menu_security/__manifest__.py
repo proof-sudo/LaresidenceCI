@@ -5,7 +5,7 @@
     'author': 'Djakaridja Traore',
     'depends': [
         'base', 'mail', 'calendar', 'contacts', 'appointment',
-        'project_todo', 'knowledge', 'booking_engine',
+        'project_todo', 'knowledge',
         'sale', 'sales_team', 'spreadsheet_dashboard',
         'documents', 'planning', 'website', 'social',
         'hr', 'hr_holidays', 'approvals', 'whatsapp',
