@@ -18,12 +18,12 @@ def post_init_hook(env):
     for menu in root_menus:
         xml_ids = menu.get_external_id()
         xml_id = xml_ids.get(menu.id) or f'(no_xml_id, db_id={menu.id})'
-        if menu.groups_id:
+        if menu.group_ids:
             groups_str = ' | '.join(
                 f'{g.full_name} [{g.category_id.name}/{g.name}]'
-                for g in menu.groups_id
+                for g in menu.group_ids
             )
-            flag = "⚠ base.group_user" if 'base.group_user' in [g.xml_id for g in menu.groups_id] else "OK"
+            flag = "⚠ base.group_user" if 'base.group_user' in [g.xml_id for g in menu.group_ids] else "OK"
         else:
             groups_str = "AUCUN GROUPE — visible par tous"
             flag = "⚠ NO GROUP"
@@ -50,7 +50,7 @@ def post_init_hook(env):
 
         visible = []
         for menu in root_menus:
-            if not menu.groups_id or (menu.groups_id & user.groups_id):
+            if not menu.group_ids or (menu.group_ids & user.groups_id):
                 visible.append(menu.name)
 
         _logger.info("  USER : %-30s login=%s", user.name, user.login)
