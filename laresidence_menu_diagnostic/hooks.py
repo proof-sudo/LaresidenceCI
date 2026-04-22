@@ -6,6 +6,13 @@ _logger = logging.getLogger(__name__)
 SEP = "=" * 80
 
 
+def _s(val):
+    """Convertit une valeur potentiellement JSON-traduite (dict) en str."""
+    if isinstance(val, dict):
+        return val.get('en_US') or next(iter(val.values()), '') or ''
+    return val or ''
+
+
 def post_init_hook(env):
     cr = env.cr
 
@@ -24,10 +31,10 @@ def post_init_hook(env):
         WHERE m.parent_id IS NULL
         ORDER BY m.sequence
     """)
-    menus = cr.fetchall()   # (id, name, sequence, xml_id)
+    menus = [(mid, _s(mname), mseq, xml_id) for mid, mname, mseq, xml_id in cr.fetchall()]
 
     # Groupes associés à chaque menu
-    menu_groups = {}    # {menu_id: [(gid, gname, gxml_id), ...]}
+    menu_groups = {}
     try:
         cr.execute("SAVEPOINT mg_read")
         cr.execute("""
@@ -39,7 +46,7 @@ def post_init_hook(env):
                    ON d.model = 'res.groups' AND d.res_id = g.id
         """)
         for menu_id, gid, gname, gxml in cr.fetchall():
-            menu_groups.setdefault(menu_id, []).append((gid, gname, gxml))
+            menu_groups.setdefault(menu_id, []).append((gid, _s(gname), gxml))
         cr.execute("RELEASE SAVEPOINT mg_read")
     except Exception as exc:
         cr.execute("ROLLBACK TO SAVEPOINT mg_read")
@@ -65,10 +72,10 @@ def post_init_hook(env):
         WHERE u.share = false AND u.active = true
         ORDER BY p.name
     """)
-    users = cr.fetchall()   # (uid, name, login)
+    users = [(uid, _s(uname), ulogin) for uid, uname, ulogin in cr.fetchall()]
 
     # Groupes de chaque user
-    user_groups = {}    # {uid: [(gid, gname, gxml_id), ...]}
+    user_groups = {}
     try:
         cr.execute("SAVEPOINT ug_read")
         cr.execute("""
@@ -80,7 +87,7 @@ def post_init_hook(env):
                    ON d.model = 'res.groups' AND d.res_id = g.id
         """)
         for uid, gid, gname, gxml in cr.fetchall():
-            user_groups.setdefault(uid, []).append((gid, gname, gxml))
+            user_groups.setdefault(uid, []).append((gid, _s(gname), gxml))
         cr.execute("RELEASE SAVEPOINT ug_read")
     except Exception as exc:
         cr.execute("ROLLBACK TO SAVEPOINT ug_read")
@@ -90,7 +97,7 @@ def post_init_hook(env):
     for uid, uname, ulogin in users:
         ugrps = user_groups.get(uid, [])
         uid_set = {gid for gid, _, _ in ugrps}
-        groups_str = ', '.join(sorted(gname for _, gname, _ in ugrps)) or '(aucun)'
+        groups_str = ', '.join(sorted(_s(gname) for _, gname, _ in ugrps)) or '(aucun)'
 
         visible = []
         for mid, mname, _, _ in menus:
