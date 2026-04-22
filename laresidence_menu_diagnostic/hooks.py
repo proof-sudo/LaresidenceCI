@@ -5,6 +5,9 @@ _logger = logging.getLogger(__name__)
 
 SEP = "=" * 80
 
+# Prefixes de groupes purement techniques à exclure de l'affichage user
+_TECHNICAL_PREFIXES = ('Technical/', 'Extra Rights/', 'Hidden/', 'base/')
+
 
 def post_init_hook(env):
     _logger.info(SEP)
@@ -19,11 +22,9 @@ def post_init_hook(env):
         xml_ids = menu.get_external_id()
         xml_id = xml_ids.get(menu.id) or f'(no_xml_id, db_id={menu.id})'
         if menu.group_ids:
-            groups_str = ' | '.join(
-                f'{g.full_name} [{g.category_id.name}/{g.name}]'
-                for g in menu.group_ids
-            )
-            flag = "⚠ base.group_user" if 'base.group_user' in [g.xml_id for g in menu.group_ids] else "OK"
+            groups_str = ' | '.join(g.full_name for g in menu.group_ids)
+            xml_id_list = [g.get_external_id().get(g.id, '') for g in menu.group_ids]
+            flag = "⚠ base.group_user" if 'base.group_user' in xml_id_list else "OK"
         else:
             groups_str = "AUCUN GROUPE — visible par tous"
             flag = "⚠ NO GROUP"
@@ -41,12 +42,7 @@ def post_init_hook(env):
     )
 
     for user in users:
-        biz_groups = user.groups_id.filtered(
-            lambda g: g.category_id and g.category_id.name not in (
-                'Technical', 'Extra Rights', 'Hidden'
-            )
-        )
-        groups_str = ', '.join(sorted(g.full_name for g in biz_groups)) or '(aucun groupe métier)'
+        all_groups = ', '.join(sorted(g.full_name for g in user.groups_id if g.full_name)) or '(aucun)'
 
         visible = []
         for menu in root_menus:
@@ -54,7 +50,7 @@ def post_init_hook(env):
                 visible.append(menu.name)
 
         _logger.info("  USER : %-30s login=%s", user.name, user.login)
-        _logger.info("    groupes : %s", groups_str)
+        _logger.info("    groupes : %s", all_groups)
         _logger.info("    menus   : %s", ' | '.join(visible) if visible else '(aucun)')
         _logger.info("")
 
