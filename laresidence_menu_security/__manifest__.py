@@ -1,7 +1,7 @@
 {
     'name': 'La Résidence - Menu Security',
     'version': '19.0.1.0.0',
-    'category': 'Hidden',
+    'category': 'Tools',
     'summary': 'Restreint la visibilité des menus aux groupes spécifiques de chaque module',
     'author': 'Djakaridja Traore',
     'depends': [
