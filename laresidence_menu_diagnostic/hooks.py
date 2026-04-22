@@ -59,10 +59,11 @@ def post_init_hook(env):
 
     # ── 2. Users internes ────────────────────────────────────────────────────
     cr.execute("""
-        SELECT id, name, login
-        FROM res_users
-        WHERE share = false AND active = true
-        ORDER BY name
+        SELECT u.id, p.name, u.login
+        FROM res_users u
+        JOIN res_partner p ON p.id = u.partner_id
+        WHERE u.share = false AND u.active = true
+        ORDER BY p.name
     """)
     users = cr.fetchall()   # (uid, name, login)
 
