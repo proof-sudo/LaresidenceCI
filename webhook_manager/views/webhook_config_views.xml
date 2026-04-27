@@ -144,8 +144,7 @@ Authorization: Bearer VOTRE_CLE_API  // Si configurée</pre>
     <menuitem id="menu_webhook_root"
               name="Webhooks"
               sequence="100"
-              web_icon="webhook,static/description/icon.png"
-              groups="base.group_system"/>
+              web_icon="webhook,static/description/icon.png"/>
     
     <menuitem id="menu_webhook_config"
               name="Configuration"
