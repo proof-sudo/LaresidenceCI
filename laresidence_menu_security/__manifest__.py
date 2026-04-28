@@ -2,7 +2,7 @@
     'name': 'La Résidence - Menu Security',
     'version': '19.0.2.0.0',
     'summary': 'Restreint la visibilité des menus aux groupes spécifiques de chaque module',
-    'author': 'Djakaridja Traore',
+    'author': 'Djakaridja Traore : djakaridjatraore@outlook.com',
     'depends': [
         'base', 'mail', 'calendar', 'contacts', 'appointment',
         'project_todo', 'knowledge', 'sale_renting',
