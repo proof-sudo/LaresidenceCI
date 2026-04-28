@@ -48,7 +48,7 @@ class ResUsers(models.Model):
     def _get_tr_group(self, xmlid):
         return self.env.ref(xmlid, raise_if_not_found=False)
 
-    @api.depends('write_date')
+    @api.depends('groups_id')
     def _compute_tr_groups(self):
         if not self.ids:
             return
@@ -77,15 +77,6 @@ class ResUsers(models.Model):
             return
         for user in self:
             if user[fname]:
-                self.env.cr.execute(
-                    "INSERT INTO res_groups_users_rel (gid, uid) "
-                    "VALUES (%s, %s) ON CONFLICT DO NOTHING",
-                    (group.id, user.id)
-                )
+                user.sudo().write({'groups_id': [(4, group.id)]})
             else:
-                self.env.cr.execute(
-                    "DELETE FROM res_groups_users_rel WHERE gid = %s AND uid = %s",
-                    (group.id, user.id)
-                )
-        self.invalidate_recordset(list(GROUP_XMLIDS.keys()))
-        self.env.registry.clear_cache()
+                user.sudo().write({'groups_id': [(3, group.id)]})
