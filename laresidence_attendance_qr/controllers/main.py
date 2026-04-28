@@ -13,7 +13,7 @@ _QR_URL_RE = re.compile(r'/laresidence/attendance/qr/scan/(att-[A-Za-z0-9_-]+)')
 class HrAttendanceQr(HrAttendance):
     """Étend le contrôleur kiosque pour reconnaître les tokens QR att-..."""
 
-    @http.route('/hr_attendance/attendance_barcode_scanned', type="json", auth="public")
+    @http.route('/hr_attendance/attendance_barcode_scanned', type="jsonrpc", auth="public")
     def scan_barcode(self, token, barcode):
         qr_token = self._extract_qr_token(barcode)
         if qr_token:
