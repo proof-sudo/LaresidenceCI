@@ -74,9 +74,9 @@
         <field name="group_ids" eval="[(6, 0, [ref('sales_team.group_sale_salesman')])]"/>
     </record>
 
-    <!-- Location/Rental → admin seulement (non utilisé) -->
+    <!-- Location/Rental → groupe custom (accès explicite requis, personne par défaut) -->
     <record id="sale_renting.rental_menu_root" model="ir.ui.menu">
-        <field name="group_ids" eval="[(6, 0, [ref('base.group_erp_manager')])]"/>
+        <field name="group_ids" eval="[(6, 0, [ref('laresidence_menu_security.group_rental_user')])]"/>
     </record>
 
     <!-- Dashboards → groupe custom configurable -->
