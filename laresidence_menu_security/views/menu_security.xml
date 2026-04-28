@@ -45,9 +45,9 @@
         <field name="group_ids" eval="[(6, 0, [ref('social.group_social_user')])]"/>
     </record>
 
-    <!-- Employees → hr.group_hr_user -->
+    <!-- Employees → admin seulement -->
     <record id="hr.menu_hr_root" model="ir.ui.menu">
-        <field name="group_ids" eval="[(6, 0, [ref('hr.group_hr_user')])]"/>
+        <field name="group_ids" eval="[(6, 0, [ref('base.group_erp_manager')])]"/>
     </record>
 
     <!-- Time Off → groupe custom configurable -->
