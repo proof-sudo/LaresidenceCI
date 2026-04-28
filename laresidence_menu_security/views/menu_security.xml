@@ -35,9 +35,9 @@
         <field name="group_ids" eval="[(6, 0, [ref('planning.group_planning_user')])]"/>
     </record>
 
-    <!-- Website → website.group_website_user -->
+    <!-- Website → admin seulement (non utilisé) -->
     <record id="website.menu_website_configuration" model="ir.ui.menu">
-        <field name="group_ids" eval="[(6, 0, [ref('website.group_website_user')])]"/>
+        <field name="group_ids" eval="[(6, 0, [ref('base.group_erp_manager')])]"/>
     </record>
 
     <!-- Social Marketing → social.group_social_user -->
