@@ -77,6 +77,20 @@ class ResUsers(models.Model):
             return
         for user in self:
             if user[fname]:
-                user.sudo().write({'groups_id': [(4, group.id)]})
+                self.env.cr.execute(
+                    "INSERT INTO res_groups_users_rel (gid, uid) "
+                    "VALUES (%s, %s) ON CONFLICT DO NOTHING",
+                    (group.id, user.id),
+                )
             else:
-                user.sudo().write({'groups_id': [(3, group.id)]})
+                self.env.cr.execute(
+                    "DELETE FROM res_groups_users_rel WHERE gid = %s AND uid = %s",
+                    (group.id, user.id),
+                )
+        # Mettre à jour write_date pour déclencher le recompute (@api.depends('write_date'))
+        self.env.cr.execute(
+            "UPDATE res_users SET write_date = NOW() WHERE id IN %s",
+            (tuple(self.ids),),
+        )
+        self.invalidate_recordset(list(GROUP_XMLIDS.keys()) + ['write_date'])
+        self.env.registry.clear_cache()
