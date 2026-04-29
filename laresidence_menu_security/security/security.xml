@@ -50,5 +50,11 @@
             <field name="implied_ids" eval="[(4, ref('base.group_user'))]"/>
         </record>
 
+        <!-- Division Direction : seul groupe autorisé à voir phone/email des contacts -->
+        <record id="group_division_direction" model="res.groups">
+            <field name="name">Division Direction</field>
+            <field name="implied_ids" eval="[(4, ref('base.group_user'))]"/>
+        </record>
+
     </data>
 </odoo>

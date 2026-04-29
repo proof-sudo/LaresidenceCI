@@ -100,6 +100,41 @@
     </record>
 
     <!-- ══════════════════════════════════════════════════════════════════
+         Contacts : phone, mobile, email — visibles uniquement par Direction
+         ══════════════════════════════════════════════════════════════════ -->
+
+    <record id="view_partner_form_hide_phone_email" model="ir.ui.view">
+        <field name="name">res.partner.form.hide.phone.email</field>
+        <field name="model">res.partner</field>
+        <field name="inherit_id" ref="base.view_partner_form"/>
+        <field name="arch" type="xml">
+            <field name="phone" position="attributes">
+                <attribute name="groups">laresidence_menu_security.group_division_direction</attribute>
+            </field>
+            <field name="mobile" position="attributes">
+                <attribute name="groups">laresidence_menu_security.group_division_direction</attribute>
+            </field>
+            <field name="email" position="attributes">
+                <attribute name="groups">laresidence_menu_security.group_division_direction</attribute>
+            </field>
+        </field>
+    </record>
+
+    <record id="view_partner_tree_hide_phone_email" model="ir.ui.view">
+        <field name="name">res.partner.tree.hide.phone.email</field>
+        <field name="model">res.partner</field>
+        <field name="inherit_id" ref="base.view_partner_tree"/>
+        <field name="arch" type="xml">
+            <field name="phone" position="attributes">
+                <attribute name="groups">laresidence_menu_security.group_division_direction</attribute>
+            </field>
+            <field name="email" position="attributes">
+                <attribute name="groups">laresidence_menu_security.group_division_direction</attribute>
+            </field>
+        </field>
+    </record>
+
+    <!-- ══════════════════════════════════════════════════════════════════
          Frontdesk → les non-admin atterrissent directement sur Visiteurs
          ══════════════════════════════════════════════════════════════════ -->
 
