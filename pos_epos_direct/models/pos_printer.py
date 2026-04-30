@@ -76,6 +76,34 @@ class PosPrinter(models.Model):
                 [('printer_id', '=', printer.id)]
             )
 
+    def action_test_connection(self):
+        self.ensure_one()
+        if not self.epson_printer_ip:
+            return {
+                'type': 'ir.actions.client',
+                'tag': 'display_notification',
+                'params': {
+                    'title': 'IP manquante',
+                    'message': "Renseignez l'adresse IP avant de tester.",
+                    'type': 'warning',
+                    'sticky': False,
+                },
+            }
+        ip = self.epson_printer_ip.strip()
+        root = ET.Element('epos-print', xmlns=EPOS_NS)
+        _text(root, _center('=== TEST CONNEXION ===') + '\n', align='center', em='true', width='2', height='2')
+        _text(root, _center(self.name) + '\n', align='center')
+        _separator(root)
+        _text(root, _center('Connexion OK') + '\n', align='center')
+        _feed(root, 3)
+        _cut(root)
+        xml_str = '<?xml version="1.0" encoding="utf-8"?>' + ET.tostring(root, encoding='unicode')
+        return {
+            'type': 'ir.actions.client',
+            'tag': 'pos_epos_test_connection',
+            'params': {'ip': ip, 'xml_test': xml_str},
+        }
+
     def action_view_logs(self):
         return {
             'type': 'ir.actions.act_window',

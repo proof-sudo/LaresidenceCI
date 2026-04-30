@@ -28,6 +28,9 @@ Avantages par rapport à l'implémentation native :
         'views/pos_printer_form.xml',
     ],
     'assets': {
+        'web.assets_backend': [
+            'pos_epos_direct/static/src/app/backend/test_connection_action.js',
+        ],
         'point_of_sale._assets_pos': [
             'pos_epos_direct/static/src/app/utils/printer/epos_direct_printer.js',
             'pos_epos_direct/static/src/app/utils/printer/epos_direct_kitchen_printer.js',

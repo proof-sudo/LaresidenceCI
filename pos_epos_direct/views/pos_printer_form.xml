@@ -16,6 +16,13 @@
             <xpath expr="//sheet" position="before">
                 <div class="oe_button_box" name="button_box"
                      invisible="printer_type not in ('epos_direct', 'epos_direct_kitchen')">
+                    <button name="action_test_connection" type="object"
+                            class="oe_stat_button" icon="fa-plug">
+                        <span class="o_stat_info">
+                            <span class="o_stat_text">Tester</span>
+                            <span class="o_stat_text">connexion</span>
+                        </span>
+                    </button>
                     <button name="action_view_logs" type="object"
                             class="oe_stat_button" icon="fa-list-alt">
                         <field name="log_count" widget="statinfo" string="Logs"/>
