@@ -88,7 +88,7 @@
     <!-- Menu POS > Configuration > Logs ePOS -->
     <menuitem id="menu_pos_printer_log"
               name="Logs impression ePOS"
-              parent="point_of_sale.menu_point_config"
+              parent="point_of_sale.menu_point_root"
               action="action_pos_printer_log"
               sequence="99"
               groups="point_of_sale.group_pos_manager"/>
