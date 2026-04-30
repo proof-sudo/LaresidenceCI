@@ -101,7 +101,7 @@ export class EposDirectKitchenPrinter extends BasePrinter {
         this.pos.env.services.orm.call('pos.printer', '_create_log', [
             this.printerId,
             { job_type: jobType, status, duration_ms: durationMs, ip, message, order_name: orderName || '' },
-        ]).catch(() => {});
+        ]).catch((err) => console.error('[ePOS] _create_log failed:', err));
     }
 
     _error(title, body) {
