@@ -73,7 +73,7 @@
                 <filter name="filter_today" string="Aujourd'hui"
                         domain="[('create_date','&gt;=', (context_today()).strftime('%Y-%m-%d'))]"/>
                 <filter name="filter_week" string="Cette semaine"
-                        domain="[('create_date','&gt;=', (context_today() - relativedelta(days=7)).strftime('%Y-%m-%d'))]"/>
+                        domain="[('create_date','&gt;=', (context_today() - datetime.timedelta(days=7)).strftime('%Y-%m-%d'))]"/>
                 <separator/>
                 <group expand="0" string="Grouper par">
                     <filter name="group_printer" string="Imprimante" context="{'group_by': 'printer_name'}"/>
