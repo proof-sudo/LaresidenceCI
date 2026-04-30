@@ -61,7 +61,7 @@
     </record>
 
     <!-- Filtres de recherche -->
-    <record id="view_pos_printer_log_search" model="ir.ui.view">
+    <!-- <record id="view_pos_printer_log_search" model="ir.ui.view">
         <field name="name">pos.printer.log.search</field>
         <field name="model">pos.printer.log</field>
         <field name="arch" type="xml">
@@ -83,7 +83,7 @@
                 </group>
             </search>
         </field>
-    </record>
+    </record> -->
 
     <!-- Menu POS > Configuration > Logs ePOS -->
     <menuitem id="menu_pos_printer_log"
