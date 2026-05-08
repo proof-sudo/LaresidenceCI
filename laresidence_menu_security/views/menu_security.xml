@@ -69,9 +69,9 @@
         <field name="group_ids" eval="[(6, 0, [ref('laresidence_menu_security.group_knowledge_user')])]"/>
     </record>
 
-    <!-- Sales → admin seulement (géré via theresidence_api) -->
+    <!-- Sales → complètement masqué (géré via theresidence_api) -->
     <record id="sale.sale_menu_root" model="ir.ui.menu">
-        <field name="group_ids" eval="[(6, 0, [ref('base.group_erp_manager')])]"/>
+        <field name="active" eval="False"/>
     </record>
 
     <!-- Location/Rental → groupe custom (accès explicite requis, personne par défaut) -->
