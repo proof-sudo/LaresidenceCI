@@ -11,7 +11,7 @@
         <record id="rule_contacts_suppliers_only" model="ir.rule">
             <field name="name">Contacts : fournisseurs uniquement (users standard)</field>
             <field name="model_id" ref="base.model_res_partner"/>
-            <field name="domain_force">['|', '|', ('supplier_rank', '&gt;', 0), ('customer_rank', '=', 0), ('user_ids', '!=', False)]</field>
+            <field name="domain_force">['|', ('supplier_rank', '&gt;', 0), ('user_ids', '!=', False)]</field>
             <field name="groups" eval="[(4, ref('base.group_user'))]"/>
             <field name="perm_read" eval="True"/>
             <field name="perm_write" eval="False"/>
