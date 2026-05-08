@@ -35,10 +35,7 @@
         <field name="group_ids" eval="[(6, 0, [ref('planning.group_planning_user')])]"/>
     </record>
 
-    <!-- Website → complètement masqué (géré hors Odoo) -->
-    <record id="website.menu_website" model="ir.ui.menu">
-        <field name="active" eval="False"/>
-    </record>
+    <!-- Website → masqué via migration SQL (xmlid instable selon la version) -->
 
     <!-- Social Marketing → social.group_social_user -->
     <record id="social.menu_social_global" model="ir.ui.menu">
