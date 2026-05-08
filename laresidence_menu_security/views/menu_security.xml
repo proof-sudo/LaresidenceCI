@@ -111,9 +111,6 @@
             <field name="phone" position="attributes">
                 <attribute name="groups">laresidence_menu_security.group_division_direction</attribute>
             </field>
-            <field name="mobile" position="attributes">
-                <attribute name="groups">laresidence_menu_security.group_division_direction</attribute>
-            </field>
             <field name="email" position="attributes">
                 <attribute name="groups">laresidence_menu_security.group_division_direction</attribute>
             </field>
