@@ -1,8 +1,11 @@
 id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
 access_theresidence_api_key,theresidence.api.key,model_theresidence_api_key,theresidence_api.group_tr_admin,1,1,1,1
 access_theresidence_webhook,theresidence.webhook,model_theresidence_webhook,theresidence_api.group_tr_admin,1,1,1,1
+access_theresidence_webhook_user,theresidence.webhook.user,model_theresidence_webhook,base.group_user,1,0,0,0
 access_theresidence_webhook_event_type,theresidence.webhook.event.type,model_theresidence_webhook_event_type,theresidence_api.group_tr_admin,1,1,1,1
+access_theresidence_webhook_event_type_user,theresidence.webhook.event.type.user,model_theresidence_webhook_event_type,base.group_user,1,0,0,0
 access_theresidence_webhook_event,theresidence.webhook.event,model_theresidence_webhook_event,theresidence_api.group_tr_admin,1,1,1,1
+access_theresidence_webhook_event_user,theresidence.webhook.event.user,model_theresidence_webhook_event,base.group_user,1,0,1,0
 access_theresidence_membership_type_config,theresidence.membership.type.config,model_theresidence_membership_type,theresidence_api.group_tr_config,1,0,0,0
 access_theresidence_membership_type_admin,theresidence.membership.type.admin,model_theresidence_membership_type,theresidence_api.group_tr_admin,1,1,1,1
 access_theresidence_space_type_config,theresidence.space.type.config,model_theresidence_space_type,theresidence_api.group_tr_config,1,0,0,0
