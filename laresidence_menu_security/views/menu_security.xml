@@ -20,9 +20,9 @@
         <field name="group_ids" eval="[(6, 0, [ref('laresidence_menu_security.group_calendar_user')])]"/>
     </record>
 
-    <!-- Contacts → base.group_partner_manager -->
+    <!-- Contacts → tous les utilisateurs internes -->
     <record id="contacts.menu_contacts" model="ir.ui.menu">
-        <field name="group_ids" eval="[(6, 0, [ref('base.group_partner_manager')])]"/>
+        <field name="group_ids" eval="[(6, 0, [ref('base.group_user')])]"/>
     </record>
 
     <!-- Documents → documents.group_documents_user -->
@@ -97,7 +97,8 @@
     </record>
 
     <!-- ══════════════════════════════════════════════════════════════════
-         Contacts : phone, mobile, email — visibles uniquement par Direction
+         Contacts : phone/mobile/email visibles si fournisseur/employé
+         ou si user a group_contacts_full_details
          ══════════════════════════════════════════════════════════════════ -->
 
     <record id="view_partner_form_hide_phone_email" model="ir.ui.view">
@@ -105,11 +106,17 @@
         <field name="model">res.partner</field>
         <field name="inherit_id" ref="base.view_partner_form"/>
         <field name="arch" type="xml">
+            <xpath expr="//form" position="inside">
+                <field name="x_show_contact_details" invisible="1"/>
+            </xpath>
             <field name="phone" position="attributes">
-                <attribute name="groups">laresidence_menu_security.group_division_direction</attribute>
+                <attribute name="invisible">not x_show_contact_details</attribute>
+            </field>
+            <field name="mobile" position="attributes">
+                <attribute name="invisible">not x_show_contact_details</attribute>
             </field>
             <field name="email" position="attributes">
-                <attribute name="groups">laresidence_menu_security.group_division_direction</attribute>
+                <attribute name="invisible">not x_show_contact_details</attribute>
             </field>
         </field>
     </record>
@@ -119,12 +126,41 @@
         <field name="model">res.partner</field>
         <field name="inherit_id" ref="base.view_partner_tree"/>
         <field name="arch" type="xml">
+            <xpath expr="//list" position="inside">
+                <field name="x_show_contact_details" column_invisible="1"/>
+            </xpath>
             <field name="phone" position="attributes">
-                <attribute name="groups">laresidence_menu_security.group_division_direction</attribute>
+                <attribute name="invisible">not x_show_contact_details</attribute>
             </field>
             <field name="email" position="attributes">
-                <attribute name="groups">laresidence_menu_security.group_division_direction</attribute>
+                <attribute name="invisible">not x_show_contact_details</attribute>
             </field>
+        </field>
+    </record>
+
+    <!-- ══════════════════════════════════════════════════════════════════
+         Fiche utilisateur : onglet Permissions Contacts
+         ══════════════════════════════════════════════════════════════════ -->
+
+    <record id="view_users_form_contacts_permissions" model="ir.ui.view">
+        <field name="name">res.users.form.contacts.permissions</field>
+        <field name="model">res.users</field>
+        <field name="inherit_id" ref="base.view_users_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//notebook" position="inside">
+                <page string="Permissions Contacts" name="contacts_permissions">
+                    <group string="Accès aux contacts">
+                        <field name="x_contacts_can_create"/>
+                        <field name="x_contacts_full_details"/>
+                    </group>
+                    <div class="alert alert-info mt-2" role="alert">
+                        <b>Peut créer / modifier</b> : permet de créer et éditer des contacts.<br/>
+                        <b>Coordonnées complètes</b> : affiche téléphone et email de TOUS les contacts
+                        (clients inclus). Sans ce droit, seuls les coordonnées des fournisseurs
+                        et employés sont visibles.
+                    </div>
+                </page>
+            </xpath>
         </field>
     </record>
 

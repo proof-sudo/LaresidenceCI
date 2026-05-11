@@ -53,12 +53,18 @@
         <!-- Division Direction : accès complet aux contacts clients -->
         <record id="group_division_direction" model="res.groups">
             <field name="name">Division Direction</field>
-            <field name="implied_ids" eval="[(4, ref('base.group_user'))]"/>
+            <field name="implied_ids" eval="[(4, ref('base.group_user')), (4, ref('laresidence_menu_security.group_contacts_full_details'))]"/>
         </record>
 
         <!-- Division Commercial : accès complet aux contacts clients -->
         <record id="group_division_commercial" model="res.groups">
             <field name="name">Division Commercial</field>
+            <field name="implied_ids" eval="[(4, ref('base.group_user')), (4, ref('laresidence_menu_security.group_contacts_full_details'))]"/>
+        </record>
+
+        <!-- Contacts : coordonnées complètes (téléphone/email de tous les contacts) -->
+        <record id="group_contacts_full_details" model="res.groups">
+            <field name="name">Contacts / Coordonnées complètes</field>
             <field name="implied_ids" eval="[(4, ref('base.group_user'))]"/>
         </record>
 
