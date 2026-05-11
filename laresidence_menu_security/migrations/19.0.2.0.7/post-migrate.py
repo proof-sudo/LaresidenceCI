@@ -35,3 +35,14 @@ def migrate(cr, version):
         )
     else:
         _logger.info("migrate 2.0.7: user cuisine@laresidence-abidjan.com non trouvé")
+
+    # Désactiver les anciennes règles division si elles existent encore
+    for xmlid_name in ('rule_contacts_all_commercial', 'rule_contacts_all_direction'):
+        cr.execute(
+            "SELECT res_id FROM ir_model_data WHERE module = 'laresidence_menu_security' AND name = %s",
+            (xmlid_name,)
+        )
+        row = cr.fetchone()
+        if row:
+            cr.execute("UPDATE ir_rule SET active = false WHERE id = %s", (row[0],))
+            _logger.info("migrate 2.0.7: %s désactivée (id=%s)", xmlid_name, row[0])

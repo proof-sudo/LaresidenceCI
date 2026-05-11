@@ -14,14 +14,5 @@
             <field name="perm_unlink" eval="False"/>
         </record>
 
-        <!-- Anciennes règles division — désactivées (remplacées par group_contacts_full_details) -->
-        <record id="rule_contacts_all_commercial" model="ir.rule">
-            <field name="active" eval="False"/>
-        </record>
-
-        <record id="rule_contacts_all_direction" model="ir.rule">
-            <field name="active" eval="False"/>
-        </record>
-
     </data>
 </odoo>
