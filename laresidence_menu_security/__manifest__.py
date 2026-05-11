@@ -1,6 +1,6 @@
 {
     'name': 'La Résidence - Menu Security',
-    'version': '19.0.2.0.4',
+    'version': '19.0.2.0.5',
     'summary': 'Restreint la visibilité des menus aux groupes spécifiques de chaque module',
     'author': 'Djakaridja Traore : djakaridjatraore@outlook.com',
     'depends': [

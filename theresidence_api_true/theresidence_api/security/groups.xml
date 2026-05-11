@@ -26,6 +26,11 @@
         <field name="name">The Residence / Configuration</field>
     </record>
 
+    <!-- Gestionnaire Espaces -->
+    <record id="group_tr_spaces" model="res.groups">
+        <field name="name">The Residence / Gestionnaire Espaces</field>
+    </record>
+
     <!-- Administrateur — implique tous les groupes -->
     <record id="group_tr_admin" model="res.groups">
         <field name="name">The Residence / Administrateur</field>
@@ -35,6 +40,7 @@
             Command.link(ref('group_tr_subscriptions')),
             Command.link(ref('group_tr_orders')),
             Command.link(ref('group_tr_config')),
+            Command.link(ref('group_tr_spaces')),
         ]"/>
     </record>
 

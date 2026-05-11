@@ -8,6 +8,7 @@ GROUP_XMLIDS = {
     'x_tr_subscriptions': 'theresidence_api.group_tr_subscriptions',
     'x_tr_orders':        'theresidence_api.group_tr_orders',
     'x_tr_config':        'theresidence_api.group_tr_config',
+    'x_tr_spaces':        'theresidence_api.group_tr_spaces',
 }
 
 
@@ -43,6 +44,11 @@ class ResUsers(models.Model):
         string='Configuration',
         compute='_compute_tr_groups',
         inverse=lambda self: self._set_tr_group('x_tr_config'),
+    )
+    x_tr_spaces = fields.Boolean(
+        string='Gestionnaire Espaces',
+        compute='_compute_tr_groups',
+        inverse=lambda self: self._set_tr_group('x_tr_spaces'),
     )
 
     def _get_tr_group(self, xmlid):
