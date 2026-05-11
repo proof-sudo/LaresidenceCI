@@ -25,32 +25,6 @@
         <field name="group_ids" eval="[(6, 0, [ref('base.group_user')])]"/>
     </record>
 
-    <!-- Contacts list : désactiver bouton Nouveau pour tous (priorité 20) -->
-    <record id="view_partner_list_no_create" model="ir.ui.view">
-        <field name="name">res.partner.list.restrict.create</field>
-        <field name="model">res.partner</field>
-        <field name="inherit_id" ref="base.view_partner_tree"/>
-        <field name="priority">20</field>
-        <field name="arch" type="xml">
-            <list position="attributes">
-                <attribute name="create">0</attribute>
-            </list>
-        </field>
-    </record>
-
-    <!-- Contacts list : réactiver bouton Nouveau pour group_contacts_full_details / admin (priorité 21, écrase la vue précédente) -->
-    <record id="view_partner_list_allow_create" model="ir.ui.view">
-        <field name="name">res.partner.list.allow.create</field>
-        <field name="model">res.partner</field>
-        <field name="inherit_id" ref="base.view_partner_tree"/>
-        <field name="groups_id" eval="[(6, 0, [ref('laresidence_menu_security.group_contacts_full_details'), ref('base.group_erp_manager')])]"/>
-        <field name="priority">21</field>
-        <field name="arch" type="xml">
-            <list position="attributes">
-                <attribute name="create">1</attribute>
-            </list>
-        </field>
-    </record>
 
     <!-- Documents → documents.group_documents_user -->
     <record id="documents.menu_root" model="ir.ui.menu">
