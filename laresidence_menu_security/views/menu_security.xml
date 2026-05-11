@@ -124,7 +124,7 @@
         <field name="inherit_id" ref="base.view_partner_tree"/>
         <field name="arch" type="xml">
             <xpath expr="//list" position="inside">
-                <field name="x_show_contact_details" column_invisible="1"/>
+                <field name="x_show_contact_details" invisible="1"/>
             </xpath>
             <field name="phone" position="attributes">
                 <attribute name="invisible">not x_show_contact_details</attribute>
