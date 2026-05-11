@@ -112,9 +112,6 @@
             <field name="phone" position="attributes">
                 <attribute name="invisible">not x_show_contact_details</attribute>
             </field>
-            <field name="mobile" position="attributes">
-                <attribute name="invisible">not x_show_contact_details</attribute>
-            </field>
             <field name="email" position="attributes">
                 <attribute name="invisible">not x_show_contact_details</attribute>
             </field>
