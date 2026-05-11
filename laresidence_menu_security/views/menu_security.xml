@@ -25,6 +25,20 @@
         <field name="group_ids" eval="[(6, 0, [ref('base.group_user')])]"/>
     </record>
 
+    <!-- Contacts list : masquer bouton Nouveau sauf pour group_contacts_full_details / admin -->
+    <record id="view_partner_list_no_create" model="ir.ui.view">
+        <field name="name">res.partner.list.restrict.create</field>
+        <field name="model">res.partner</field>
+        <field name="inherit_id" ref="contacts.res_partner_view_list"/>
+        <field name="arch" type="xml">
+            <list position="attributes">
+                <attribute name="create">0</attribute>
+                <attribute name="create" groups="laresidence_menu_security.group_contacts_full_details">1</attribute>
+                <attribute name="create" groups="base.group_erp_manager">1</attribute>
+            </list>
+        </field>
+    </record>
+
     <!-- Documents → documents.group_documents_user -->
     <record id="documents.menu_root" model="ir.ui.menu">
         <field name="group_ids" eval="[(6, 0, [ref('documents.group_documents_user')])]"/>
