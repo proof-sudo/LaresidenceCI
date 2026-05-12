@@ -104,19 +104,19 @@
         <field name="model">sale.order</field>
         <field name="arch" type="xml">
             <list string="Réservations" default_order="x_tr_start_time desc">
-                <field name="name" string="N° Réservation"/>
-                <field name="partner_id" string="Client"/>
-                <field name="x_tr_space_id" string="Espace"/>
-                <field name="x_tr_start_time" string="Début"/>
-                <field name="x_tr_end_time" string="Fin"/>
-                <field name="x_tr_guest_count" string="Invités"/>
-                <field name="x_tr_reservation_status" string="Statut" widget="badge"
+                <field name="name" string="N° Réservation" optional="show"/>
+                <field name="partner_id" string="Client" optional="show"/>
+                <field name="x_tr_space_id" string="Espace" optional="show"/>
+                <field name="x_tr_start_time" string="Début" optional="show"/>
+                <field name="x_tr_end_time" string="Fin" optional="show"/>
+                <field name="x_tr_guest_count" string="Invités" optional="show"/>
+                <field name="x_tr_reservation_status" string="Statut" optional="show" widget="badge"
                        decoration-primary="x_tr_reservation_status == 'PENDING'"
                        decoration-success="x_tr_reservation_status == 'RESERVED'"
                        decoration-warning="x_tr_reservation_status == 'ARRIVED'"
                        decoration-info="x_tr_reservation_status == 'COMPLETED'"
                        decoration-danger="x_tr_reservation_status == 'CANCELLED'"/>
-                <field name="amount_total" string="Montant"/>
+                <field name="amount_total" string="Montant" optional="show"/>
             </list>
         </field>
     </record>
