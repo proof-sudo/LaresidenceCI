@@ -98,7 +98,30 @@
         </field>
     </record>
 
-    <!-- Inherit list View -->
+    <!-- Vue liste dédiée aux réservations (primaire, utilisée par action_theresidence_reservations) -->
+    <record id="view_theresidence_reservations_list" model="ir.ui.view">
+        <field name="name">theresidence.reservations.list</field>
+        <field name="model">sale.order</field>
+        <field name="arch" type="xml">
+            <list string="Réservations" default_order="x_tr_start_time desc">
+                <field name="name" string="N° Réservation"/>
+                <field name="partner_id" string="Client"/>
+                <field name="x_tr_space_id" string="Espace"/>
+                <field name="x_tr_start_time" string="Début"/>
+                <field name="x_tr_end_time" string="Fin"/>
+                <field name="x_tr_guest_count" string="Invités"/>
+                <field name="x_tr_reservation_status" string="Statut" widget="badge"
+                       decoration-primary="x_tr_reservation_status == 'PENDING'"
+                       decoration-success="x_tr_reservation_status == 'RESERVED'"
+                       decoration-warning="x_tr_reservation_status == 'ARRIVED'"
+                       decoration-info="x_tr_reservation_status == 'COMPLETED'"
+                       decoration-danger="x_tr_reservation_status == 'CANCELLED'"/>
+                <field name="amount_total" string="Montant"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- Inherit list View (liste globale ventes — champs TR en option masquée) -->
     <record id="view_sale_order_list_inherit_theresidence" model="ir.ui.view">
         <field name="name">sale.order.list.inherit.theresidence</field>
         <field name="model">sale.order</field>
@@ -140,6 +163,10 @@
         <field name="view_mode">list,form,calendar</field>
         <field name="domain">[('x_tr_is_reservation', '=', True)]</field>
         <field name="context">{'default_x_tr_is_reservation': True}</field>
+        <field name="view_ids" eval="[
+            (5,),
+            (0, 0, {'view_mode': 'list', 'view_id': ref('theresidence_api.view_theresidence_reservations_list')}),
+        ]"/>
         <field name="help" type="html">
             <p class="o_view_nocontent_smiling_face">
                 Créer une nouvelle réservation
