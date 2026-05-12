@@ -116,6 +116,7 @@
                        decoration-warning="x_tr_reservation_status == 'ARRIVED'"
                        decoration-info="x_tr_reservation_status == 'COMPLETED'"
                        decoration-danger="x_tr_reservation_status == 'CANCELLED'"/>
+                <field name="user_id" string="Vendeur" optional="show"/>
                 <field name="amount_total" string="Montant" optional="show"/>
             </list>
         </field>
