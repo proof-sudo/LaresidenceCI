@@ -64,6 +64,16 @@ class SaleOrder(models.Model):
             event.id, event.name, self.x_tr_uuid,
         )
 
+    def action_cancel_reservation(self):
+        super().action_cancel_reservation()
+        for order in self:
+            if order.x_tr_is_reservation and order.x_tr_event_id:
+                order.x_tr_event_id.sudo().write({'active': False})
+                _logger.info(
+                    '[TR EVENT SYNC] Événement archivé (annulation réservation %s, event.id=%s)',
+                    order.x_tr_uuid, order.x_tr_event_id.id,
+                )
+
     def action_view_tr_event(self):
         self.ensure_one()
         return {
