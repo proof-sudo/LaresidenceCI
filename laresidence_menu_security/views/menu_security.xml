@@ -25,20 +25,6 @@
         <field name="group_ids" eval="[(6, 0, [ref('base.group_user')])]"/>
     </record>
 
-    <!-- Contacts liste : bouton Nouveau masqué pour tous (Odoo 19 : impossible de filtrer par groupe via ir.ui.view)
-         La création est bloquée côté serveur par rule_partner_create_authorized_only.
-         COMMERCIAL/DIRECTION créent depuis la vue formulaire (bouton Nouveau en haut). -->
-    <record id="view_partner_list_no_create" model="ir.ui.view">
-        <field name="name">res.partner.list.no.create</field>
-        <field name="model">res.partner</field>
-        <field name="inherit_id" ref="base.view_partner_tree"/>
-        <field name="arch" type="xml">
-            <list position="attributes">
-                <attribute name="create">0</attribute>
-            </list>
-        </field>
-    </record>
-
     <!-- Documents → documents.group_documents_user -->
     <record id="documents.menu_root" model="ir.ui.menu">
         <field name="group_ids" eval="[(6, 0, [ref('documents.group_documents_user')])]"/>
