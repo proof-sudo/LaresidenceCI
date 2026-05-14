@@ -76,9 +76,9 @@
         <field name="group_ids" eval="[(6, 0, [ref('laresidence_menu_security.group_rental_user')])]"/>
     </record>
 
-    <!-- Dashboards → groupe custom configurable -->
+    <!-- Dashboards → groupe custom configurable + admin -->
     <record id="spreadsheet_dashboard.spreadsheet_dashboard_menu_root" model="ir.ui.menu">
-        <field name="group_ids" eval="[(6, 0, [ref('laresidence_menu_security.group_dashboard_user')])]"/>
+        <field name="group_ids" eval="[(6, 0, [ref('laresidence_menu_security.group_dashboard_user'), ref('base.group_erp_manager')])]"/>
     </record>
 
     <!-- Approvals → groupe custom configurable -->
