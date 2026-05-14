@@ -103,7 +103,7 @@
         <field name="name">theresidence.reservations.list</field>
         <field name="model">sale.order</field>
         <field name="arch" type="xml">
-            <list string="Réservations" default_order="create_date desc">
+            <list string="Réservations" default_order="x_tr_start_time asc">
                 <field name="name" string="N° Réservation" optional="show"/>
                 <field name="partner_id" string="Client" optional="show"/>
                 <field name="x_tr_space_id" string="Espace" optional="show"/>
