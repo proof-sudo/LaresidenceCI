@@ -118,19 +118,20 @@
         </field>
     </record>
 
+    <!-- Vue liste contacts : masquer colonnes phone/email pour les non-autorisés.
+         En Odoo 19, invisible="not x_show_contact_details" n'est pas évalué par ligne
+         dans les listes — on utilise groups= sur la colonne (solution fiable).
+         La vue formulaire garde le comportement granulaire (visible fournisseurs/employés). -->
     <record id="view_partner_tree_hide_phone_email" model="ir.ui.view">
         <field name="name">res.partner.tree.hide.phone.email</field>
         <field name="model">res.partner</field>
         <field name="inherit_id" ref="base.view_partner_tree"/>
         <field name="arch" type="xml">
-            <xpath expr="//list" position="inside">
-                <field name="x_show_contact_details" invisible="1"/>
-            </xpath>
             <field name="phone" position="attributes">
-                <attribute name="invisible">not x_show_contact_details</attribute>
+                <attribute name="groups">laresidence_menu_security.group_contacts_full_details,base.group_erp_manager</attribute>
             </field>
             <field name="email" position="attributes">
-                <attribute name="invisible">not x_show_contact_details</attribute>
+                <attribute name="groups">laresidence_menu_security.group_contacts_full_details,base.group_erp_manager</attribute>
             </field>
         </field>
     </record>
