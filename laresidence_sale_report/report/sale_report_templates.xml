@@ -2,30 +2,19 @@
 <odoo>
 
     <!--
-        ================================================================
-        TEMPLATE 1 — Layout : RCCM, email, tel SOUS le logo (col. gauche)
-        ================================================================
-        On cible l'image du logo (les deux variantes possibles selon la
-        version Odoo : company.logo ou company.logo_web) et on insère
-        le bloc RCCM/email/tel directement après dans la même colonne.
+        TEMPLATE 1 — Infos société (adresse, RCCM, email, tel) sous le logo
+        Cible : web.external_layout_bold
     -->
-    <template id="external_layout_standard_laresidence"
-              inherit_id="web.external_layout_standard"
+    <template id="external_layout_bold_laresidence"
+              inherit_id="web.external_layout_bold"
               name="La Résidence — Infos société sous logo">
 
-        <xpath expr="//img[@t-att-src='image_data_uri(company.logo)' or @t-att-src='image_data_uri(company.logo_web)']"
-               position="after">
-            <div t-if="company.company_registry or company.email or company.phone"
-                 style="font-size: 11px; line-height: 1.7; margin-top: 4px; text-align: left;">
-                <div t-if="company.company_registry">
-                    RCCM : <t t-esc="company.company_registry"/>
-                </div>
-                <div t-if="company.email">
-                    <t t-esc="company.email"/>
-                </div>
-                <div t-if="company.phone">
-                    <t t-esc="company.phone"/>
-                </div>
+        <xpath expr="//img[@t-att-src='image_data_uri(company.logo)']" position="after">
+            <div style="font-size: 11px; line-height: 1.7; margin-top: 6px;">
+                <div t-if="company.street"><t t-esc="company.street"/></div>
+                <div t-if="company.company_registry">RCCM : <t t-esc="company.company_registry"/></div>
+                <div t-if="company.email"><t t-esc="company.email"/></div>
+                <div t-if="company.phone"><t t-esc="company.phone"/></div>
             </div>
         </xpath>
 
@@ -33,36 +22,23 @@
 
 
     <!--
-        ================================================================
-        TEMPLATE 2 — Rapport de devis
-        ================================================================
+        TEMPLATE 2 — Rapport de devis : coordonnées bancaires à gauche des totaux
     -->
     <template id="report_saleorder_document_laresidence"
               inherit_id="sale.report_saleorder_document"
               name="La Résidence — Devis enrichi">
 
         <!--
-            1. Vider company_details pour supprimer l'adresse société
-               de la colonne DROITE (seul le client doit y apparaître).
-        -->
-        <xpath expr="//t[@t-call='web.external_layout']" position="before">
-            <t t-set="company_details"><span/></t>
-        </xpath>
-
-        <!--
-            2a. Retirer l'offset Bootstrap de la colonne des totaux
-                (AVANT d'insérer le bloc bancaire, pour que les sélecteurs
-                 ne confondent pas les deux divs).
+            2a. Retirer l'offset Bootstrap de la colonne des totaux.
         -->
         <xpath expr="//div[@id='total']/div[1]" position="attributes">
             <attribute name="class"
-                       remove="offset-1 offset-2 offset-3 offset-4 offset-5 offset-6 offset-7 offset-8 offset-sm-3 offset-sm-4 offset-sm-5 offset-md-3 offset-md-4 offset-md-5 offset-md-6 offset-lg-3 offset-lg-4"
+                       remove="offset-1 offset-2 offset-3 offset-4 offset-5 offset-6 offset-7 offset-8 offset-sm-3 offset-sm-4 offset-sm-5 offset-md-3 offset-md-4 offset-md-5 offset-md-6"
                        separator=" "/>
         </xpath>
 
         <!--
             2b. Insérer le bloc bancaire AVANT la colonne des totaux.
-                → résultat : [banque | totaux] côte à côte dans la même row.
         -->
         <xpath expr="//div[@id='total']/div[1]" position="before">
             <div class="col pe-4" style="font-size: 12px; padding-top: 2px;">
@@ -84,17 +60,6 @@
                         Configurer un compte bancaire dans la fiche société.
                     </p>
                 </t>
-            </div>
-        </xpath>
-
-        <!--
-            3. Clause légale après les totaux — centrée, en gras, compacte.
-        -->
-        <xpath expr="//div[@id='total']" position="after">
-            <div class="text-center mt-2">
-                <p class="fw-bold mb-0" style="font-size: 12px;">
-                    Toute commande est soumise à l'acceptation préalable de nos conditions générales de vente.
-                </p>
             </div>
         </xpath>
 
