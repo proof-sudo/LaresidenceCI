@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <template id="report_saleorder_document_laresidence"
+              inherit_id="sale.report_saleorder_document"
+              name="La Résidence — Devis enrichi">
+
+        <!--
+            ================================================================
+            1. EN-TÊTE SOCIÉTÉ : RCCM, email, téléphone sous le logo
+            ================================================================
+            La variable `company_details` est lue par web.external_layout
+            pour personnaliser le bloc société affiché à côté du logo.
+            On y ajoute le RCCM (company_registry), l'email et le téléphone.
+        -->
+        <xpath expr="//t[@t-call='web.external_layout']" position="before">
+            <t t-set="company_details">
+                <address class="mb-0" style="font-size: 11px; line-height: 1.5;">
+                    <span t-field="doc.company_id.partner_id"
+                          t-options='{"widget": "contact", "fields": ["address", "name"], "no_marker": True}'/>
+                </address>
+                <t t-if="doc.company_id.company_registry">
+                    <div style="font-size: 11px;">
+                        RCCM : <t t-esc="doc.company_id.company_registry"/>
+                    </div>
+                </t>
+                <t t-if="doc.company_id.email">
+                    <div style="font-size: 11px;">
+                        <t t-esc="doc.company_id.email"/>
+                    </div>
+                </t>
+                <t t-if="doc.company_id.phone">
+                    <div style="font-size: 11px;">
+                        <t t-esc="doc.company_id.phone"/>
+                    </div>
+                </t>
+            </t>
+        </xpath>
+
+        <!--
+            ================================================================
+            2. COORDONNÉES BANCAIRES à gauche du bloc totaux
+            ================================================================
+            2a — Réduire la largeur du bloc totaux (retire offset, passe à col-6)
+                 pour laisser de la place aux coordonnées bancaires.
+            2b — Insérer le bloc bancaire à gauche des totaux.
+
+            Structure cible :
+              [Coordonnées bancaires col-6]  [Totaux col-6]
+        -->
+
+        <!-- 2a : Modifier la classe de la colonne des totaux -->
+        <xpath expr="//div[@id='total']/div[1]" position="attributes">
+            <attribute name="class" remove="col-8 col-sm-7 col-md-6 col-lg-6 offset-4 offset-sm-5 offset-md-6 offset-lg-6" add="col-6" separator=" "/>
+        </xpath>
+
+        <!-- 2b : Insérer le bloc bancaire avant la colonne des totaux -->
+        <xpath expr="//div[@id='total']/div[1]" position="before">
+            <div class="col-6 pe-4" style="padding-top: 4px;">
+                <h6 class="fw-bold mb-2" style="text-decoration: underline; font-size: 12px;">
+                    Modalités et conditions de règlement :
+                </h6>
+                <t t-if="doc.company_id.bank_ids">
+                    <t t-set="bank" t-value="doc.company_id.bank_ids[0]"/>
+                    <p class="mb-1" style="font-size: 11px;">
+                        <strong>Par virement bancaire :</strong>
+                    </p>
+                    <t t-if="bank.bank_id and bank.bank_id.bic">
+                        <p class="mb-1" style="font-size: 11px;">
+                            Code B.I.C : <strong t-esc="bank.bank_id.bic"/>
+                        </p>
+                    </t>
+                    <p class="mb-1" style="font-size: 11px;">
+                        Code I.B.A.N : <strong t-esc="bank.acc_number"/>
+                    </p>
+                    <p class="mb-0" style="font-size: 11px;">
+                        Par chèque à l'ordre de : <strong t-esc="doc.company_id.name"/>
+                    </p>
+                </t>
+                <t t-else="">
+                    <p class="text-muted" style="font-size: 11px;">
+                        <em>Veuillez configurer un compte bancaire dans la fiche société.</em>
+                    </p>
+                </t>
+            </div>
+        </xpath>
+
+        <!--
+            ================================================================
+            3. CLAUSE LÉGALE DE VENTE en pied de page
+            ================================================================
+            Ajoutée après le bloc des totaux, en gras, centrée.
+        -->
+        <xpath expr="//div[@id='total']" position="after">
+            <div class="row mt-3">
+                <div class="col-12 text-center">
+                    <p class="fw-bold mb-0" style="font-size: 11px;">
+                        Toute commande est soumise à l'acceptation préalable de nos conditions générales de vente.
+                    </p>
+                </div>
+            </div>
+        </xpath>
+
+    </template>
+
+</odoo>
