@@ -10,7 +10,7 @@
               name="La Résidence — Infos société sous logo">
 
         <xpath expr="//img[@t-att-src='image_data_uri(company.logo)']" position="after">
-            <div style="font-size: 11px; line-height: 1.7; margin-top: 6px;">
+            <div style="font-size: 13px; line-height: 1.7; margin-top: 6px;">
                 <div t-if="company.street"><t t-esc="company.street"/></div>
                 <div t-if="company.company_registry">RCCM : <t t-esc="company.company_registry"/></div>
                 <div t-if="company.email"><t t-esc="company.email"/></div>
