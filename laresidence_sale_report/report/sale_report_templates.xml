@@ -1,46 +1,53 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
 
+    <!--
+        ================================================================
+        TEMPLATE 1 — Layout : RCCM, email, téléphone SOUS le logo
+        ================================================================
+        On hérite du layout standard Odoo pour ajouter les infos société
+        (RCCM, email, tél) directement sous l'image du logo, dans la
+        colonne gauche de l'en-tête. Cela s'applique à tous les rapports
+        de la société (devis, factures, bons de livraison…).
+
+        La variable `company` est disponible dans web.external_layout_standard
+        et contient les champs de la fiche société (company_registry, email, phone).
+    -->
+    <template id="external_layout_standard_laresidence"
+              inherit_id="web.external_layout_standard"
+              name="La Résidence — En-tête avec RCCM">
+
+        <xpath expr="//img[@t-att-src='image_data_uri(company.logo)']" position="after">
+            <div t-if="company.company_registry or company.email or company.phone"
+                 style="font-size: 11px; line-height: 1.7; margin-top: 4px;">
+                <div t-if="company.company_registry">
+                    RCCM : <t t-esc="company.company_registry"/>
+                </div>
+                <div t-if="company.email">
+                    <t t-esc="company.email"/>
+                </div>
+                <div t-if="company.phone">
+                    <t t-esc="company.phone"/>
+                </div>
+            </div>
+        </xpath>
+
+    </template>
+
+
+    <!--
+        ================================================================
+        TEMPLATE 2 — Rapport de devis : coordonnées bancaires + clause légale
+        ================================================================
+    -->
     <template id="report_saleorder_document_laresidence"
               inherit_id="sale.report_saleorder_document"
               name="La Résidence — Devis enrichi">
 
         <!--
-            ================================================================
-            1. EN-TÊTE SOCIÉTÉ : RCCM, email, téléphone sous le logo
-            ================================================================
-            On injecte les infos société (RCCM, email, tel) au DÉBUT de la
-            page, dans la colonne de gauche, juste avant le titre du devis.
-            Cela les positionne visuellement sous le bloc logo/nom de société.
-            Note : ne pas utiliser company_details car ce dernier place le
-            contenu à droite du logo dans le layout standard Odoo 19.
-        -->
-        <xpath expr="//div[@id='informations']" position="before">
-            <div class="row mb-4">
-                <div class="col-6">
-                    <div style="font-size: 12px; line-height: 1.8;">
-                        <t t-if="doc.company_id.company_registry">
-                            <div>RCCM : <strong t-esc="doc.company_id.company_registry"/></div>
-                        </t>
-                        <t t-if="doc.company_id.email">
-                            <div><t t-esc="doc.company_id.email"/></div>
-                        </t>
-                        <t t-if="doc.company_id.phone">
-                            <div><t t-esc="doc.company_id.phone"/></div>
-                        </t>
-                    </div>
-                </div>
-            </div>
-        </xpath>
-
-        <!--
-            ================================================================
-            2. COORDONNÉES BANCAIRES avant les totaux
-            ================================================================
-            Bloc bancaire dynamique (lit le 1er compte bancaire de la société).
-            Placé dans sa propre ligne avant les totaux, colonne gauche (col-7).
-            Les totaux restent dans leur largeur native (aucune modification
-            des classes Bootstrap des totaux → pas de troncature).
+            Coordonnées bancaires dans leur propre ligne, AVANT les totaux.
+            Lit le 1er compte bancaire configuré sur la fiche société.
+            Les totaux restent dans leur largeur native — plus de troncature.
         -->
         <xpath expr="//div[@id='total']" position="before">
             <div class="row mb-0 mt-3">
@@ -75,9 +82,7 @@
         </xpath>
 
         <!--
-            ================================================================
-            3. CLAUSE LÉGALE DE VENTE après les totaux
-            ================================================================
+            Clause légale de vente, après les totaux, centrée en gras.
         -->
         <xpath expr="//div[@id='total']" position="after">
             <div class="row mt-3">
