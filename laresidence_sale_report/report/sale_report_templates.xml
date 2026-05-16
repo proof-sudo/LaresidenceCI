@@ -60,7 +60,12 @@
                         Configurer un compte bancaire dans la fiche société.
                     </p>
                 </t>
-                <p class="fw-bold mb-0 mt-2" style="font-size: 12px;">
+            </div>
+        </xpath>
+
+        <xpath expr="//div[@id='total']" position="after">
+            <div class="text-center mt-3">
+                <p class="fw-bold mb-0" style="font-size: 12px;">
                     Toute commande est soumise à l'acceptation préalable de nos conditions générales de vente.
                 </p>
             </div>
