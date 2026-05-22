@@ -1,97 +1,108 @@
 # -*- coding: utf-8 -*-
-from odoo import models, fields, api
+import requests
+from odoo import models, fields, _
+from odoo.exceptions import UserError
 import logging
 
 _logger = logging.getLogger(__name__)
 
+
 class ResConfigSettings(models.TransientModel):
-    """Configuration FNE intégrée dans les paramètres généraux"""
+    """Configuration FNE intégrée dans les paramètres généraux d'Odoo."""
     _inherit = 'res.config.settings'
 
     fne_api_key = fields.Char(
         string="API Key FNE",
-        help="Clé API fournie par la DGI pour l'accès au service FNE"
+        config_parameter='fne.api_key',
+        help="Clé API fournie par la DGI pour l'accès au service FNE",
     )
-
     fne_mode = fields.Selection(
-        [
-            ('test', 'Test'),
-            ('prod', 'Production')
-        ],
+        [('test', 'Test'), ('prod', 'Production')],
         string="Mode",
         default='test',
-        help="Environnement d'exécution (Test ou Production)"
+        config_parameter='fne.mode',
+        help="Environnement d'exécution (Test ou Production)",
     )
-
     fne_auto_send = fields.Boolean(
         string="Envoi automatique après validation",
-        default=False,
-        help="Si coché, les factures seront automatiquement envoyées à la DGI après validation"
+        config_parameter='fne.auto_send',
+        help="Si coché, les factures de vente sont automatiquement envoyées à la DGI après validation",
     )
-
     fne_test_url = fields.Char(
         string="URL Test",
         default="http://54.247.95.108/ws",
-        help="URL de l'API FNE en environnement de test"
+        config_parameter='fne.test_url',
     )
-
     fne_prod_url = fields.Char(
         string="URL Production",
         default="https://www.services.fne.dgi.gouv.ci/ws",
-        help="URL de l'API FNE en environnement de production"
+        config_parameter='fne.prod_url',
     )
-
     fne_point_de_vente = fields.Char(
         string="Point de Vente",
-        default="Garage",
-        help="Identifiant du point de vente pour le FNE (ex: SIEGE NEURONES)"
+        config_parameter='fne.point_de_vente',
+        help="Identifiant du point de vente (ex: SIEGE, AGENCE PLATEAU…)",
     )
-
     fne_establishment = fields.Char(
         string="Établissement",
-        help="Nom de l'établissement (ex: NEURONES TECHNOLOGIES SA)"
+        config_parameter='fne.establishment',
+        help="Raison sociale telle qu'elle apparaîtra sur la facture certifiée",
     )
-
-    fne_footer = fields.Html(
+    fne_footer = fields.Char(
         string="Pied de page FNE",
-        default="<p>Merci pour votre confiance</p>",
-        help="Message HTML affiché en pied de page sur les factures certifiées"
+        default="Merci pour votre confiance",
+        config_parameter='fne.footer',
+        help="Message affiché en pied de page sur les factures certifiées",
     )
 
-    @api.model
-    def get_values(self):
-        res = super(ResConfigSettings, self).get_values()
-        ICPSudo = self.env['ir.config_parameter'].sudo()
-        res.update(
-            fne_api_key=ICPSudo.get_param('fne.api_key', default=''),
-            fne_mode=ICPSudo.get_param('fne.mode', default='test'),
-            fne_auto_send=ICPSudo.get_param('fne.auto_send', default='False') == 'True',
-            fne_test_url=ICPSudo.get_param('fne.test_url', default='http://54.247.95.108/ws'),
-            fne_prod_url=ICPSudo.get_param('fne.prod_url', default='https://www.services.fne.dgi.gouv.ci/ws'),
-            fne_point_de_vente=ICPSudo.get_param('fne.point_de_vente', default='Garage'),
-            fne_establishment=ICPSudo.get_param('fne.establishment', default=''),
-            fne_footer=ICPSudo.get_param('fne.footer', default='<p>Merci pour votre confiance</p>'),
-        )
-        return res
+    def action_test_fne_connection(self):
+        """Teste la connexion vers l'API FNE et affiche le résultat."""
+        api_key = (self.fne_api_key or '').strip()
+        mode = (self.fne_mode or 'test').lower()
+        base_url = (self.fne_prod_url if mode == 'prod' else self.fne_test_url or '').strip()
 
-    # ✅ ODOO 16 : @api.multi supprimé (n'existe plus depuis Odoo 14)
-    def set_values(self):
-        super(ResConfigSettings, self).set_values()
-        ICPSudo = self.env['ir.config_parameter'].sudo()
-        ICPSudo.set_param('fne.api_key', self.fne_api_key or '')
-        ICPSudo.set_param('fne.mode', self.fne_mode or 'test')
-        ICPSudo.set_param('fne.auto_send', 'True' if self.fne_auto_send else 'False')
-        ICPSudo.set_param('fne.test_url', self.fne_test_url or 'http://54.247.95.108/ws')
-        ICPSudo.set_param('fne.prod_url', self.fne_prod_url or 'https://www.services.fne.dgi.gouv.ci/ws')
-        ICPSudo.set_param('fne.point_de_vente', self.fne_point_de_vente or '')
-        ICPSudo.set_param('fne.establishment', self.fne_establishment or '')
-        ICPSudo.set_param('fne.footer', self.fne_footer or '<p>Merci pour votre confiance</p>')
+        if not api_key:
+            raise UserError(_("Veuillez d'abord renseigner une clé API FNE."))
+        if not base_url:
+            raise UserError(_("Veuillez d'abord renseigner l'URL de l'API FNE."))
 
-        _logger.info("=" * 70)
-        _logger.info("[FNE CONFIG] Paramètres sauvegardés avec succès:")
-        _logger.info(f"  - Mode: {self.fne_mode}")
-        _logger.info(f"  - API Key: {'*' * 10 if self.fne_api_key else 'Non configurée'}")
-        _logger.info(f"  - Point de vente: {self.fne_point_de_vente}")
-        _logger.info(f"  - Établissement: {self.fne_establishment}")
-        _logger.info(f"  - Auto send: {self.fne_auto_send}")
-        _logger.info("=" * 70)
+        endpoint = base_url.rstrip('/') + "/external/invoices/sign"
+        headers = {
+            'Authorization': f"Bearer {api_key}",
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+        }
+        try:
+            # Envoi d'un payload vide volontairement pour tester l'authentification :
+            # - 400 Bad Request  → URL joignable et clé valide (payload rejeté, c'est normal)
+            # - 401 Unauthorized → clé API invalide
+            # - Erreur réseau    → URL non joignable
+            resp = requests.post(endpoint, headers=headers, json={}, timeout=10)
+
+            if resp.status_code == 401:
+                raise UserError(_(
+                    "Connexion échouée : clé API refusée (401 Unauthorized).\n"
+                    "Vérifiez la clé API dans votre espace FNE."
+                ))
+
+            _logger.info("[FNE] Test connexion %s → HTTP %s", endpoint, resp.status_code)
+            return {
+                'type': 'ir.actions.client',
+                'tag': 'display_notification',
+                'params': {
+                    'title': _("Connexion FNE OK"),
+                    'message': _(
+                        "L'API FNE est joignable en mode %s (HTTP %s)."
+                    ) % (mode.upper(), resp.status_code),
+                    'type': 'success',
+                    'sticky': False,
+                },
+            }
+
+        except requests.ConnectionError:
+            raise UserError(_(
+                "Impossible de joindre l'URL :\n%s\n\n"
+                "Vérifiez l'URL et la connexion réseau."
+            ) % endpoint)
+        except requests.Timeout:
+            raise UserError(_("Délai dépassé en tentant de joindre :\n%s") % endpoint)

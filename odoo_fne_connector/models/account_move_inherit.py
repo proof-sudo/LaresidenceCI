@@ -487,10 +487,8 @@ class AccountMove(models.Model):
     def action_post(self):
         """Override : envoi automatique à la FNE si l'option est activée."""
         res = super().action_post()
-        auto_send = (
-            self.env['ir.config_parameter'].sudo()
-            .get_param('fne.auto_send', default='False') == 'True'
-        )
+        _val = self.env['ir.config_parameter'].sudo().get_param('fne.auto_send', 'False')
+        auto_send = _val in ('True', '1', 'true')
         if auto_send:
             to_send = self.filtered(
                 lambda m: m.move_type == 'out_invoice' and not m.fne_sent
