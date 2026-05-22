@@ -507,21 +507,6 @@ class AccountMove(models.Model):
                 _logger.exception("[FNE] Exception non gérée lors de l'envoi de %s", inv.name)
                 raise
 
-    def action_post(self):
-        """Override : envoi automatique à la FNE si l'option est activée (sans wizard)."""
-        res = super().action_post()
-        _val = self.env['ir.config_parameter'].sudo().get_param('fne.auto_send', 'False')
-        auto_send = _val in ('True', '1', 'true')
-        if auto_send:
-            to_send = self.filtered(
-                lambda m: m.move_type == 'out_invoice' and not m.fne_sent
-            )
-            for inv in to_send:
-                try:
-                    inv._execute_fne_send()
-                except Exception as e:
-                    _logger.warning("[FNE] Auto-envoi échoué pour %s : %s", inv.name, e)
-        return res
 
     def action_open_fne_link(self):
         """Ouvre le lien de vérification DGI dans un nouvel onglet."""

@@ -72,18 +72,6 @@
                                 </div>
                             </div>
 
-                            <!-- Envoi automatique -->
-                            <div class="col-12 col-lg-6 o_setting_box">
-                                <div class="o_setting_left_pane">
-                                    <field name="fne_auto_send"/>
-                                </div>
-                                <div class="o_setting_right_pane">
-                                    <label for="fne_auto_send"/>
-                                    <div class="text-muted">
-                                        Envoie automatiquement les factures de vente à la DGI lors de la validation
-                                    </div>
-                                </div>
-                            </div>
 
                             <!-- Pied de page -->
                             <div class="col-12 col-lg-6 o_setting_box">

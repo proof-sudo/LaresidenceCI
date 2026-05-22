@@ -23,11 +23,7 @@ class ResConfigSettings(models.TransientModel):
         config_parameter='fne.mode',
         help="Environnement d'exécution (Test ou Production)",
     )
-    fne_auto_send = fields.Boolean(
-        string="Envoi automatique après validation",
-        config_parameter='fne.auto_send',
-        help="Si coché, les factures de vente sont automatiquement envoyées à la DGI après validation",
-    )
+
     fne_test_url = fields.Char(
         string="URL Test",
         default="http://54.247.95.108/ws",
