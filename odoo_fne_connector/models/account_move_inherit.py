@@ -8,6 +8,43 @@ _logger = logging.getLogger(__name__)
 # Codes TVA reconnus par la FNE (ordre : du plus spécifique au plus général)
 FNE_TVA_CODES = ['TVAD', 'TVAC', 'TVAB', 'TVA']
 
+
+def _detect_fne_vat_code(tax):
+    """Retourne le code TVA FNE correspondant à une taxe Odoo, ou None.
+
+    Stratégie (par priorité) :
+    1. Code FNE explicite dans le nom ou le groupe (TVA/TVAB/TVAC/TVAD)
+    2. Marqueur VAT/TVA présent → mapping par taux + suffixe du nom
+       - 18 %          → TVA
+       - 9 %           → TVAB
+       - 0 % + LEG/LEGAL → TVAD  (exonération légale)
+       - 0 % autres    → TVAC  (exonération convention / générique)
+    """
+    group_name = (tax.tax_group_id.name or '').upper() if tax.tax_group_id else ''
+    tax_name = (tax.name or '').upper()
+    combined = group_name + ' ' + tax_name
+
+    # Priorité 1 : code FNE explicite dans le nom / groupe
+    for code in FNE_TVA_CODES:
+        if code in combined:
+            return code
+
+    # Priorité 2 : groupe ou nom contient VAT ou TVA
+    if 'VAT' not in combined and 'TVA' not in combined:
+        return None
+
+    rate = float(tax.amount or 0)
+    if rate == 18.0:
+        return 'TVA'
+    if rate == 9.0:
+        return 'TVAB'
+    if rate == 0.0:
+        if 'LEG' in tax_name or 'LEGAL' in tax_name:
+            return 'TVAD'
+        return 'TVAC'
+
+    return None
+
 PAYMENT_METHOD_MAPPING = {
     'card': 'card',
     'cheque': 'check',
@@ -151,26 +188,19 @@ class AccountMove(models.Model):
     # ------------------------------------------------------------------
 
     def _classify_taxes(self, line):
-        """Classifie les taxes d'une ligne en TVA FNE et taxes personnalisées.
+        """Classifie les taxes d'une ligne en codes TVA FNE et taxes personnalisées.
 
         Retourne (fne_taxes, custom_taxes) :
-        - fne_taxes   : liste de codes TVA FNE, ex. ['TVA'] ou ['TVAB']
-        - custom_taxes: liste de dicts pour les taxes non-TVA, ex. [{"name":"GRA","amount":5}]
+        - fne_taxes   : ex. ['TVA'] ou ['TVAB']
+        - custom_taxes: ex. [{"name": "City Tax", "amount": 2.1}]
 
-        Les taxes sont lues depuis line.tax_ids (pas depuis le régime fiscal du partenaire).
-        Ordre de priorité TVAD > TVAC > TVAB > TVA pour éviter les faux positifs.
+        Délègue la détection à _detect_fne_vat_code() qui gère
+        les noms anglais (VAT 18%) et français (TVA), ainsi que le mapping par taux.
         """
         fne_taxes = []
         custom_taxes_map = {}
         for tax in line.tax_ids:
-            group_name = (tax.tax_group_id.name or '').upper() if tax.tax_group_id else ''
-            tax_name = (tax.name or '').upper()
-            combined = group_name + ' ' + tax_name
-            fne_code = None
-            for code in FNE_TVA_CODES:
-                if code in combined:
-                    fne_code = code
-                    break
+            fne_code = _detect_fne_vat_code(tax)
             if fne_code:
                 if fne_code not in fne_taxes:
                     fne_taxes.append(fne_code)
