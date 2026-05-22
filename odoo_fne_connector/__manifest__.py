@@ -11,6 +11,7 @@
         'security/security.xml',
         'security/ir.model.access.csv',
         'views/fne_actions.xml',
+        'views/fne_confirm_wizard_views.xml',
         'views/fne_config_views.xml',
         'views/fne_invoice_views.xml',
         'views/res_partner.xml',

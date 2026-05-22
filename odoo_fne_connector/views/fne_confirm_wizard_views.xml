@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+
+        <record id="view_fne_confirm_wizard_form" model="ir.ui.view">
+            <field name="name">fne.confirm.wizard.form</field>
+            <field name="model">fne.confirm.wizard</field>
+            <field name="arch" type="xml">
+                <form string="Confirmation de certification FNE">
+                    <sheet>
+
+                        <!-- Bloc avertissement -->
+                        <div class="alert alert-warning d-flex align-items-center mb-3" role="alert">
+                            <i class="fa fa-exclamation-triangle fa-2x me-3 text-warning"/>
+                            <div>
+                                <strong>Attention — action irréversible</strong><br/>
+                                Vous êtes sur le point de certifier
+                                <strong><field name="invoice_count" nolabel="1"/> facture(s)</strong>
+                                auprès de la <strong>DGI (FNE)</strong>.<br/>
+                                Une fois certifiée, la facture ne peut plus être modifiée.
+                            </div>
+                        </div>
+
+                        <!-- Résumé des factures -->
+                        <group string="Factures sélectionnées">
+                            <field name="invoice_ids" nolabel="1" readonly="1">
+                                <list>
+                                    <field name="name"/>
+                                    <field name="partner_id"/>
+                                    <field name="invoice_date"/>
+                                    <field name="amount_untaxed" string="Montant HT"/>
+                                    <field name="amount_total" string="Montant TTC"/>
+                                    <field name="currency_id" invisible="1"/>
+                                </list>
+                            </field>
+                        </group>
+
+                        <group>
+                            <field name="total_amount" string="Total HT sélectionné"
+                                   widget="monetary" options="{'currency_field': 'currency_id'}"/>
+                        </group>
+
+                    </sheet>
+
+                    <footer>
+                        <button name="action_confirm"
+                                string="Certifier auprès de la DGI"
+                                type="object"
+                                class="btn-primary"/>
+                        <button string="Annuler"
+                                class="btn-secondary"
+                                special="cancel"/>
+                    </footer>
+                </form>
+            </field>
+        </record>
+
+        <record id="action_fne_confirm_wizard" model="ir.actions.act_window">
+            <field name="name">Certification FNE</field>
+            <field name="res_model">fne.confirm.wizard</field>
+            <field name="view_mode">form</field>
+            <field name="target">new</field>
+        </record>
+
+    </data>
+</odoo>

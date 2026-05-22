@@ -448,10 +448,33 @@ class AccountMove(models.Model):
     # ------------------------------------------------------------------
 
     def action_send_to_fne(self):
-        """Envoie la ou les factures sélectionnées à la DGI via l'API FNE.
+        """Ouvre le wizard de confirmation avant la certification FNE.
 
-        Fonctionne depuis la vue formulaire (1 enregistrement)
-        et depuis la vue liste via l'action serveur (N enregistrements).
+        Appelé depuis le bouton "Créer FNE" (formulaire) et l'action serveur (liste).
+        L'envoi réel vers l'API n'est déclenché qu'après confirmation dans le wizard.
+        """
+        to_send = self.filtered(
+            lambda m: m.move_type in ('out_invoice', 'out_refund') and not m.fne_sent
+        )
+        if not to_send:
+            raise UserError(_("Aucune facture éligible à la certification (déjà certifiées ou type non géré)."))
+
+        wizard = self.env['fne.confirm.wizard'].create({
+            'invoice_ids': [(6, 0, to_send.ids)],
+        })
+        return {
+            'type': 'ir.actions.act_window',
+            'res_model': 'fne.confirm.wizard',
+            'res_id': wizard.id,
+            'view_mode': 'form',
+            'target': 'new',
+        }
+
+    def _execute_fne_send(self):
+        """Envoie effectivement la/les factures à la DGI via l'API FNE.
+
+        Méthode interne appelée uniquement après confirmation (wizard)
+        ou automatiquement via action_post si fne_auto_send est activé.
         """
         api_key, _mode, base_url = self._get_fne_config()
         headers = {
@@ -475,8 +498,8 @@ class AccountMove(models.Model):
                     inv._post_refund_to_fne(headers, base_url)
 
                 else:
-                    # Factures d'achat : le fournisseur les déclare de son côté → on ne certifie pas
-                    _logger.info("[FNE] %s ignorée (type %s non géré par le connecteur).", inv.name, inv.move_type)
+                    # Factures d'achat : fournisseur déclare de son côté
+                    _logger.info("[FNE] %s ignorée (type %s non géré).", inv.name, inv.move_type)
 
             except UserError:
                 raise
@@ -485,7 +508,7 @@ class AccountMove(models.Model):
                 raise
 
     def action_post(self):
-        """Override : envoi automatique à la FNE si l'option est activée."""
+        """Override : envoi automatique à la FNE si l'option est activée (sans wizard)."""
         res = super().action_post()
         _val = self.env['ir.config_parameter'].sudo().get_param('fne.auto_send', 'False')
         auto_send = _val in ('True', '1', 'true')
@@ -495,7 +518,7 @@ class AccountMove(models.Model):
             )
             for inv in to_send:
                 try:
-                    inv.action_send_to_fne()
+                    inv._execute_fne_send()
                 except Exception as e:
                     _logger.warning("[FNE] Auto-envoi échoué pour %s : %s", inv.name, e)
         return res
