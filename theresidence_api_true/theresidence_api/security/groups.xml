@@ -34,7 +34,6 @@
     <!-- Accès réservations simplifié (sans prix, sans autres menus TR) -->
     <record id="group_tr_reservations_only" model="res.groups">
         <field name="name">The Residence / Réservations uniquement</field>
-        <field name="category_id" ref="base.module_category_hidden"/>
         <field name="implied_ids" eval="[(4, ref('base.group_user'))]"/>
     </record>
 
