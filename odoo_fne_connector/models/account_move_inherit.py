@@ -328,7 +328,7 @@ class AccountMove(models.Model):
         _logger.info(
             "[FNE] Payload %s : type=%s method=%s template=%s client=%s amount=%s items=%d",
             self.name, invoice_type, payment_method, template,
-            client_info["clientCompanyName"], payload["invoiceAmount"], len(items),
+            client_info["clientCompanyName"], self.amount_total, len(items),
         )
         return payload
 
