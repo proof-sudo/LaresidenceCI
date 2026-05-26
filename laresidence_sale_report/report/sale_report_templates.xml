@@ -2,6 +2,38 @@
 <odoo>
 
     <!--
+        TEMPLATE 0 — Masquer l'en-tête (logo + infos) sur les pages 2+
+        Étend subst() du minimal_layout pour cacher .o_clean_header quand sitepage > 1
+    -->
+    <template id="minimal_layout_laresidence"
+              inherit_id="web.minimal_layout"
+              name="La Résidence — En-tête première page uniquement">
+
+        <xpath expr="//script[@t-if='subst']" position="after">
+            <script t-if="subst">
+                (function() {
+                    var _orig = window.subst;
+                    window.subst = function() {
+                        if (_orig) { _orig(); }
+                        var vars = {};
+                        var x = document.location.search.substring(1).split('&amp;');
+                        for (var i in x) {
+                            var z = x[i].split('=', 2);
+                            vars[z[0]] = unescape(z[1]);
+                        }
+                        if (parseInt(vars['sitepage'] || '1') &gt; 1) {
+                            var h = document.querySelector('.o_clean_header');
+                            if (h) { h.style.display = 'none'; }
+                        }
+                    };
+                })();
+            </script>
+        </xpath>
+
+    </template>
+
+
+    <!--
         TEMPLATE 1 — Infos société (adresse, RCCM, email, tel) sous le logo
         Cible : web.external_layout_bold
     -->
