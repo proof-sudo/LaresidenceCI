@@ -387,6 +387,11 @@
         web_icon="theresidence_api,static/description/icon.svg"
         sequence="100"/>
 
+    <!-- Permet au groupe Réservations uniquement d'accéder au menu racine -->
+    <record id="menu_theresidence_root" model="ir.ui.menu">
+        <field name="groups_id" eval="[(4, ref('theresidence_api.group_tr_reservations_only'))]"/>
+    </record>
+
     <menuitem id="menu_theresidence_config"
         name="Configuration"
         parent="menu_theresidence_root"
