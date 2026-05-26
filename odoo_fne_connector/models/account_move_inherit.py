@@ -253,7 +253,7 @@ class AccountMove(models.Model):
                 "measurementUnit": uom,
             }
             if fne_taxes:
-                item["taxes"] = fne_taxes[0]
+                item["taxes"] = fne_taxes
             if custom_taxes:
                 item["customTaxes"] = custom_taxes
             if line.product_id.default_code:
@@ -317,21 +317,13 @@ class AccountMove(models.Model):
             "clientPhone": client_info["clientPhone"],
             "clientEmail": client_info["clientEmail"],
             "clientNcc": client_info["clientNcc"],
-            "invoiceNumber": _truncate(self.name, 50),
-            "invoiceDate": (
-                self.invoice_date.isoformat()
-                if self.invoice_date
-                else fields.Date.today().isoformat()
-            ),
-            "invoiceAmount": float(self.amount_total or 0),
             "pointOfSale": point_de_vente,
             "establishment": _truncate(establishment, 100),
             "items": items,
             "footer": footer,
         }
-        if foreign_currency:
-            payload["foreignCurrency"] = foreign_currency
-            payload["foreignCurrencyRate"] = foreign_rate
+        payload["foreignCurrency"] = foreign_currency or ""
+        payload["foreignCurrencyRate"] = foreign_rate if foreign_currency else 0
 
         _logger.info(
             "[FNE] Payload %s : type=%s method=%s template=%s client=%s amount=%s items=%d",
