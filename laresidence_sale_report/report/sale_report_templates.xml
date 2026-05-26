@@ -31,6 +31,11 @@
         <!--
             2a. Retirer l'offset Bootstrap de la colonne des totaux.
         -->
+        <!-- Prix unitaire HT = price_subtotal / quantité -->
+        <xpath expr="//td[@name='td_priceunit']/span" position="replace">
+            <span t-esc="'%.0f' % (line.price_subtotal / line.product_uom_qty if line.product_uom_qty else 0)"/>
+        </xpath>
+
         <xpath expr="//div[@id='total']/div[1]" position="attributes">
             <attribute name="class"
                        remove="offset-1 offset-2 offset-3 offset-4 offset-5 offset-6 offset-7 offset-8 offset-sm-3 offset-sm-4 offset-sm-5 offset-md-3 offset-md-4 offset-md-5 offset-md-6"
