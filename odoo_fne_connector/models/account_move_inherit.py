@@ -234,7 +234,10 @@ class AccountMove(models.Model):
         items = []
         for line in self.invoice_line_ids.filtered(lambda l: l.product_id):
             qty = float(line.quantity or 0)
-            amount = float(line.price_unit or 0)
+            discount = float(line.discount or 0)
+            subtotal_ht = float(line.price_subtotal or 0)  # toujours HT, même si price_include
+            divisor = qty * (1 - discount / 100) if discount < 100 else 0
+            amount = round(subtotal_ht / divisor, 2) if divisor else 0.0
 
             if qty <= 0 or amount <= 0:
                 _logger.info("[FNE] Ligne ignorée (qty=%s, amount=%s) : %s", qty, amount, line.name)
@@ -260,8 +263,8 @@ class AccountMove(models.Model):
             }
             if line.product_id.default_code:
                 item["reference"] = _clean_str(line.product_id.default_code)
-            if float(line.discount or 0) > 0:
-                item["discount"] = float(line.discount)
+            if discount > 0:
+                item["discount"] = discount
             items.append(item)
         return items
 
