@@ -9,8 +9,8 @@
               inherit_id="web.minimal_layout"
               name="La Résidence — En-tête première page uniquement">
 
-        <xpath expr="//script[@t-if='subst']" position="after">
-            <script t-if="subst">
+        <xpath expr="//head" position="inside">
+            <script>
                 (function() {
                     var _orig = window.subst;
                     window.subst = function() {
@@ -19,9 +19,10 @@
                         var x = document.location.search.substring(1).split('&amp;');
                         for (var i in x) {
                             var z = x[i].split('=', 2);
-                            vars[z[0]] = unescape(z[1]);
+                            if (z.length === 2) { vars[z[0]] = unescape(z[1]); }
                         }
-                        if (parseInt(vars['sitepage'] || '1') &gt; 1) {
+                        var pageNum = parseInt(vars['sitepage'] || vars['page'] || '1');
+                        if (pageNum &gt; 1) {
                             var h = document.querySelector('.o_clean_header');
                             if (h) { h.style.display = 'none'; }
                         }
