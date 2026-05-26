@@ -313,6 +313,8 @@ class AccountMove(models.Model):
             "invoiceType": invoice_type,
             "paymentMethod": payment_method,
             "template": template,
+            "isRne": False,
+            "rne": None,
             "clientCompanyName": client_info["clientCompanyName"],
             "clientPhone": client_info["clientPhone"],
             "clientEmail": client_info["clientEmail"],
