@@ -246,16 +246,20 @@ class AccountMove(models.Model):
             _logger.info("[FNE] Ligne '%s' : uom=%s taxes=%s custom=%s",
                          line.name, uom, fne_taxes, custom_taxes)
 
+            if not fne_taxes:
+                raise UserError(_(
+                    "La ligne '%s' n'a pas de taxe TVA reconnue (TVA/TVAB/TVAC/TVAD/TVAE).\n"
+                    "Vérifiez les taxes de cette ligne avant de certifier."
+                ) % (line.name or line.product_id.display_name or ''))
+
             item = {
+                "taxes": fne_taxes,
+                "customTaxes": custom_taxes,
                 "description": _truncate(line.name or line.product_id.display_name or "Ligne", 255),
                 "quantity": qty,
                 "amount": amount,
                 "measurementUnit": uom,
             }
-            if fne_taxes:
-                item["taxes"] = fne_taxes
-            if custom_taxes:
-                item["customTaxes"] = custom_taxes
             if line.product_id.default_code:
                 item["reference"] = _clean_str(line.product_id.default_code)
             if float(line.discount or 0) > 0:
