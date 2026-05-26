@@ -247,13 +247,11 @@ class AccountMove(models.Model):
                          line.name, uom, fne_taxes, custom_taxes)
 
             if not fne_taxes:
-                raise UserError(_(
-                    "La ligne '%s' n'a pas de taxe TVA reconnue (TVA/TVAB/TVAC/TVAD/TVAE).\n"
-                    "Vérifiez les taxes de cette ligne avant de certifier."
-                ) % (line.name or line.product_id.display_name or ''))
+                _logger.warning("[FNE] Ligne '%s' : aucune taxe TVA reconnue, TVAC (0%%) appliqué par défaut", line.name)
+                fne_taxes = ['TVAC']
 
             item = {
-                "taxes": ["TVA"],  # TODO: remplacer par fne_taxes après validation API
+                "taxes": fne_taxes,
                 "customTaxes": custom_taxes,
                 "description": _truncate(line.name or line.product_id.display_name or "Ligne", 255),
                 "quantity": qty,
