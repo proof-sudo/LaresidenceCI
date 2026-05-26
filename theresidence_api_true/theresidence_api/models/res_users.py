@@ -2,13 +2,14 @@
 from odoo import api, fields, models
 
 GROUP_XMLIDS = {
-    'x_tr_admin':         'theresidence_api.group_tr_admin',
-    'x_tr_members':       'theresidence_api.group_tr_members',
-    'x_tr_reservations':  'theresidence_api.group_tr_reservations',
-    'x_tr_subscriptions': 'theresidence_api.group_tr_subscriptions',
-    'x_tr_orders':        'theresidence_api.group_tr_orders',
-    'x_tr_config':        'theresidence_api.group_tr_config',
-    'x_tr_spaces':        'theresidence_api.group_tr_spaces',
+    'x_tr_admin':               'theresidence_api.group_tr_admin',
+    'x_tr_members':             'theresidence_api.group_tr_members',
+    'x_tr_reservations':        'theresidence_api.group_tr_reservations',
+    'x_tr_subscriptions':       'theresidence_api.group_tr_subscriptions',
+    'x_tr_orders':              'theresidence_api.group_tr_orders',
+    'x_tr_config':              'theresidence_api.group_tr_config',
+    'x_tr_spaces':              'theresidence_api.group_tr_spaces',
+    'x_tr_reservations_only':   'theresidence_api.group_tr_reservations_only',
 }
 
 
@@ -49,6 +50,11 @@ class ResUsers(models.Model):
         string='Gestionnaire Espaces',
         compute='_compute_tr_groups',
         inverse=lambda self: self._set_tr_group('x_tr_spaces'),
+    )
+    x_tr_reservations_only = fields.Boolean(
+        string='Réservations uniquement (sans prix)',
+        compute='_compute_tr_groups',
+        inverse=lambda self: self._set_tr_group('x_tr_reservations_only'),
     )
 
     def _get_tr_group(self, xmlid):

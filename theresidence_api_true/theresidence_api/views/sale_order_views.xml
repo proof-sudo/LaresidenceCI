@@ -202,6 +202,113 @@
         </field>
     </record>
 
+    <!-- ========================================= -->
+    <!-- VUES SIMPLIFIÉES — group_tr_reservations_only -->
+    <!-- ========================================= -->
+
+    <!-- Liste simplifiée : pas de montant, pas d'info financière -->
+    <record id="view_theresidence_reservations_simple_list" model="ir.ui.view">
+        <field name="name">theresidence.reservations.simple.list</field>
+        <field name="model">sale.order</field>
+        <field name="arch" type="xml">
+            <list string="Réservations" default_order="x_tr_start_time asc" create="1" delete="0">
+                <field name="name" string="N° Réservation"/>
+                <field name="partner_id" string="Membre"/>
+                <field name="x_tr_space_id" string="Espace"/>
+                <field name="x_tr_start_time" string="Début"/>
+                <field name="x_tr_end_time" string="Fin"/>
+                <field name="x_tr_guest_count" string="Invités"/>
+                <field name="x_tr_reservation_status" string="Statut" widget="badge"
+                       decoration-primary="x_tr_reservation_status == 'PENDING'"
+                       decoration-success="x_tr_reservation_status == 'RESERVED'"
+                       decoration-warning="x_tr_reservation_status == 'ARRIVED'"
+                       decoration-info="x_tr_reservation_status == 'COMPLETED'"
+                       decoration-danger="x_tr_reservation_status == 'CANCELLED'"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- Formulaire simplifié : pas de prix, pas d'onglets financiers -->
+    <record id="view_theresidence_reservations_simple_form" model="ir.ui.view">
+        <field name="name">theresidence.reservations.simple.form</field>
+        <field name="model">sale.order</field>
+        <field name="arch" type="xml">
+            <form string="Réservation">
+                <header>
+                    <field name="x_tr_reservation_status" widget="statusbar"
+                           statusbar_visible="PENDING,RESERVED,ARRIVED,COMPLETED"/>
+                    <button name="action_reserve_reservation" type="object" string="Réserver"
+                        class="btn-primary"
+                        invisible="x_tr_reservation_status != 'PENDING'"/>
+                    <button name="action_arrive_reservation" type="object" string="Marquer arrivée"
+                        class="btn-primary"
+                        invisible="x_tr_reservation_status != 'RESERVED'"/>
+                    <button name="action_cancel_reservation" type="object" string="Annuler"
+                        class="btn-secondary"
+                        invisible="x_tr_reservation_status in ('CANCELLED', 'COMPLETED')"/>
+                </header>
+                <sheet>
+                    <field name="x_tr_is_reservation" invisible="1"/>
+                    <group>
+                        <group string="Informations réservation">
+                            <field name="partner_id" string="Membre" required="1"/>
+                            <field name="x_tr_space_id" string="Espace" required="1"/>
+                            <field name="x_tr_start_time" string="Début" required="1"/>
+                            <field name="x_tr_end_time" string="Fin" required="1"/>
+                            <field name="x_tr_guest_count" string="Nombre d'invités"/>
+                        </group>
+                        <group string="Détails">
+                            <field name="name" string="N° Réservation" readonly="1"/>
+                            <field name="x_tr_uuid" string="ID Réservation" readonly="1"/>
+                            <field name="x_tr_qr_token" string="QR Token" readonly="1"/>
+                        </group>
+                    </group>
+                    <group>
+                        <field name="x_tr_notes" string="Notes" placeholder="Notes sur la réservation..."/>
+                    </group>
+                    <notebook>
+                        <page string="Invités" name="invitees">
+                            <field name="x_tr_invitee_ids">
+                                <list string="Invités" editable="bottom">
+                                    <field name="name"/>
+                                    <field name="email"/>
+                                    <field name="phone"/>
+                                </list>
+                            </field>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <!-- Action dédiée pour le menu simplifié -->
+    <record id="action_theresidence_reservations_simple" model="ir.actions.act_window">
+        <field name="name">Réservations</field>
+        <field name="res_model">sale.order</field>
+        <field name="view_mode">list,form</field>
+        <field name="domain">[('x_tr_is_reservation', '=', True)]</field>
+        <field name="context">{'default_x_tr_is_reservation': True}</field>
+        <field name="view_ids" eval="[
+            (5,),
+            (0, 0, {'view_mode': 'list', 'view_id': ref('theresidence_api.view_theresidence_reservations_simple_list')}),
+            (0, 0, {'view_mode': 'form', 'view_id': ref('theresidence_api.view_theresidence_reservations_simple_form')}),
+        ]"/>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Créer une nouvelle réservation
+            </p>
+        </field>
+    </record>
+
+    <!-- Menu raccourci visible UNIQUEMENT pour group_tr_reservations_only -->
+    <menuitem id="menu_theresidence_reservations_simple"
+        name="Réservations"
+        parent="menu_theresidence_root"
+        action="action_theresidence_reservations_simple"
+        groups="theresidence_api.group_tr_reservations_only"
+        sequence="5"/>
+
     <menuitem id="menu_theresidence_reservations"
         name="Réservations"
         parent="menu_theresidence_root"
