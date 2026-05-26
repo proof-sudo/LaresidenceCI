@@ -29,8 +29,8 @@ def _detect_fne_vat_code(tax):
         if code in combined:
             return code
 
-    # Priorité 2 : groupe ou nom contient VAT ou TVA
-    if 'VAT' not in combined and 'TVA' not in combined:
+    # Priorité 2 : mapping par taux — fonctionne quelle que soit la langue de l'interface
+    if tax.amount_type != 'percent':
         return None
 
     rate = float(tax.amount or 0)
@@ -253,7 +253,7 @@ class AccountMove(models.Model):
                 ) % (line.name or line.product_id.display_name or ''))
 
             item = {
-                "taxes": fne_taxes,
+                "taxes": fne_taxes[0],
                 "customTaxes": custom_taxes,
                 "description": _truncate(line.name or line.product_id.display_name or "Ligne", 255),
                 "quantity": qty,
