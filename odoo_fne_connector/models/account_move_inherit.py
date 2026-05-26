@@ -253,7 +253,7 @@ class AccountMove(models.Model):
                 ) % (line.name or line.product_id.display_name or ''))
 
             item = {
-                "taxes": fne_taxes[0],
+                "taxes": ["TVA"],  # TODO: remplacer par fne_taxes après validation API
                 "customTaxes": custom_taxes,
                 "description": _truncate(line.name or line.product_id.display_name or "Ligne", 255),
                 "quantity": qty,
