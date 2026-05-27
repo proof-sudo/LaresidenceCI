@@ -46,10 +46,14 @@
                         <button name="action_confirm"
                                 string="Certifier auprès de la DGI"
                                 type="object"
-                                class="btn-primary"/>
+                                class="btn-primary"
+                                data-loading-text="Certification en cours…"/>
                         <button string="Annuler"
                                 class="btn-secondary"
                                 special="cancel"/>
+                        <span class="text-muted ms-3">
+                            <i class="fa fa-info-circle"/> La certification peut prendre 10 à 30 secondes selon la disponibilité du serveur DGI.
+                        </span>
                     </footer>
                 </form>
             </field>
