@@ -198,19 +198,29 @@ class AccountMove(models.Model):
         les noms anglais (VAT 18%) et français (TVA), ainsi que le mapping par taux.
         """
         fne_taxes = []
+        fne_vat_rate = 0.0
         custom_taxes_map = {}
         for tax in line.tax_ids:
             fne_code = _detect_fne_vat_code(tax)
             if fne_code:
                 if fne_code not in fne_taxes:
                     fne_taxes.append(fne_code)
+                fne_vat_rate += float(tax.amount or 0)
             else:
                 key = (tax.name, tax.amount)
                 custom_taxes_map[key] = {
                     "name": _truncate(tax.name, 50),
                     "amount": float(tax.amount),
                 }
-        return fne_taxes, list(custom_taxes_map.values())
+        # La DGI applique les customTaxes sur le TTC (HT + TVA).
+        # On normalise le taux pour que DGI calcule le même montant qu'Odoo (sur HT).
+        # taux_normalisé = taux / (1 + TVA%) → DGI: TTC × taux_normalisé = HT × taux
+        factor = 1 + fne_vat_rate / 100
+        custom_taxes = [
+            {"name": ct["name"], "amount": round(ct["amount"] / factor, 4)}
+            for ct in custom_taxes_map.values()
+        ]
+        return fne_taxes, custom_taxes
 
     def _compute_currency_block(self):
         if self.currency_id and self.currency_id != self.company_currency_id:
@@ -276,7 +286,7 @@ class AccountMove(models.Model):
 
     def _get_client_info(self):
         partner = self.partner_id
-        raw_phone = partner.phone or partner.mobile or ""
+        raw_phone = partner.phone  or ""
         client_phone = ''.join(filter(str.isdigit, raw_phone))
         client_email = (partner.email or "").strip() or (self.company_id.email or "").strip() or "noreply@entreprise.ci"
         return {
