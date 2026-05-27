@@ -15,6 +15,7 @@ class InheritResPartner(models.Model):
            "B2G : Institution gouvernementale\n"
            "B2C : Particulier"
        ))
+    mobile= fields.Char(string='Mobile')
 
     regimeFiscal = fields.Selection([
         ('tva', 'TVA normal de 18%'),
