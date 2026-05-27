@@ -286,7 +286,7 @@ class AccountMove(models.Model):
 
     def _get_client_info(self):
         partner = self.partner_id
-        raw_phone = partner.phone  or ""
+        raw_phone = partner.phone or ""
         client_phone = ''.join(filter(str.isdigit, raw_phone))
         client_email = (partner.email or "").strip() or (self.company_id.email or "").strip() or "noreply@entreprise.ci"
         return {
