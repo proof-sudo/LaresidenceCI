@@ -1,8 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
 
-    <!-- Smart button "Événement" sur la fiche réservation →
-         visible uniquement si la réservation a un événement Odoo lié -->
+    <!-- Smart button sur sale.view_order_form (vue complète) -->
     <record id="view_sale_order_form_tr_event_button" model="ir.ui.view">
         <field name="name">sale.order.form.tr.event.button</field>
         <field name="model">sale.order</field>
@@ -17,6 +16,26 @@
                     </div>
                 </button>
             </div>
+        </field>
+    </record>
+
+    <!-- Smart button sur le formulaire simplifié (vue Réservations only) -->
+    <record id="view_sale_order_simple_form_tr_event_button" model="ir.ui.view">
+        <field name="name">sale.order.simple.form.tr.event.button</field>
+        <field name="model">sale.order</field>
+        <field name="inherit_id" ref="theresidence_api.view_theresidence_reservations_simple_form"/>
+        <field name="arch" type="xml">
+            <sheet position="before">
+                <div name="button_box" class="oe_button_box"
+                     invisible="not x_tr_event_id">
+                    <button type="object" name="action_view_tr_event"
+                            class="oe_stat_button" icon="fa-calendar">
+                        <div class="o_stat_info">
+                            <span class="o_stat_text">Événement</span>
+                        </div>
+                    </button>
+                </div>
+            </sheet>
         </field>
     </record>
 
