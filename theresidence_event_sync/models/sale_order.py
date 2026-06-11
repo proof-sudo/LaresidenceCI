@@ -20,7 +20,27 @@ class SaleOrder(models.Model):
         super().action_reserve_reservation()
         for order in self:
             if order.x_tr_is_reservation:
-                order._create_odoo_event_if_needed()
+                try:
+                    order._create_odoo_event_if_needed()
+                except Exception:
+                    _logger.exception(
+                        "[TR EVENT SYNC] Échec création event.event pour %s",
+                        order.x_tr_uuid,
+                    )
+
+    def write(self, vals):
+        res = super().write(vals)
+        if vals.get('x_tr_reservation_status') == 'RESERVED':
+            for order in self:
+                if order.x_tr_is_reservation:
+                    try:
+                        order._create_odoo_event_if_needed()
+                    except Exception:
+                        _logger.exception(
+                            "[TR EVENT SYNC] Échec création event.event (write) pour %s",
+                            order.x_tr_uuid,
+                        )
+        return res
 
     def _create_odoo_event_if_needed(self):
         """Crée l'événement Odoo lié à la réservation si aucun n'existe encore."""
