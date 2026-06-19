@@ -1,7 +1,12 @@
 .product-uom {
     font-size: 0.75em;
-    color: #6c757d;
+    color: #ffffff;
     font-style: italic;
-    margin-top: 2px;
+    font-weight: 600;
+    margin-top: 3px;
     line-height: 1.2;
+    background-color: #017e84;
+    display: inline-block;
+    padding: 1px 6px;
+    border-radius: 4px;
 }
