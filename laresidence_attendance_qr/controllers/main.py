@@ -26,7 +26,9 @@ class HrAttendanceQr(HrAttendance):
             )
             if not employee:
                 return {}
-            employee._attendance_action_change(self._get_geoip_response('kiosk'))
+            employee._attendance_action_change(
+                self._get_geoip_response('kiosk', device_tracking_enabled=company.attendance_device_tracking)
+            )
             return self._get_employee_info_response(employee)
         return super().scan_barcode(token=token, barcode=barcode)
 
