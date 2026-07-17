@@ -14,7 +14,7 @@ class HrAttendanceQr(HrAttendance):
     """Étend le contrôleur kiosque pour reconnaître les tokens QR att-..."""
 
     @http.route('/hr_attendance/attendance_barcode_scanned', type="jsonrpc", auth="public")
-    def scan_barcode(self, token, barcode):
+    def scan_barcode_with_geolocation(self, token, barcode, latitude=False, longitude=False):
         qr_token = self._extract_qr_token(barcode)
         if qr_token:
             company = self._get_company(token)
@@ -27,10 +27,12 @@ class HrAttendanceQr(HrAttendance):
             if not employee:
                 return {}
             employee._attendance_action_change(
-                self._get_geoip_response('kiosk', device_tracking_enabled=company.attendance_device_tracking)
+                self._get_geoip_response('kiosk', latitude=latitude, longitude=longitude,
+                                         device_tracking_enabled=company.attendance_device_tracking)
             )
             return self._get_employee_info_response(employee)
-        return super().scan_barcode(token=token, barcode=barcode)
+        return super().scan_barcode_with_geolocation(token=token, barcode=barcode,
+                                                     latitude=latitude, longitude=longitude)
 
     @staticmethod
     def _extract_qr_token(barcode):
