@@ -49,6 +49,9 @@ class HrEmployee(models.Model):
         img.save(buf, format='PNG')
         return base64.b64encode(buf.getvalue())
 
+    def action_print_attendance_badge(self):
+        return self.env.ref('hr.hr_employee_print_badge').report_action(self)
+
     @api.model_create_multi
     def create(self, vals_list):
         for vals in vals_list:
