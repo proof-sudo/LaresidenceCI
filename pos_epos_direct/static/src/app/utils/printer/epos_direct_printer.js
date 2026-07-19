@@ -25,70 +25,28 @@ export class EposDirectPrinter extends BasePrinter {
         let result;
         try {
             result = await this.pos.env.services.orm.call(
-                'pos.printer', '_get_epos_receipt_xml', [this.printerId, orderId]
+                'pos.printer', '_enqueue_epos_receipt', [this.printerId, orderId]
             );
         } catch (err) {
             this._log('receipt', 'error', Math.round(performance.now() - t0), '', err?.message || 'Erreur serveur', order.name);
             return this._error(_t("Erreur serveur"), err?.message || _t("Impossible de contacter Odoo."));
         }
 
+        const duration = Math.round(performance.now() - t0);
+
         if (!result?.success) {
-            this._log('receipt', 'error', Math.round(performance.now() - t0), result?.ip || '', result?.message || '', order.name);
+            this._log('receipt', 'error', duration, '', result?.message || '', order.name);
             return this._error(_t("Erreur impression"), result?.message || _t("Erreur inconnue."));
         }
 
-        const printResult = await this._sendToDevice(result.ip, result.xml);
-        const duration = Math.round(performance.now() - t0);
-
-        if (printResult.successful) {
-            this._log('receipt', 'success', duration, result.ip, '', order.name);
-        } else {
-            this._log('receipt', 'error', duration, result.ip, printResult.message?.body || '', order.name);
-        }
-
-        return printResult;
+        // Le job est en file d'attente ; l'agent PC local l'imprimera dans
+        // les secondes qui suivent. On ne bloque pas la caisse en attendant.
+        this._log('receipt', 'success', duration, '', 'queued job_id=' + result.job_id, order.name);
+        return { successful: true };
     }
 
     sendPrintingJob(_img) {
         return Promise.resolve(true);
-    }
-
-    async _sendToDevice(ip, xmlStr) {
-        const baseUrl = ip.startsWith('http') ? ip : 'http://' + ip;
-        const url = baseUrl.replace(/\/$/, '') + '/cgi-bin/epos/service.cgi';
-
-        let resp;
-        try {
-            resp = await fetch(url, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'text/xml; charset=utf-8',
-                    'If-Modified-Since': 'Thu, 01 Jan 1970 00:00:00 GMT',
-                },
-                body: xmlStr,
-            });
-        } catch (err) {
-            return this._error(
-                _t("Imprimante inaccessible"),
-                _t("Vérifiez que l'imprimante est allumée et sur le même réseau. (%s)", ip)
-            );
-        }
-
-        if (!resp.ok) {
-            return this._error(_t("Erreur imprimante"), _t("HTTP %s", resp.status));
-        }
-
-        try {
-            const text = await resp.text();
-            const doc = new DOMParser().parseFromString(text, 'text/xml');
-            const response = doc.querySelector('response');
-            if (response && response.getAttribute('success') === 'false') {
-                const code = response.getAttribute('code') || '?';
-                return this._error(_t("Erreur imprimante"), _t("Code Epson: %s", code));
-            }
-        } catch (_) { /* firmware sans XML valide */ }
-
-        return { successful: true };
     }
 
     /** Fire-and-forget : pas d'await, zéro impact sur la vitesse. */

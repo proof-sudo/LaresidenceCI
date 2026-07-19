@@ -25,75 +25,31 @@ export class EposDirectKitchenPrinter extends BasePrinter {
         let result;
         try {
             result = await this.pos.env.services.orm.call(
-                'pos.printer', '_get_epos_kitchen_xml', [this.printerId, orderId]
+                'pos.printer', '_enqueue_epos_kitchen', [this.printerId, orderId]
             );
         } catch (err) {
             this._log('kitchen', 'error', Math.round(performance.now() - t0), '', err?.message || 'Erreur serveur', order.name);
             return this._error(_t("Erreur serveur"), err?.message || _t("Impossible de contacter Odoo."));
         }
 
+        const duration = Math.round(performance.now() - t0);
+
         if (!result?.success) {
-            this._log('kitchen', 'error', Math.round(performance.now() - t0), result?.ip || '', result?.message || '', order.name);
+            this._log('kitchen', 'error', duration, '', result?.message || '', order.name);
             return this._error(_t("Erreur impression cuisine"), result?.message || _t("Erreur inconnue."));
         }
 
-        // Aucune ligne pour cette station
-        if (!result.xml) {
+        // Aucune ligne pour cette station : rien à mettre en file d'attente.
+        if (!result.job_id) {
             return { successful: true };
         }
 
-        const printResult = await this._sendToDevice(result.ip, result.xml);
-        const duration = Math.round(performance.now() - t0);
-
-        if (printResult.successful) {
-            this._log('kitchen', 'success', duration, result.ip, '', order.name);
-        } else {
-            this._log('kitchen', 'error', duration, result.ip, printResult.message?.body || '', order.name);
-        }
-
-        return printResult;
+        this._log('kitchen', 'success', duration, '', 'queued job_id=' + result.job_id, order.name);
+        return { successful: true };
     }
 
     sendPrintingJob(_img) {
         return Promise.resolve(true);
-    }
-
-    async _sendToDevice(ip, xmlStr) {
-        const baseUrl = ip.startsWith('http') ? ip : 'http://' + ip;
-        const url = baseUrl.replace(/\/$/, '') + '/cgi-bin/epos/service.cgi';
-
-        let resp;
-        try {
-            resp = await fetch(url, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'text/xml; charset=utf-8',
-                    'If-Modified-Since': 'Thu, 01 Jan 1970 00:00:00 GMT',
-                },
-                body: xmlStr,
-            });
-        } catch (err) {
-            return this._error(
-                _t("Imprimante cuisine inaccessible"),
-                _t("Vérifiez que l'imprimante est allumée et sur le même réseau. (%s)", ip)
-            );
-        }
-
-        if (!resp.ok) {
-            return this._error(_t("Erreur imprimante"), _t("HTTP %s", resp.status));
-        }
-
-        try {
-            const text = await resp.text();
-            const doc = new DOMParser().parseFromString(text, 'text/xml');
-            const response = doc.querySelector('response');
-            if (response && response.getAttribute('success') === 'false') {
-                const code = response.getAttribute('code') || '?';
-                return this._error(_t("Erreur imprimante"), _t("Code Epson: %s", code));
-            }
-        } catch (_) { /* firmware sans XML valide */ }
-
-        return { successful: true };
     }
 
     /** Fire-and-forget : pas d'await, zéro impact sur la vitesse. */

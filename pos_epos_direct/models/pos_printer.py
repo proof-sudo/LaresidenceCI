@@ -190,6 +190,59 @@ class PosPrinter(models.Model):
 
         return {'success': True, 'xml': xml_str, 'ip': printer.epson_printer_ip.strip()}
 
+    # ── Relais PC local (file d'attente pos.print.job) ───────────────────────
+    # Remplace l'envoi direct navigateur → imprimante (bloqué sur iOS Safari
+    # par la restriction "Local Network Access"). Le navigateur ne fait plus
+    # qu'un RPC léger vers Odoo.sh ; un agent Python sur un PC du réseau local
+    # de l'imprimante récupère le job en polling et l'imprime.
+
+    @api.model
+    def _enqueue_epos_receipt(self, printer_id, order_id):
+        printer = self.browse(printer_id)
+        ok, err = printer._check_ready()
+        if not ok:
+            return {'success': False, 'message': err}
+
+        order = self.env['pos.order'].browse(order_id)
+        if not order.exists():
+            return {'success': False, 'message': _("Commande introuvable (id=%s).") % order_id}
+
+        xml_str = printer._build_receipt_xml(order)
+        job = self.env['pos.print.job'].sudo().create({
+            'printer_id': printer_id,
+            'order_id': order_id,
+            'order_name': order.name,
+            'job_type': 'receipt',
+            'ip': printer.epson_printer_ip.strip(),
+            'xml': xml_str,
+        })
+        return {'success': True, 'job_id': job.id}
+
+    @api.model
+    def _enqueue_epos_kitchen(self, printer_id, order_id):
+        printer = self.browse(printer_id)
+        ok, err = printer._check_ready()
+        if not ok:
+            return {'success': False, 'message': err}
+
+        order = self.env['pos.order'].browse(order_id)
+        if not order.exists():
+            return {'success': False, 'message': _("Commande introuvable (id=%s).") % order_id}
+
+        xml_str = printer._build_kitchen_xml(order)
+        if not xml_str:
+            return {'success': True, 'job_id': False}
+
+        job = self.env['pos.print.job'].sudo().create({
+            'printer_id': printer_id,
+            'order_id': order_id,
+            'order_name': order.name,
+            'job_type': 'kitchen',
+            'ip': printer.epson_printer_ip.strip(),
+            'xml': xml_str,
+        })
+        return {'success': True, 'job_id': job.id}
+
     # ── Validation ───────────────────────────────────────────────────────────
 
     def _check_ready(self):
