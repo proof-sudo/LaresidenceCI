@@ -235,6 +235,32 @@ class AccountMove(models.Model):
     # Construction du payload
     # ------------------------------------------------------------------
 
+    @staticmethod
+    def _fne_line_values(line):
+        """Retourne (qty, discount, montant HT unitaire) tels qu'envoyés à la FNE."""
+        qty = float(line.quantity or 0)
+        discount = float(line.discount or 0)
+        subtotal_ht = float(line.price_subtotal or 0)  # toujours HT, même si price_include
+        divisor = qty * (1 - discount / 100) if discount < 100 else 0
+        amount = round(subtotal_ht / divisor, 2) if divisor else 0.0
+        return qty, discount, amount
+
+    def _get_fne_lines(self):
+        """Lignes effectivement envoyées à la FNE, dans l'ordre exact du payload.
+
+        Source unique de vérité pour _build_items() ET _apply_sign_success() :
+        la DGI renvoie les items dans l'ordre d'envoi, le mapping des fne_item_id
+        par index n'est correct que si les deux côtés utilisent la même liste.
+        """
+        lines = []
+        for line in self.invoice_line_ids.filtered(lambda l: l.product_id):
+            qty, _discount, amount = self._fne_line_values(line)
+            if qty <= 0 or amount <= 0:
+                _logger.info("[FNE] Ligne ignorée (qty=%s, amount=%s) : %s", qty, amount, line.name)
+                continue
+            lines.append(line)
+        return lines
+
     def _build_items(self):
         """Construit les lignes d'articles pour le payload FNE.
 
@@ -242,16 +268,8 @@ class AccountMove(models.Model):
         - Taxes non-TVA placées en customTaxes par ligne (GRA, AIRSI, etc.)
         """
         items = []
-        for line in self.invoice_line_ids.filtered(lambda l: l.product_id):
-            qty = float(line.quantity or 0)
-            discount = float(line.discount or 0)
-            subtotal_ht = float(line.price_subtotal or 0)  # toujours HT, même si price_include
-            divisor = qty * (1 - discount / 100) if discount < 100 else 0
-            amount = round(subtotal_ht / divisor, 2) if divisor else 0.0
-
-            if qty <= 0 or amount <= 0:
-                _logger.info("[FNE] Ligne ignorée (qty=%s, amount=%s) : %s", qty, amount, line.name)
-                continue
+        for line in self._get_fne_lines():
+            qty, discount, amount = self._fne_line_values(line)
 
             uom = _normalize_uom(line.product_uom_id.name if line.product_uom_id else "")
             fne_taxes, custom_taxes = self._classify_taxes(line)
@@ -388,7 +406,10 @@ class AccountMove(models.Model):
 
         # Mapper les fne_item_id retournés par la DGI sur les lignes Odoo (par index)
         fne_items = data.get("invoice", {}).get("items", [])
-        odoo_lines = list(self.invoice_line_ids.filtered(lambda l: l.product_id))
+        odoo_lines = self._get_fne_lines()
+        if len(fne_items) != len(odoo_lines):
+            _logger.warning("[FNE] %s : %d items DGI pour %d lignes envoyées, mapping des fne_item_id incertain",
+                            self.name, len(fne_items), len(odoo_lines))
         for i, fne_item in enumerate(fne_items):
             fne_item_id = fne_item.get("id")
             if not fne_item_id:
@@ -422,26 +443,50 @@ class AccountMove(models.Model):
         _logger.info("[FNE] REFUND %s -> origine %s (id_fne=%s)",
                      self.name, origin.name, origin.invoice_id_from_fne)
 
-        origin_lines_map = {
-            line.product_id.id: line
-            for line in origin.invoice_line_ids.filtered(lambda l: l.product_id and l.fne_item_id)
-        }
+        # Appariement ligne à ligne : chaque ligne d'origine ne peut être
+        # consommée qu'une seule fois. Un mapping par produit écraserait les
+        # lignes en doublon (même produit facturé 2 fois à des prix différents)
+        # et enverrait le même fne_item_id plusieurs fois à la DGI.
+        origin_lines = list(origin.invoice_line_ids.filtered(lambda l: l.product_id and l.fne_item_id))
+        used_ids = set()
+
+        def _pick_origin_line(refund_line):
+            candidates = [
+                o for o in origin_lines
+                if o.id not in used_ids and o.product_id == refund_line.product_id
+            ]
+            exact = [
+                o for o in candidates
+                if abs(float(o.price_unit or 0) - float(refund_line.price_unit or 0)) < 0.01
+                and float(o.discount or 0) == float(refund_line.discount or 0)
+            ]
+            chosen = (exact or candidates or [None])[0]
+            if chosen:
+                used_ids.add(chosen.id)
+            return chosen
 
         items = []
         for line in self.invoice_line_ids.filtered(lambda l: l.product_id):
             qty = abs(line.quantity or 0)
             if qty <= 0:
                 continue
-            orig_line = origin_lines_map.get(line.product_id.id)
-            if not orig_line or not orig_line.fne_item_id:
+            orig_line = _pick_origin_line(line)
+            if not orig_line:
                 raise UserError(_(
-                    "ID FNE manquant pour le produit '%s' sur l'avoir %s."
-                ) % (line.product_id.display_name or line.name or '', self.name))
+                    "ID FNE manquant pour le produit '%s' sur l'avoir %s "
+                    "(aucune ligne correspondante non encore utilisée sur %s)."
+                ) % (line.product_id.display_name or line.name or '', self.name, origin.name))
+            if qty > abs(orig_line.quantity or 0):
+                raise UserError(_(
+                    "Quantité %s de l'avoir %s supérieure à la quantité facturée (%s) "
+                    "pour '%s' sur %s."
+                ) % (qty, self.name, orig_line.quantity, line.product_id.display_name, origin.name))
             items.append({"id": orig_line.fne_item_id, "quantity": float(qty)})
 
         if not items:
             raise UserError(_("Aucune ligne valable pour le refund FNE."))
 
+        _logger.info("[FNE] REFUND %s items=%s", self.name, items)
         endpoint = base_url.rstrip('/') + f"/external/invoices/{origin.invoice_id_from_fne}/refund"
         data = self._request_fne("POST", endpoint, headers, json_body={"items": items})
 
