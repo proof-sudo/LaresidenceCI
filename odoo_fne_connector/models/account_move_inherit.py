@@ -96,6 +96,11 @@ class AccountMoveLine(models.Model):
     _inherit = 'account.move.line'
 
     fne_item_id = fields.Char(string="Item ID FNE", copy=False)
+    fne_refund_item_id = fields.Char(
+        string="Item FNE remboursé", copy=False, readonly=True,
+        help="Sur une ligne d'avoir : identifiant de l'article FNE de la facture d'origine "
+             "effectivement remboursé lors de la certification de l'avoir.",
+    )
 
 
 class AccountMove(models.Model):
@@ -465,10 +470,28 @@ class AccountMove(models.Model):
                 used_ids.add(chosen.id)
             return chosen
 
+        # Quantités déjà remboursées à la DGI par les avoirs précédents certifiés
+        # sur la même facture (la DGI ne contrôle pas ce cumul : c'est à nous de le faire).
+        already_refunded = {}
+        previous_refunds = self.env['account.move'].search([
+            ('reversed_entry_id', '=', origin.id),
+            ('fne_sent', '=', True),
+            ('state', '!=', 'cancel'),
+            ('id', '!=', self.id),
+        ])
+        for prev_line in previous_refunds.mapped('invoice_line_ids').filtered('fne_refund_item_id'):
+            already_refunded[prev_line.fne_refund_item_id] = (
+                already_refunded.get(prev_line.fne_refund_item_id, 0.0) + abs(prev_line.quantity or 0)
+            )
+
         items = []
+        pairs = []  # (ligne d'avoir, ligne d'origine) pour mémoriser le ticket remboursé
         for line in self.invoice_line_ids.filtered(lambda l: l.product_id):
-            qty = abs(line.quantity or 0)
-            if qty <= 0:
+            qty, _discount, amount = self._fne_line_values(line)
+            qty = abs(qty)
+            if qty <= 0 or amount <= 0:
+                _logger.info("[FNE] Avoir %s : ligne ignorée (qty=%s, amount=%s) : %s",
+                             self.name, qty, amount, line.name)
                 continue
             orig_line = _pick_origin_line(line)
             if not orig_line:
@@ -476,12 +499,17 @@ class AccountMove(models.Model):
                     "ID FNE manquant pour le produit '%s' sur l'avoir %s "
                     "(aucune ligne correspondante non encore utilisée sur %s)."
                 ) % (line.product_id.display_name or line.name or '', self.name, origin.name))
-            if qty > abs(orig_line.quantity or 0):
+            invoiced_qty = abs(orig_line.quantity or 0)
+            cumulated = already_refunded.get(orig_line.fne_item_id, 0.0) + qty
+            if cumulated > invoiced_qty + 1e-6:
                 raise UserError(_(
-                    "Quantité %s de l'avoir %s supérieure à la quantité facturée (%s) "
-                    "pour '%s' sur %s."
-                ) % (qty, self.name, orig_line.quantity, line.product_id.display_name, origin.name))
+                    "Remboursement cumulé (%s) supérieur à la quantité facturée (%s) "
+                    "pour '%s' sur %s (avoir %s). Un avoir déjà certifié couvre probablement "
+                    "cet article."
+                ) % (cumulated, invoiced_qty, line.product_id.display_name, origin.name, self.name))
+            already_refunded[orig_line.fne_item_id] = cumulated
             items.append({"id": orig_line.fne_item_id, "quantity": float(qty)})
+            pairs.append((line, orig_line))
 
         if not items:
             raise UserError(_("Aucune ligne valable pour le refund FNE."))
@@ -490,6 +518,8 @@ class AccountMove(models.Model):
         endpoint = base_url.rstrip('/') + f"/external/invoices/{origin.invoice_id_from_fne}/refund"
         data = self._request_fne("POST", endpoint, headers, json_body={"items": items})
 
+        for line, orig_line in pairs:
+            line.fne_refund_item_id = orig_line.fne_item_id
         self.fne_sent = True
         self.fne_reference_dgi = data.get("reference") or False
         self.fne_verification_url = data.get("token") or False
