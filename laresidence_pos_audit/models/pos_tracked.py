@@ -64,7 +64,20 @@ class LaresidencePosAuditOrm(models.AbstractModel):
             infos['origin_path'] = chemin[:128]
             infos['ip_address'] = request.httprequest.remote_addr
             infos['user_agent'] = str(request.httprequest.user_agent or '')[:256]
-            infos['origin'] = 'pos' if chemin.startswith('/pos/') else 'backend'
+
+            # La synchronisation des commandes de caisse n'arrive pas par une
+            # adresse en /pos/ : elle emprunte le canal générique de l'ORM.
+            # S'en tenir au chemin étiquetterait « back-office » des actions de
+            # salle, ce qui viderait ce champ de son intérêt. Trois signaux sont
+            # donc croisés, dont deux déterministes.
+            referent = request.httprequest.headers.get('Referer') or ''
+            vient_de_la_caisse = (
+                chemin.startswith('/pos/')
+                or chemin.startswith('/laresidence/pos_audit')
+                or '/sync_from_ui' in chemin
+                or '/pos/ui' in referent
+            )
+            infos['origin'] = 'pos' if vient_de_la_caisse else 'backend'
         except Exception:
             pass
         return infos
