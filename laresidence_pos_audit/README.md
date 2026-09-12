@@ -203,6 +203,13 @@ aussi la **désinstallation du module**.
 Tant qu'aucun code n'est défini, l'accès reste ouvert aux membres du groupe :
 le module doit rester utilisable au moment de son installation.
 
+Les méthodes qui ouvrent l'accès, définissent le code ou déposent une ligne
+dans le journal ne sont **pas appelables à distance** : elles sont privées au
+sens d'Odoo. Sans cette précaution, il suffirait d'un appel direct pour
+s'ouvrir l'accès sans code, ou pour injecter de fausses lignes dans le
+journal. Seuls le point d'entrée du menu et les assistants sont exposés, et
+chacun vérifie le droit et le code avant d'agir.
+
 ### Ce que cette protection vaut, et ce qu'elle ne vaut pas
 
 Contre un employé, un caissier ou un responsable de salle, l'occultation est

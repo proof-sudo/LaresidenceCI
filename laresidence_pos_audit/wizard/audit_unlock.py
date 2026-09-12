@@ -22,20 +22,20 @@ class LaresidencePosAuditUnlock(models.TransientModel):
     @api.model
     def _message_defaut(self):
         controle = self.env['laresidence.pos.audit.acces']
-        restants = max(ESSAIS_MAX - controle.essais_recents(), 0)
+        restants = max(ESSAIS_MAX - controle._essais_recents(), 0)
         if restants <= 0:
             return ("Trop de tentatives infructueuses. Réessayez dans %s minutes. "
                     "Chaque tentative est enregistrée." % FENETRE_ESSAIS_MIN)
         return ("L'accès reste ouvert %s minutes après la saisie. "
                 "Chaque tentative, réussie ou non, est enregistrée."
-                % controle.duree_minutes())
+                % controle._duree_minutes())
 
     def action_valider(self):
         self.ensure_one()
         controle = self.env['laresidence.pos.audit.acces']
 
-        if controle.essais_recents() >= ESSAIS_MAX:
-            controle._journaliser(
+        if controle._essais_recents() >= ESSAIS_MAX:
+            controle._journaliser_refus(
                 'audit_unlock_failed',
                 "Saisie refusée : trop de tentatives infructueuses sur les %s dernières minutes."
                 % FENETRE_ESSAIS_MIN)
@@ -43,12 +43,12 @@ class LaresidencePosAuditUnlock(models.TransientModel):
                 "Trop de tentatives infructueuses. Réessayez dans %s minutes.",
                 FENETRE_ESSAIS_MIN))
 
-        if not controle.verifier_code(self.code):
-            controle._journaliser('audit_unlock_failed',
-                                  "Code d'accès erroné (motif : %s)." % self.motif)
+        if not controle._verifier_code(self.code):
+            controle._journaliser_refus('audit_unlock_failed',
+                                        "Code d'accès erroné (motif : %s)." % self.motif)
             raise UserError(_("Code incorrect. Cette tentative a été enregistrée."))
 
-        controle.ouvrir_acces()
+        controle._ouvrir_acces()
 
         if self.motif == 'desinstallation':
             return {
@@ -57,7 +57,7 @@ class LaresidencePosAuditUnlock(models.TransientModel):
                 'params': {
                     'title': "Accès ouvert",
                     'message': "La désinstallation est autorisée pendant %s minutes."
-                               % controle.duree_minutes(),
+                               % controle._duree_minutes(),
                     'type': 'warning',
                     'sticky': True,
                 },
@@ -83,11 +83,11 @@ class LaresidencePosAuditAccessConfig(models.TransientModel):
     code_nouveau = fields.Char(string="Nouveau code", password=True)
     duree_minutes = fields.Integer(
         string="Durée d'ouverture (minutes)",
-        default=lambda self: self.env['laresidence.pos.audit.acces'].duree_minutes(),
+        default=lambda self: self.env['laresidence.pos.audit.acces']._duree_minutes(),
         help="Temps pendant lequel l'accès reste ouvert après la saisie du code.")
     code_deja_defini = fields.Boolean(
         string="Un code est déjà défini", readonly=True,
-        default=lambda self: self.env['laresidence.pos.audit.acces'].code_defini())
+        default=lambda self: self.env['laresidence.pos.audit.acces']._code_defini())
 
     @api.model
     def _utilisateurs_actuels(self):
@@ -122,6 +122,6 @@ class LaresidencePosAuditAccessConfig(models.TransientModel):
                 PARAM_DUREE, str(int(self.duree_minutes)))
 
         if self.code_nouveau:
-            controle.definir_code(self.code_nouveau, self.code_actuel)
+            controle._definir_code(self.code_nouveau, self.code_actuel)
 
         return {'type': 'ir.actions.act_window_close'}

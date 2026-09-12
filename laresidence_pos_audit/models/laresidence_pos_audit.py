@@ -252,7 +252,7 @@ class LaresidencePosAudit(models.Model):
     # Contexte de la requête — relevé côté serveur
     # ------------------------------------------------------------------
     @api.model
-    def contexte_requete(self):
+    def _contexte_requete(self):
         """Tout ce que le serveur sait de l'appel, sans rien demander au client.
 
         L'identifiant de session n'est jamais stocké tel quel : il servirait à
@@ -370,7 +370,7 @@ class LaresidencePosAudit(models.Model):
         return enregistrements
 
     @api.model
-    def verifier_integrite(self, limite=None):
+    def _verifier_integrite(self, limite=None):
         """Recalcule la chaîne et signale la première anomalie.
 
         Retourne un état lisible : nombre de lignes contrôlées, trous dans la
@@ -403,7 +403,9 @@ class LaresidencePosAudit(models.Model):
         }
 
     def action_verifier_integrite(self):
-        etat = self.verifier_integrite()
+        if not self.env.user.has_group('laresidence_pos_audit.group_pos_audit_viewer'):
+            raise UserError(_("Vous n'avez pas accès au journal d'audit."))
+        etat = self._verifier_integrite()
         if etat['intacte']:
             titre = "Journal intact"
             corps = ("%s ligne(s) contrôlées. La numérotation est continue et "
@@ -481,14 +483,14 @@ class LaresidencePosAudit(models.Model):
             'user_id': self.env.user.id,
             'note': "Consultation du journal d'audit (%s ligne(s) affichées)." % nombre,
         }
-        valeurs.update(self.contexte_requete())
+        valeurs.update(self._contexte_requete())
         self.sudo().with_context(laresidence_audit_interne=True).create([valeurs])
 
     # ------------------------------------------------------------------
     # Écriture (appelée en sudo depuis le contrôleur)
     # ------------------------------------------------------------------
     @api.model
-    def log_events(self, events, ip_address=None, user_id=None, user_agent=None,
+    def _log_events(self, events, ip_address=None, user_id=None, user_agent=None,
                    origin_path=None, session_fingerprint=None, ip_chain=None):
         """Insère un lot d'événements. Retourne le nombre de lignes écrites.
 
@@ -500,7 +502,7 @@ class LaresidencePosAudit(models.Model):
 
         valid_types = {code for code, _label in self.EVENT_TYPES}
         now = fields.Datetime.now()
-        contexte = self.contexte_requete()
+        contexte = self._contexte_requete()
         rows = []
 
         for ev in events:

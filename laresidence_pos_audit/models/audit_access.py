@@ -24,7 +24,7 @@ import hashlib
 import logging
 import secrets
 
-from odoo import _, api, fields, models
+from odoo import SUPERUSER_ID, _, api, fields, models
 from odoo.exceptions import UserError
 
 _logger = logging.getLogger(__name__)
@@ -69,11 +69,11 @@ class LaresidencePosAuditAcces(models.AbstractModel):
         return hashlib.sha256(('%s|%s' % (sel, code)).encode('utf-8')).hexdigest()
 
     @api.model
-    def code_defini(self):
+    def _code_defini(self):
         return bool(self.env['ir.config_parameter'].sudo().get_param(PARAM_EMPREINTE))
 
     @api.model
-    def verifier_code(self, code):
+    def _verifier_code(self, code):
         parametres = self.env['ir.config_parameter'].sudo()
         empreinte = parametres.get_param(PARAM_EMPREINTE)
         sel = parametres.get_param(PARAM_SEL)
@@ -84,11 +84,13 @@ class LaresidencePosAuditAcces(models.AbstractModel):
         return secrets.compare_digest(self._empreinte(code or '', sel), empreinte)
 
     @api.model
-    def definir_code(self, nouveau, actuel=None):
+    def _definir_code(self, nouveau, actuel=None):
+        if not self.env.user.has_group('laresidence_pos_audit.group_pos_audit_officer'):
+            raise UserError(_("Vous n'avez pas le droit de définir le code du journal."))
         parametres = self.env['ir.config_parameter'].sudo()
-        if self.code_defini() and not self.verifier_code(actuel):
-            self._journaliser('audit_unlock_failed',
-                              "Tentative de changement du code refusée : code actuel erroné.")
+        if self._code_defini() and not self._verifier_code(actuel):
+            self._journaliser_refus('audit_unlock_failed',
+                                    "Tentative de changement du code refusée : code actuel erroné.")
             raise UserError(_("Le code actuel ne correspond pas."))
         if not nouveau or len(str(nouveau).strip()) < 4:
             raise UserError(_("Le code doit comporter au moins quatre caractères."))
@@ -103,33 +105,33 @@ class LaresidencePosAuditAcces(models.AbstractModel):
     # Déverrouillage
     # ------------------------------------------------------------------
     @api.model
-    def duree_minutes(self):
+    def _duree_minutes(self):
         try:
             return int(self.env['ir.config_parameter'].sudo().get_param(PARAM_DUREE, DUREE_DEFAUT))
         except (TypeError, ValueError):
             return DUREE_DEFAUT
 
     @api.model
-    def acces_ouvert(self):
+    def _acces_ouvert(self):
         session = self.env['laresidence.pos.audit.session'].sudo().search(
             [('user_id', '=', self.env.user.id)], limit=1)
         return bool(session and session.unlocked_until
                     and session.unlocked_until > fields.Datetime.now())
 
     @api.model
-    def ouvrir_acces(self):
+    def _ouvrir_acces(self):
         modele = self.env['laresidence.pos.audit.session'].sudo()
-        jusqua = fields.Datetime.add(fields.Datetime.now(), minutes=self.duree_minutes())
+        jusqua = fields.Datetime.add(fields.Datetime.now(), minutes=self._duree_minutes())
         session = modele.search([('user_id', '=', self.env.user.id)], limit=1)
         if session:
             session.write({'unlocked_until': jusqua})
         else:
             modele.create({'user_id': self.env.user.id, 'unlocked_until': jusqua})
         self._journaliser('audit_unlock',
-                          "Accès au journal ouvert pour %s minutes." % self.duree_minutes())
+                          "Accès au journal ouvert pour %s minutes." % self._duree_minutes())
 
     @api.model
-    def essais_recents(self):
+    def _essais_recents(self):
         limite = fields.Datetime.subtract(fields.Datetime.now(), minutes=FENETRE_ESSAIS_MIN)
         return self.env['laresidence.pos.audit'].sudo().search_count([
             ('event_type', '=', 'audit_unlock_failed'),
@@ -141,18 +143,42 @@ class LaresidencePosAuditAcces(models.AbstractModel):
     # Journalisation
     # ------------------------------------------------------------------
     @api.model
+    def _valeurs_trace(self, type_evenement, message):
+        valeurs = {
+            'event_type': type_evenement,
+            'server_datetime': fields.Datetime.now(),
+            'user_id': self.env.user.id,
+            'note': (message or '')[:512],
+        }
+        valeurs.update(self.env['laresidence.pos.audit'].sudo()._contexte_requete())
+        return valeurs
+
+    @api.model
     def _journaliser(self, type_evenement, message):
         try:
-            valeurs = {
-                'event_type': type_evenement,
-                'server_datetime': fields.Datetime.now(),
-                'user_id': self.env.user.id,
-                'note': (message or '')[:512],
-            }
-            valeurs.update(self.env['laresidence.pos.audit'].sudo().contexte_requete())
-            self.env['laresidence.pos.audit'].sudo().create([valeurs])
+            self.env['laresidence.pos.audit'].sudo().create(
+                [self._valeurs_trace(type_evenement, message)])
         except Exception:
             _logger.exception("laresidence_pos_audit : journalisation d'accès impossible")
+
+    @api.model
+    def _journaliser_refus(self, type_evenement, message):
+        """Écrit dans une transaction séparée.
+
+        Un refus se termine par une exception, et l'annulation qui suit
+        emporterait une trace écrite dans la transaction courante — c'est-à-dire
+        exactement celle qu'il faut conserver. Les tentatives infructueuses
+        seraient invisibles, et le blocage après plusieurs essais ne se
+        déclencherait jamais.
+        """
+        try:
+            valeurs = self._valeurs_trace(type_evenement, message)
+            with self.env.registry.cursor() as cr:
+                env = api.Environment(cr, SUPERUSER_ID, self.env.context)
+                env['laresidence.pos.audit'].create([valeurs])
+                cr.commit()
+        except Exception:
+            _logger.exception("laresidence_pos_audit : trace de refus impossible")
 
     # ------------------------------------------------------------------
     # Point d'entrée du menu
@@ -162,7 +188,7 @@ class LaresidencePosAuditAcces(models.AbstractModel):
         """Renvoie la liste si l'accès est ouvert, sinon la demande de code."""
         if not self.env.user.has_group('laresidence_pos_audit.group_pos_audit_viewer'):
             raise UserError(_("Vous n'avez pas accès au journal d'audit."))
-        if self.acces_ouvert() or not self.code_defini():
+        if self._acces_ouvert() or not self._code_defini():
             return self.env['ir.actions.act_window']._for_xml_id(
                 'laresidence_pos_audit.action_laresidence_pos_audit')
         return {
@@ -191,9 +217,9 @@ class IrModuleModule(models.Model):
         if not concernes:
             return
         controle = self.env['laresidence.pos.audit.acces']
-        if not controle.code_defini() or controle.acces_ouvert():
+        if not controle._code_defini() or controle._acces_ouvert():
             return
-        controle._journaliser(
+        controle._journaliser_refus(
             'audit_uninstall_blocked',
             "Tentative de désinstallation du journal d'audit, refusée faute de code.")
         raise UserError(_(

@@ -46,7 +46,7 @@ def _journaliser_hors_transaction(db, valeurs):
             env = api.Environment(cr, SUPERUSER_ID, {})
             if env['ir.config_parameter'].get_param(PARAM_TRACE_AUTH, '1') in ('0', 'false', 'False'):
                 return
-            valeurs.update(env['laresidence.pos.audit'].contexte_requete())
+            valeurs.update(env['laresidence.pos.audit']._contexte_requete())
             env['laresidence.pos.audit'].create([valeurs])
             cr.commit()
     except Exception:

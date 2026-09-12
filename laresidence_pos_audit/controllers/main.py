@@ -27,7 +27,7 @@ class PosAuditController(http.Controller):
             events = events[:MAX_EVENTS_PER_CALL]
 
         try:
-            written = request.env['laresidence.pos.audit'].sudo().log_events(
+            written = request.env['laresidence.pos.audit'].sudo()._log_events(
                 events,
                 ip_address=request.httprequest.remote_addr,
                 user_id=request.env.user.id,

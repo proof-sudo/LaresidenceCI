@@ -93,7 +93,7 @@ class LaresidencePosAuditOrm(models.AbstractModel):
     # ------------------------------------------------------------------
     @api.model
     def _laresidence_contexte_appel(self):
-        return self.env['laresidence.pos.audit'].sudo().contexte_requete()
+        return self.env['laresidence.pos.audit'].sudo()._contexte_requete()
 
     # ------------------------------------------------------------------
     # Sérialisation des valeurs
