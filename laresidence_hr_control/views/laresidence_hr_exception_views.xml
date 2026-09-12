@@ -97,7 +97,7 @@
                 <filter name="sur_horaire" string="Basés sur l'horaire contractuel" domain="[('reference_type','=','calendar')]"/>
                 <separator/>
                 <filter name="semaine" string="Cette semaine" domain="[('date','&gt;=', (context_today() - datetime.timedelta(days=7)).strftime('%Y-%m-%d'))]"/>
-                <group expand="0" string="Regrouper par">
+                <group>
                     <filter name="g_emp" string="Employé" context="{'group_by':'employee_id'}"/>
                     <filter name="g_dep" string="Département" context="{'group_by':'department_id'}"/>
                     <filter name="g_type" string="Type d'écart" context="{'group_by':'exception_type'}"/>

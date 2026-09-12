@@ -104,7 +104,7 @@
                 <separator/>
                 <filter name="horloge" string="Horloge d'appareil décalée"
                         domain="['|',('clock_skew','&gt;',120),('clock_skew','&lt;',-120)]"/>
-                <group expand="0" string="Regrouper par">
+                <group>
                     <filter name="g_event" string="Événement" context="{'group_by':'event_type'}"/>
                     <filter name="g_emp" string="Caissier" context="{'group_by':'employee_id'}"/>
                     <filter name="g_device" string="Appareil" context="{'group_by':'device_identifier'}"/>
