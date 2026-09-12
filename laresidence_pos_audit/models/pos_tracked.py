@@ -139,6 +139,26 @@ class LaresidencePosAuditOrm(models.AbstractModel):
             return None
 
     @api.model
+    def _laresidence_valeur_stockee(self, enregistrement, champ):
+        """Lit un champ sans jamais faire échouer l'opération observée.
+
+        Un champ peut être réservé à certains profils — ``totp_secret`` sur un
+        utilisateur, par exemple. Le lire sous un compte ordinaire lève une
+        erreur de droits, et cette erreur remontait jusqu'à faire échouer la
+        création elle-même : l'audit empêchait l'action qu'il devait se
+        contenter d'observer.
+
+        Un champ secret n'est même pas lu : on note qu'il était présent, jamais
+        sa valeur.
+        """
+        if champ in CHAMPS_SECRETS:
+            return "(valeur masquée)"
+        try:
+            return self._laresidence_lisible(champ, enregistrement[champ])
+        except Exception:
+            return None
+
+    @api.model
     def _laresidence_rattachement(self, enregistrement):
         """Rattache l'écriture à une commande, une session, une table."""
         infos = {}
@@ -240,9 +260,18 @@ class LaresidencePosAuditOrm(models.AbstractModel):
         if not self._laresidence_audit_actif():
             return enregistrements
         retenus = self._laresidence_champs_creation()
-        for enregistrement in enregistrements:
-            valeurs = {champ: self._laresidence_lisible(champ, enregistrement[champ])
-                       for champ in retenus}
+        # On enregistre ce qui a été soumis, et non le résultat relu en base :
+        # c'est aussi fidèle pour un audit, ça évite une requête par champ, et
+        # surtout ça ne touche jamais à un champ dont la lecture est réservée.
+        for enregistrement, vals in zip(enregistrements, vals_list or []):
+            valeurs = {}
+            for champ in retenus:
+                if champ not in (vals or {}):
+                    continue
+                if champ in CHAMPS_SECRETS:
+                    valeurs[champ] = "(valeur masquée)"
+                else:
+                    valeurs[champ] = self._laresidence_lisible(champ, vals[champ])
             enregistrement._laresidence_journaliser('db_create', enregistrement, {'création': valeurs})
         return enregistrements
 
@@ -257,7 +286,7 @@ class LaresidencePosAuditOrm(models.AbstractModel):
         if surveilles:
             for enregistrement in self:
                 avant[enregistrement.id] = {
-                    c: self._laresidence_lisible(c, enregistrement[c]) for c in surveilles
+                    c: self._laresidence_valeur_stockee(enregistrement, c) for c in surveilles
                 }
 
         resultat = super().write(vals)
@@ -267,7 +296,7 @@ class LaresidencePosAuditOrm(models.AbstractModel):
                 changements = {}
                 for champ in surveilles:
                     ancienne = avant.get(enregistrement.id, {}).get(champ)
-                    nouvelle = self._laresidence_lisible(champ, enregistrement[champ])
+                    nouvelle = self._laresidence_valeur_stockee(enregistrement, champ)
                     if ancienne != nouvelle:
                         changements[champ] = {'avant': ancienne, 'après': nouvelle}
                 if changements:
@@ -279,7 +308,7 @@ class LaresidencePosAuditOrm(models.AbstractModel):
             return super().unlink()
         retenus = self._laresidence_champs_creation()
         for enregistrement in self:
-            valeurs = {c: self._laresidence_lisible(c, enregistrement[c])
+            valeurs = {c: self._laresidence_valeur_stockee(enregistrement, c)
                        for c in retenus}
             enregistrement._laresidence_journaliser(
                 'db_unlink', enregistrement, {'supprimé': valeurs},
