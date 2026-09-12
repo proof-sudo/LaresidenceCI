@@ -9,7 +9,7 @@
                 <button name="action_view_audit" type="object"
                         string="Journal d'audit" icon="fa-history"
                         class="btn-secondary"
-                        groups="point_of_sale.group_pos_manager"
+                        groups="laresidence_pos_audit.group_pos_audit_viewer"
                         invisible="audit_count == 0"/>
                 <field name="audit_count" invisible="1"/>
             </xpath>

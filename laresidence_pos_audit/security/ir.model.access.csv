@@ -1,3 +1,6 @@
 id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
-access_laresidence_pos_audit_manager,laresidence.pos.audit.manager,model_laresidence_pos_audit,point_of_sale.group_pos_manager,1,0,0,0
-access_laresidence_pos_audit_system,laresidence.pos.audit.system,model_laresidence_pos_audit,base.group_system,1,0,0,0
+access_laresidence_pos_audit_viewer,laresidence.pos.audit.viewer,model_laresidence_pos_audit,laresidence_pos_audit.group_pos_audit_viewer,1,0,0,0
+access_laresidence_pos_audit_officer,laresidence.pos.audit.officer,model_laresidence_pos_audit,laresidence_pos_audit.group_pos_audit_officer,1,0,0,0
+access_laresidence_pos_audit_unlock,laresidence.pos.audit.unlock,model_laresidence_pos_audit_unlock,laresidence_pos_audit.group_pos_audit_viewer,1,1,1,1
+access_laresidence_pos_audit_access_cfg,laresidence.pos.audit.access.config,model_laresidence_pos_audit_access,laresidence_pos_audit.group_pos_audit_officer,1,1,1,1
+access_laresidence_pos_audit_session_viewer,laresidence.pos.audit.session.viewer,model_laresidence_pos_audit_session,laresidence_pos_audit.group_pos_audit_viewer,1,0,0,0

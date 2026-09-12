@@ -40,7 +40,9 @@ Garanties :
         'pos_restaurant',
     ],
     'data': [
+        'security/pos_audit_groups.xml',
         'security/ir.model.access.csv',
+        'wizard/audit_unlock_views.xml',
         'views/laresidence_pos_audit_views.xml',
         'views/pos_order_views.xml',
         'views/pos_session_views.xml',

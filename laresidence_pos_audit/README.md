@@ -176,6 +176,52 @@ Aucune purge par défaut. Pour en activer une, renseigner le paramètre système
 positif, puis activer l'action planifiée « Journal d'audit POS : purge de
 rétention ». Chaque purge inscrit elle-même une ligne dans le journal.
 
+## Qui peut voir le journal
+
+Deux droits, et rien par défaut :
+
+- **Journal d'audit : consultation** — sans lui, le menu n'apparaît pas et les
+  enregistrements sont hors de portée, y compris pour un responsable de caisse.
+- **Journal d'audit : administration** — permet en plus de définir le code et
+  de désigner qui consulte.
+
+La liste se règle dans *Point de vente → Configuration → Accès au journal
+d'audit*. Toute modification de cette liste est elle-même inscrite dans le
+journal.
+
+## Le code d'accès
+
+Appartenir au groupe ne suffit pas. Le code est demandé à l'ouverture du
+journal, puis l'accès reste ouvert quinze minutes (durée réglable). Il protège
+aussi la **désinstallation du module**.
+
+- Le code n'est jamais conservé en clair : seule son empreinte salée l'est.
+- Trois échecs en quinze minutes bloquent les tentatives suivantes.
+- Chaque saisie, réussie ou non, est inscrite dans le journal — comme les
+  tentatives de désinstallation refusées.
+
+Tant qu'aucun code n'est défini, l'accès reste ouvert aux membres du groupe :
+le module doit rester utilisable au moment de son installation.
+
+### Ce que cette protection vaut, et ce qu'elle ne vaut pas
+
+Contre un employé, un caissier ou un responsable de salle, l'occultation est
+complète.
+
+Contre un administrateur Odoo, **aucune protection applicative ne tient** : il
+peut s'ajouter au groupe, réécrire les droits d'accès, ou désinstaller le
+module en ligne de commande. Ce n'est pas une faiblesse de ce module, c'est la
+nature du rôle d'administrateur.
+
+L'objectif retenu est donc différent, et atteignable : rendre chacun de ces
+gestes **délibéré et inscrit**. S'ajouter au groupe modifie `res.groups` —
+journalisé. Réécrire un droit modifie `ir.model.access` — journalisé. Saisir ou
+changer le code — journalisé. Tenter la désinstallation — journalisé et
+refusé. Et comme la chaîne d'empreintes rend toute suppression détectable,
+effacer ces traces ne les fait pas disparaître : cela laisse un trou visible.
+
+On ne prétend pas rendre le contournement impossible. On le rend voyant.
+
 ## Où le consulter
 
 - Point de vente → Rapports → **Journal d'audit** (responsables POS)

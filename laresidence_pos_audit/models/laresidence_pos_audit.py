@@ -71,6 +71,10 @@ class LaresidencePosAudit(models.Model):
         ('db_write', "Modification (base)"),
         ('db_unlink', "Suppression (base)"),
         ('audit_read', "Consultation du journal"),
+        ('audit_unlock', "Accès au journal ouvert"),
+        ('audit_unlock_failed', "Code d'accès refusé"),
+        ('audit_access_changed', "Droits d'accès au journal modifiés"),
+        ('audit_uninstall_blocked', "Désinstallation refusée"),
         ('auth_success', "Connexion réussie"),
         ('auth_failure', "Échec de connexion"),
         ('audit_purge', "Purge du journal"),
@@ -435,6 +439,12 @@ class LaresidencePosAudit(models.Model):
             "Le journal d'audit du Point de Vente ne peut pas être supprimé ligne à ligne. "
             "Seule la purge de rétention, désactivée par défaut, peut retirer "
             "des enregistrements anciens — et elle laisse elle-même une trace."))
+
+    @api.model
+    def action_ouvrir_journal(self):
+        """Point d'entrée du menu : la liste si l'accès est ouvert, la demande
+        de code sinon."""
+        return self.env['laresidence.pos.audit.acces'].action_ouvrir_journal()
 
     # ------------------------------------------------------------------
     # Consultation du journal

@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="view_audit_unlock_form" model="ir.ui.view">
+        <field name="name">laresidence.pos.audit.unlock.form</field>
+        <field name="model">laresidence.pos.audit.unlock</field>
+        <field name="arch" type="xml">
+            <form string="Accès au journal d'audit">
+                <sheet>
+                    <div class="oe_title">
+                        <h2>Code d'accès requis</h2>
+                    </div>
+                    <group>
+                        <field name="code" password="True" placeholder="Saisissez le code"/>
+                        <field name="motif"/>
+                    </group>
+                    <field name="message" nolabel="1" readonly="1"/>
+                </sheet>
+                <footer>
+                    <button name="action_valider" type="object" string="Ouvrir l'accès"
+                            class="btn-primary"/>
+                    <button string="Annuler" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_audit_access_form" model="ir.ui.view">
+        <field name="name">laresidence.pos.audit.access.form</field>
+        <field name="model">laresidence.pos.audit.access</field>
+        <field name="arch" type="xml">
+            <form string="Réglages d'accès au journal d'audit">
+                <sheet>
+                    <div class="oe_title">
+                        <h2>Qui peut consulter le journal</h2>
+                        <p class="text-muted">
+                            Les personnes absentes de cette liste ne voient pas le menu
+                            et n'ont aucun accès aux enregistrements. Toute modification
+                            de la liste est elle-même inscrite dans le journal.
+                        </p>
+                    </div>
+                    <group>
+                        <field name="user_ids" widget="many2many_tags" nolabel="1" colspan="2"/>
+                    </group>
+                    <group string="Code d'accès">
+                        <field name="code_deja_defini" invisible="1"/>
+                        <field name="code_actuel" password="True"
+                               invisible="not code_deja_defini"
+                               placeholder="Requis pour changer le code"/>
+                        <field name="code_nouveau" password="True"
+                               placeholder="Laisser vide pour ne pas le changer"/>
+                        <field name="duree_minutes"/>
+                    </group>
+                    <div class="alert alert-info" role="alert">
+                        Appartenir au groupe ne suffit pas à ouvrir le journal : le code
+                        est demandé à chaque fois que le délai d'ouverture est écoulé.
+                        Il protège aussi la désinstallation du module.
+                    </div>
+                </sheet>
+                <footer>
+                    <button name="action_appliquer" type="object" string="Enregistrer"
+                            class="btn-primary"/>
+                    <button string="Annuler" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_audit_access_config" model="ir.actions.act_window">
+        <field name="name">Accès au journal d'audit</field>
+        <field name="res_model">laresidence.pos.audit.access</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+
+    <record id="action_ouvrir_journal" model="ir.actions.server">
+        <field name="name">Journal d'audit</field>
+        <field name="model_id" ref="model_laresidence_pos_audit"/>
+        <field name="state">code</field>
+        <field name="code">action = model.action_ouvrir_journal()</field>
+    </record>
+
+</odoo>

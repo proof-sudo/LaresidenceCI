@@ -15,6 +15,15 @@ class PosSession(models.Model):
 
     def action_view_audit(self):
         self.ensure_one()
+        controle = self.env['laresidence.pos.audit.acces']
+        if controle.code_defini() and not controle.acces_ouvert():
+            return {
+                'type': 'ir.actions.act_window',
+                'name': "Accès au journal d'audit",
+                'res_model': 'laresidence.pos.audit.unlock',
+                'view_mode': 'form',
+                'target': 'new',
+            }
         return {
             'type': 'ir.actions.act_window',
             'name': "Journal d'audit — %s" % self.name,

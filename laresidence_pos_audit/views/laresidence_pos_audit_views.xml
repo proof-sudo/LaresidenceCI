@@ -197,8 +197,15 @@
     <menuitem id="menu_laresidence_pos_audit"
               name="Journal d'audit"
               parent="point_of_sale.menu_point_rep"
-              action="action_laresidence_pos_audit"
-              groups="point_of_sale.group_pos_manager"
+              action="action_ouvrir_journal"
+              groups="laresidence_pos_audit.group_pos_audit_viewer"
               sequence="90"/>
+
+    <menuitem id="menu_laresidence_pos_audit_access"
+              name="Accès au journal d'audit"
+              parent="point_of_sale.menu_point_config_product"
+              action="action_audit_access_config"
+              groups="laresidence_pos_audit.group_pos_audit_officer"
+              sequence="95"/>
 
 </odoo>

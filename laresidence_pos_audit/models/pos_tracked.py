@@ -55,7 +55,13 @@ CHAMPS_SURVEILLES = {
                     'department_id', 'job_id'],
     'resource.calendar': ['name', 'tz', 'hours_per_day', 'attendance_ids'],
     'res.device.log': ['revoked'],
+    'ir.model.access': ['name', 'model_id', 'group_id', 'perm_read', 'perm_write',
+                        'perm_create', 'perm_unlink', 'active'],
+    'ir.rule': ['name', 'model_id', 'groups', 'domain_force', 'active'],
 }
+
+# Clés de paramètres dont la valeur ne doit jamais apparaître dans le journal.
+CLES_SENSIBLES = ('pin', 'secret', 'token', 'password', 'hash', 'salt', 'key')
 
 # Valeurs qui ne doivent jamais figurer dans le journal. On enregistre qu'elles
 # ont changé, jamais ce qu'elles valent : un journal de sécurité qui recopie un
@@ -97,6 +103,15 @@ class LaresidencePosAuditOrm(models.AbstractModel):
         """Rend une valeur de champ lisible dans le journal."""
         if champ in CHAMPS_SECRETS:
             return "(valeur masquée)" if valeur else None
+        # ir.config_parameter stocke tout dans un champ « value » : c'est la clé
+        # qui dit si le contenu est sensible.
+        if self._name == 'ir.config_parameter' and champ == 'value':
+            try:
+                cle = (self.key or '').lower()
+            except Exception:
+                cle = ''
+            if any(motif in cle for motif in CLES_SENSIBLES):
+                return "(valeur masquée)" if valeur else None
         if valeur is None or valeur is False:
             return None
         try:
@@ -165,6 +180,12 @@ class LaresidencePosAuditOrm(models.AbstractModel):
     # ------------------------------------------------------------------
     @api.model
     def _laresidence_journaliser(self, event_type, enregistrement, changements=None, note=None):
+        # Pendant l'installation ou la mise à jour d'un module, Odoo réécrit des
+        # milliers de droits et de paramètres. Ce bruit de déploiement noierait
+        # les gestes qui comptent, et ralentirait chaque mise à jour. Le registre
+        # non prêt est le signal fiable de cette phase.
+        if not self.env.registry.ready:
+            return
         try:
             base = {
                 'event_type': event_type,
@@ -317,6 +338,19 @@ class HrEmployee(models.Model):
 class ResourceCalendar(models.Model):
     _name = 'resource.calendar'
     _inherit = ['resource.calendar', 'laresidence.pos.audit.orm']
+
+
+class IrModelAccess(models.Model):
+    """Qui a le droit de lire quoi. Se donner accès à un modèle qu'on ne
+    voyait pas est le geste qui précède la consultation."""
+
+    _name = 'ir.model.access'
+    _inherit = ['ir.model.access', 'laresidence.pos.audit.orm']
+
+
+class IrRule(models.Model):
+    _name = 'ir.rule'
+    _inherit = ['ir.rule', 'laresidence.pos.audit.orm']
 
 
 class ResDeviceLog(models.Model):
