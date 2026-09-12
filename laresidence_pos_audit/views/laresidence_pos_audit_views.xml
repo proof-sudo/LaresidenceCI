@@ -1,0 +1,139 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="view_laresidence_pos_audit_list" model="ir.ui.view">
+        <field name="name">laresidence.pos.audit.list</field>
+        <field name="model">laresidence.pos.audit</field>
+        <field name="arch" type="xml">
+            <list string="Journal d'audit du Point de Vente" create="false" edit="false" delete="false"
+                  default_order="server_datetime desc">
+                <field name="server_datetime"/>
+                <field name="event_type"/>
+                <field name="employee_id"/>
+                <field name="device_identifier"/>
+                <field name="browser_id" optional="hide"/>
+                <field name="order_reference"/>
+                <field name="tracking_number" optional="show"/>
+                <field name="table_name" optional="show"/>
+                <field name="product_name" optional="show"/>
+                <field name="quantity" optional="hide" sum="Quantité"/>
+                <field name="amount" optional="hide"/>
+                <field name="old_value" optional="hide"/>
+                <field name="new_value" optional="hide"/>
+                <field name="clock_skew" optional="hide"
+                       decoration-danger="clock_skew &gt; 120 or clock_skew &lt; -120"/>
+                <field name="session_id" optional="hide"/>
+                <field name="user_id" optional="hide"/>
+                <field name="ip_address" optional="hide"/>
+                <field name="note" optional="hide"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_laresidence_pos_audit_form" model="ir.ui.view">
+        <field name="name">laresidence.pos.audit.form</field>
+        <field name="model">laresidence.pos.audit</field>
+        <field name="arch" type="xml">
+            <form string="Événement d'audit" create="false" edit="false" delete="false">
+                <sheet>
+                    <h1><field name="display_label" readonly="1"/></h1>
+                    <group>
+                        <group string="Horodatage">
+                            <field name="server_datetime"/>
+                            <field name="client_datetime"/>
+                            <field name="clock_skew"/>
+                        </group>
+                        <group string="Origine">
+                            <field name="device_identifier"/>
+                            <field name="browser_id"/>
+                            <field name="employee_id"/>
+                            <field name="user_id"/>
+                            <field name="ip_address"/>
+                        </group>
+                        <group string="Contexte">
+                            <field name="config_id"/>
+                            <field name="session_id"/>
+                            <field name="order_reference"/>
+                            <field name="order_uuid"/>
+                            <field name="tracking_number"/>
+                            <field name="table_name"/>
+                        </group>
+                        <group string="Valeurs">
+                            <field name="product_id"/>
+                            <field name="product_name"/>
+                            <field name="quantity"/>
+                            <field name="amount"/>
+                            <field name="old_value"/>
+                            <field name="new_value"/>
+                        </group>
+                    </group>
+                    <group string="Détail">
+                        <field name="note" nolabel="1"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_laresidence_pos_audit_search" model="ir.ui.view">
+        <field name="name">laresidence.pos.audit.search</field>
+        <field name="model">laresidence.pos.audit</field>
+        <field name="arch" type="xml">
+            <search string="Journal d'audit">
+                <field name="order_reference"/>
+                <field name="tracking_number"/>
+                <field name="employee_id"/>
+                <field name="device_identifier"/>
+                <field name="browser_id"/>
+                <field name="product_name"/>
+                <field name="table_name"/>
+                <filter name="today" string="Aujourd'hui"
+                        domain="[('server_datetime','&gt;=', datetime.datetime.combine(context_today(), datetime.time(0,0,0)))]"/>
+                <separator/>
+                <filter name="ouvertures" string="Ouvertures de commande" domain="[('event_type','=','order_open')]"/>
+                <filter name="caissier" string="Changements de caissier"
+                        domain="[('event_type','in',['cashier_change','cashier_restore'])]"/>
+                <filter name="reconnexion_sans_code" string="Reconnexions sans code"
+                        domain="[('event_type','=','cashier_restore')]"/>
+                <filter name="impressions" string="Impressions"
+                        domain="[('event_type','in',['print_bill','print_receipt'])]"/>
+                <filter name="prix" string="Modifications de prix ou remise"
+                        domain="[('event_type','in',['line_price','line_discount'])]"/>
+                <filter name="suppressions" string="Retraits et suppressions"
+                        domain="[('event_type','in',['line_remove','order_delete'])]"/>
+                <separator/>
+                <filter name="horloge" string="Horloge d'appareil décalée"
+                        domain="['|',('clock_skew','&gt;',120),('clock_skew','&lt;',-120)]"/>
+                <group expand="0" string="Regrouper par">
+                    <filter name="g_event" string="Événement" context="{'group_by':'event_type'}"/>
+                    <filter name="g_emp" string="Caissier" context="{'group_by':'employee_id'}"/>
+                    <filter name="g_device" string="Appareil" context="{'group_by':'device_identifier'}"/>
+                    <filter name="g_order" string="Commande" context="{'group_by':'order_reference'}"/>
+                    <filter name="g_session" string="Session" context="{'group_by':'session_id'}"/>
+                    <filter name="g_date" string="Date" context="{'group_by':'server_datetime:day'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_laresidence_pos_audit" model="ir.actions.act_window">
+        <field name="name">Journal d'audit du Point de Vente</field>
+        <field name="res_model">laresidence.pos.audit</field>
+        <field name="view_mode">list,form</field>
+        <field name="search_view_id" ref="view_laresidence_pos_audit_search"/>
+        <field name="context">{'create': False}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Aucun événement enregistré pour l'instant.</p>
+            <p>Le journal se remplit dès qu'une caisse est utilisée. Il est en lecture seule :
+               ni vous ni l'administrateur ne pouvez en modifier le contenu.</p>
+        </field>
+    </record>
+
+    <menuitem id="menu_laresidence_pos_audit"
+              name="Journal d'audit"
+              parent="point_of_sale.menu_point_rep"
+              action="action_laresidence_pos_audit"
+              groups="point_of_sale.group_pos_manager"
+              sequence="90"/>
+
+</odoo>
