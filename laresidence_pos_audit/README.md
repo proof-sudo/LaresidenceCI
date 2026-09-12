@@ -126,6 +126,34 @@ sont donc suivis en écriture, dont :
 | `resource.calendar` | horaires de référence retouchés |
 | `res.device.log` | **chaque nouvelle session** : plateforme, navigateur, IP, pays, ville |
 
+### Les clés d'accès permanentes : un cas à part
+
+Une clé d'API donne un accès complet au compte, sans mot de passe et sans
+double authentification, tant que personne ne la révoque. C'est le moyen le
+plus discret de garder la main sur la base après coup, et il fallait donc le
+couvrir.
+
+Il ne pouvait pas l'être de la même façon que les autres. Odoo crée et
+supprime ces clés en SQL direct, sans passer par l'ORM — `res.users.apikeys`
+est déclaré `_auto = False` et `_generate` fait son `INSERT` lui-même. Une
+surveillance posée sur `create` ne se serait jamais déclenchée : elle aurait
+donné l'apparence d'une couverture, ce qui est pire que pas de couverture du
+tout.
+
+Le relevé se fait donc autrement : une fois par minute, le contenu réel de la
+table est comparé à ce que le journal a déjà constaté. Toute clé apparue
+produit une ligne `api_key_create` — datée de sa **création réelle**, pas du
+relevé — et toute clé disparue une ligne `api_key_remove`. Les appareils de
+confiance de la double authentification sont traités de la même manière.
+
+Deux limites, dites franchement :
+
+- la détection a jusqu'à une minute de retard sur le fait ;
+- une clé créée **puis supprimée** à l'intérieur de cette même minute ne
+  laisse aucune ligne : l'enregistrement a disparu de la table avant d'être
+  relu. Odoo trace cependant sa création dans le journal technique du serveur,
+  qui n'est pas modifiable depuis l'application.
+
 Les valeurs secrètes — mots de passe, codes PIN, jetons — ne sont **jamais**
 recopiées : on enregistre qu'elles ont changé, pas ce qu'elles valent. Un
 journal de sécurité qui recopie un code PIN devient lui-même le problème.
@@ -294,3 +322,9 @@ On ne prétend pas rendre le contournement impossible. On le rend voyant.
   La couche base, elle, ne dépend d'aucun navigateur.
 - Une modification faite directement en SQL, hors ORM, échappe aux deux
   couches. Aucun mécanisme applicatif ne peut la voir.
+- Les clés d'accès permanentes sont relevées par comparaison et non
+  interceptées : jusqu'à une minute de retard, et une clé créée puis supprimée
+  dans cet intervalle passe inaperçue (voir plus haut).
+- La création d'une clé d'API est tracée par Odoo dans le journal technique du
+  serveur. Ce journal n'est pas couvert par le scellé de ce module : il relève
+  de l'hébergement.

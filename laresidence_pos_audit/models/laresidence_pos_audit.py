@@ -28,6 +28,20 @@ _logger = logging.getLogger(__name__)
 
 PARAM_RETENTION = 'laresidence_pos_audit.retention_days'
 
+# Identifiants d'accès permanents qu'Odoo crée et supprime en SQL brut, sans
+# passer par l'ORM (voir ``res.users.apikeys._generate`` : un INSERT direct).
+# Aucune interception de ``create`` ne se déclenche dessus. Ils sont donc
+# relevés par comparaison, une fois par minute, entre le contenu réel de la
+# table et ce que le journal a déjà constaté.
+#
+# L'enjeu n'est pas théorique : une clé d'API donne un accès complet et
+# permanent au compte, sans mot de passe et sans double authentification.
+# C'est le moyen le plus discret de garder la main sur la base après coup.
+MODELES_ACCES_PERMANENT = {
+    'res.users.apikeys': "Clé d'API",
+    'auth_totp.device': "Appareil de confiance (double authentification)",
+}
+
 
 class LaresidencePosAudit(models.Model):
     _name = 'laresidence.pos.audit'
@@ -78,6 +92,8 @@ class LaresidencePosAudit(models.Model):
         ('auth_success', "Connexion réussie"),
         ('auth_failure', "Échec de connexion"),
         ('audit_purge', "Purge du journal"),
+        ('api_key_create', "Clé d'accès permanente créée"),
+        ('api_key_remove', "Clé d'accès permanente supprimée"),
     ]
 
     # --- Horodatage -------------------------------------------------------
@@ -624,6 +640,89 @@ class LaresidencePosAudit(models.Model):
             return fields.Datetime.to_datetime(str(value).replace('T', ' ').replace('Z', '')[:19])
         except Exception:
             return False
+
+    # ------------------------------------------------------------------
+    # Accès permanents (clés d'API, appareils de confiance)
+    # ------------------------------------------------------------------
+    @api.model
+    def _cron_detecter_acces_permanents(self):
+        """Relève les clés apparues ou disparues depuis le dernier passage.
+
+        Odoo insère et supprime ces enregistrements en SQL direct : les
+        interceptions de ``create`` et ``unlink`` ne les voient pas. Plutôt que
+        de poser une surveillance qui ne se déclencherait jamais — un angle
+        mort déguisé en couverture — on compare le contenu réel de la table à
+        ce que le journal a déjà constaté.
+
+        Deux limites, énoncées pour qu'on ne s'y trompe pas :
+        - la détection a jusqu'à une minute de retard sur le fait ;
+        - une clé créée puis supprimée à l'intérieur de cette minute ne laisse
+          aucune ligne, l'enregistrement ayant disparu de la table avant d'être
+          relu. La création d'une clé reste en revanche tracée par Odoo dans le
+          journal technique du serveur, qui n'est pas modifiable depuis
+          l'application.
+        """
+        total = 0
+        for modele, libelle in MODELES_ACCES_PERMANENT.items():
+            if modele not in self.env:
+                continue
+            table = self.env[modele]._table
+            self.env.cr.execute("SELECT to_regclass(%s)", (table,))
+            if not self.env.cr.fetchone()[0]:
+                continue
+
+            # Ce que le journal connaît déjà : créé et pas encore supprimé.
+            self.env.cr.execute(
+                "SELECT res_id, "
+                "       bool_or(event_type = 'api_key_remove') AS supprime "
+                "FROM laresidence_pos_audit "
+                "WHERE model_name = %s AND event_type IN ('api_key_create', 'api_key_remove') "
+                "GROUP BY res_id", (modele,))
+            connus = {ligne[0] for ligne in self.env.cr.fetchall() if not ligne[1]}
+
+            self.env.cr.execute(
+                'SELECT id, user_id, scope, name, create_date, expiration_date '
+                'FROM "%s" ORDER BY id' % table)
+            presents = {ligne[0]: ligne for ligne in self.env.cr.fetchall()}
+
+            maintenant = fields.Datetime.now()
+            for identifiant in sorted(set(presents) - connus):
+                _id, user_id, portee, nom, cree_le, expire_le = presents[identifiant]
+                total += 1
+                self.sudo().create([{
+                    'event_type': 'api_key_create',
+                    # L'heure de l'acte, pas celle du relevé : c'est celle qui
+                    # compte pour un enquêteur. Le décalage est dit dans le détail.
+                    'server_datetime': cree_le or maintenant,
+                    'user_id': user_id,
+                    'model_name': modele,
+                    'res_id': identifiant,
+                    'origin': 'system',
+                    'new_value': self._trim(nom),
+                    'note': self._trim(
+                        "%s créée. Portée : %s. Expire le : %s. Relevée le %s par "
+                        "comparaison de table — Odoo crée ces clés hors ORM."
+                        % (libelle, portee or "accès complet",
+                           expire_le or "jamais", maintenant), 512),
+                }])
+
+            for identifiant in sorted(connus - set(presents)):
+                total += 1
+                self.sudo().create([{
+                    'event_type': 'api_key_remove',
+                    'server_datetime': maintenant,
+                    'model_name': modele,
+                    'res_id': identifiant,
+                    'origin': 'system',
+                    'note': self._trim(
+                        "%s n° %s supprimée. Constatée absente de la table au %s ; "
+                        "la suppression est antérieure d'au plus une minute."
+                        % (libelle, identifiant, maintenant), 512),
+                }])
+
+        if total:
+            _logger.info("laresidence_pos_audit : %s accès permanent(s) relevé(s)", total)
+        return total
 
     # ------------------------------------------------------------------
     # Purge de rétention (désactivée par défaut)
