@@ -29,6 +29,7 @@ PARAM_LATE_IN = 'laresidence_hr_control.tolerance_late_in'
 PARAM_EARLY_IN = 'laresidence_hr_control.tolerance_early_in'
 PARAM_EARLY_OUT = 'laresidence_hr_control.tolerance_early_out'
 PARAM_LATE_OUT = 'laresidence_hr_control.tolerance_late_out'
+PARAM_ABSENCE = 'laresidence_hr_control.detect_absence'
 
 DEFAULTS = {
     PARAM_LATE_IN: 10,    # retard toléré à la prise de poste
@@ -156,6 +157,8 @@ class LaresidenceHrException(models.Model):
                 out[key] = int(icp.get_param(key, default))
             except (TypeError, ValueError):
                 out[key] = default
+        brut = icp.get_param(PARAM_ABSENCE, '1')
+        out[PARAM_ABSENCE] = str(brut).strip().lower() not in ('0', 'false', 'no', 'non')
         return out
 
     # ------------------------------------------------------------------
@@ -177,11 +180,24 @@ class LaresidenceHrException(models.Model):
 
     @api.model
     def _reference_intervals(self, employee, day_start, day_end):
-        """Retourne [(debut, fin, creneau_ou_False, type_de_reference)] en UTC naïf."""
+        """Retourne [(debut, fin, creneau_ou_False, type_de_reference)] en UTC naïf.
+
+        Un poste appartient à la journée où il **commence**, pas à chacune de
+        celles qu'il traverse. Sans cette règle, les horaires de nuit de la
+        maison — « Fermeture 17h-01h45 », « Fermeture 18h-02h45 » — seraient
+        comptés deux fois : une fois le soir, une fois le lendemain matin pour
+        le morceau situé après minuit, ce second morceau n'ayant jamais de
+        pointage en face et produisant une absence imaginaire.
+
+        Les intervalles sont donc calculés sur une fenêtre élargie de douze
+        heures de part et d'autre, recollés, puis filtrés sur leur heure de
+        début.
+        """
+        # Planning : le créneau compte pour le jour où il débute.
         slots = self.env['planning.slot'].search([
             ('employee_id', '=', employee.id),
-            ('start_datetime', '<', day_end),
-            ('end_datetime', '>', day_start),
+            ('start_datetime', '>=', day_start),
+            ('start_datetime', '<=', day_end),
         ], order='start_datetime')
         if slots:
             return [(s.start_datetime, s.end_datetime, s, 'planning') for s in slots]
@@ -190,10 +206,11 @@ class LaresidenceHrException(models.Model):
         if not calendar:
             return []
 
-        start = pytz.utc.localize(day_start)
-        end = pytz.utc.localize(day_end)
+        fenetre_debut = pytz.utc.localize(day_start - timedelta(hours=12))
+        fenetre_fin = pytz.utc.localize(day_end + timedelta(hours=12))
         try:
-            batch = calendar._work_intervals_batch(start, end, resources=employee.resource_id)
+            batch = calendar._work_intervals_batch(
+                fenetre_debut, fenetre_fin, resources=employee.resource_id)
         except Exception:
             _logger.exception("laresidence_hr_control : calcul d'intervalles impossible pour %s", employee.display_name)
             return []
@@ -204,7 +221,10 @@ class LaresidenceHrException(models.Model):
             begin, finish = item[0], item[1]
             naive.append((begin.astimezone(pytz.utc).replace(tzinfo=None),
                           finish.astimezone(pytz.utc).replace(tzinfo=None)))
-        return [(a, b, False, 'calendar') for a, b in self._merge_intervals(naive)]
+
+        return [(a, b, False, 'calendar')
+                for a, b in self._merge_intervals(naive)
+                if day_start <= a <= day_end]
 
     # ------------------------------------------------------------------
     # Génération
@@ -291,7 +311,12 @@ class LaresidenceHrException(models.Model):
             }
 
             if not candidat:
-                rows.append(dict(base, exception_type='absence', delta_minutes=0))
+                # Un effectif qui ne badge pas systématiquement produirait une
+                # avalanche d'absences, et un relevé que plus personne ne lit.
+                # Le paramètre permet de couper cette détection sans toucher
+                # aux autres.
+                if tol.get(PARAM_ABSENCE, True):
+                    rows.append(dict(base, exception_type='absence', delta_minutes=0))
                 continue
 
             restants.remove(candidat)

@@ -38,6 +38,14 @@ discussion avec l'employé porte sur une base explicite.
 - **Absence** — une référence existe, aucun pointage en face
 - **Pointage hors référence** — un pointage sans créneau ni horaire correspondant
 
+**Postes de nuit.** Un poste appartient à la journée où il *commence*, pas à
+chacune de celles qu'il traverse. Sans cette règle, « Fermeture 17h-01h45 » et
+« Fermeture 18h-02h45 » seraient comptés deux fois — une fois le soir, une
+fois le lendemain matin pour le morceau situé après minuit, morceau qui n'a
+jamais de pointage en face et produirait une absence imaginaire. Les
+intervalles sont calculés sur une fenêtre élargie de douze heures de part et
+d'autre, recollés, puis filtrés sur leur heure de début.
+
 Les congés validés sont exclus : les intervalles de travail sont calculés avec
 les absences, un employé en congé ne génère donc pas d'écart. Les pointages
 techniques (lignes de durée nulle produites par la gestion des absences) sont
@@ -54,6 +62,12 @@ le paramètre n'existe pas.
 | `laresidence_hr_control.tolerance_early_in` | 30 |
 | `laresidence_hr_control.tolerance_early_out` | 10 |
 | `laresidence_hr_control.tolerance_late_out` | 60 |
+| `laresidence_hr_control.detect_absence` | 1 |
+
+Mettre `detect_absence` à `0` coupe la détection des absences sans toucher aux
+autres écarts. Utile si une partie de l'effectif ne badge pas
+systématiquement : sans cela le relevé se remplit d'absences et plus personne
+ne le lit.
 
 ## Traitement
 
