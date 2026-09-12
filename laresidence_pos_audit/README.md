@@ -71,6 +71,37 @@ propre contenu combinée à celle de la ligne précédente. Retirer une ligne,
 en insérer une, ou en retoucher une seule valeur rompt la chaîne à partir de ce
 point. C'est le principe retenu par Odoo pour l'inaltérabilité des factures.
 
+**Éprouvé en conditions réelles**, par deux instructions SQL passées
+directement en base, hors d'Odoo :
+
+```sql
+UPDATE laresidence_pos_audit SET note = 'x' WHERE sequence_no = 400;
+DELETE FROM laresidence_pos_audit WHERE sequence_no = 402;
+```
+> Anomalie détectée — 744 ligne(s) contrôlées.
+> Numérotation interrompue : entre 401 et 403.
+> Première anomalie au n° 400 (contenu modifié).
+
+### Le scellé est posé après coup, jamais pendant un encaissement
+
+Un chaînage se calcule en série. Le calculer dans la transaction d'une vente
+obligerait chaque tablette à attendre son tour — exactement le ralentissement
+qu'un journal d'audit ne doit pas provoquer.
+
+L'écriture d'une ligne est donc un simple `INSERT`, sans verrou ni relecture.
+Une tâche planifiée numérote et scelle les lignes en attente **chaque minute**,
+en dehors de tout encaissement.
+
+| | Dans la transaction de vente | Hors transaction |
+|---|---|---|
+| Écriture d'une ligne | 1 `INSERT` | |
+| Numérotation, chaînage, empreinte | | tâche chaque minute |
+
+Conséquence assumée : les lignes de la dernière minute ne sont pas encore
+protégées. Le contrôle d'intégrité l'annonce explicitement — « n lignes
+récentes pas encore scellées » — plutôt que de le passer sous silence, et le
+filtre **Pas encore scellées** les isole.
+
 L'action **« Vérifier l'intégrité du journal »**, disponible depuis la liste,
 recalcule toute la chaîne et désigne la première anomalie : trou dans la
 numérotation, chaînage rompu, ou contenu modifié.
@@ -156,6 +187,11 @@ réutilisable par quiconque lirait le journal.
 - La file d'attente est recopiée dans le stockage local du navigateur à chaque
   événement, et repart au chargement de la caisse : un redémarrage de tablette
   ne perd rien.
+- L'envoi est asynchrone et groupé. Au moment de la validation d'une commande,
+  où l'on veut que la trace parte avant que le serveur ne réécrive l'employé et
+  l'heure, l'attente est **bornée à une seconde et demie** : au-delà on rend la
+  main. La file étant conservée dans le navigateur, rien n'est perdu pour
+  autant.
 - Un échec d'audit n'interrompt jamais le service — les erreurs sont avalées,
   le lot repart au cycle suivant, et la couche base est elle-même protégée.
 

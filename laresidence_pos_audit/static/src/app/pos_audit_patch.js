@@ -140,7 +140,7 @@ patchSi(PosStore, "deleteOrders", {
                 note: "Suppression de la commande depuis la caisse.",
             });
         }
-        await posAudit.flush(true);
+        await posAudit.flushBorne(1500);
         return super.deleteOrders(...arguments);
     },
 });
@@ -182,7 +182,7 @@ patchSi(PaymentScreen, "validateOrder", {
         // La commande est sur le point d'être réécrite côté serveur — employé
         // et date d'ouverture écrasés. On s'assure que le journal est parti
         // avant que l'information d'origine ne disparaisse.
-        await posAudit.flush(true);
+        await posAudit.flushBorne(1500);
         return super.validateOrder(...arguments);
     },
 });

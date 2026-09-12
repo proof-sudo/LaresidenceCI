@@ -306,14 +306,26 @@ class LaresidencePosAudit(models.Model):
         return infos
 
     # ------------------------------------------------------------------
-    # Chaînage par empreinte
+    # Chaînage par empreinte — scellé après coup, jamais dans l'encaissement
     # ------------------------------------------------------------------
     # Le blocage de write() et unlink() ne vaut que dans l'application. Un accès
     # direct à la base contourne l'ORM et ne laisse aucune trace. Chaque ligne
     # porte donc l'empreinte de son propre contenu combinée à celle de la ligne
     # qui la précède : retirer, insérer ou retoucher une ligne rompt la chaîne à
-    # partir de ce point, et le contrôle d'intégrité le désigne. C'est le même
-    # principe que l'inaltérabilité des factures dans Odoo.
+    # partir de ce point.
+    #
+    # Mais un chaînage se calcule en série, et le calculer pendant la
+    # transaction d'un encaissement obligerait chaque tablette à attendre son
+    # tour. La pose du scellé est donc sortie du chemin critique : l'écriture
+    # d'une ligne est un simple INSERT, sans verrou ni relecture, et une tâche
+    # planifiée numérote et scelle les lignes en attente une minute plus tard.
+    #
+    # La garantie est la même une fois le scellé posé. Le prix à payer est une
+    # fenêtre d'une minute pendant laquelle les dernières lignes ne sont pas
+    # encore protégées — ce qu'un contrôle d'intégrité annonce explicitement au
+    # lieu de le passer sous silence.
+
+    VERROU_SCELLEMENT = 4815162342
 
     CHAMPS_EMPREINTE = [
         'sequence_no', 'event_type', 'server_datetime', 'client_datetime',
@@ -325,59 +337,81 @@ class LaresidencePosAudit(models.Model):
         'payment_method', 'old_value', 'new_value', 'changes', 'note',
     ]
 
-    def _contenu_empreinte(self):
-        """Représentation canonique et stable d'une ligne."""
+    def _contenu_empreinte(self, numero=None, precedente=None):
+        """Représentation canonique et stable d'une ligne.
+
+        Le numéro d'ordre et l'empreinte précédente sont passés en argument :
+        au moment du scellement ils ne sont pas encore enregistrés.
+        """
         self.ensure_one()
         valeurs = {}
         for champ in self.CHAMPS_EMPREINTE:
+            if champ == 'sequence_no' and numero is not None:
+                valeurs[champ] = numero
+                continue
             valeur = self[champ]
             if isinstance(valeur, models.BaseModel):
                 valeur = valeur.id or 0
             elif hasattr(valeur, 'isoformat'):
                 valeur = valeur.isoformat()
             valeurs[champ] = valeur if valeur not in (False, None) else None
-        valeurs['previous_hash'] = self.previous_hash or ''
+        valeurs['previous_hash'] = (self.previous_hash if precedente is None else precedente) or ''
         return json.dumps(valeurs, sort_keys=True, ensure_ascii=False, default=str)
 
-    def _calculer_empreinte(self):
+    def _calculer_empreinte(self, numero=None, precedente=None):
         self.ensure_one()
-        return hashlib.sha256(self._contenu_empreinte().encode('utf-8')).hexdigest()
+        return hashlib.sha256(
+            self._contenu_empreinte(numero, precedente).encode('utf-8')).hexdigest()
 
-    @api.model_create_multi
-    def create(self, vals_list):
-        enregistrements = super().create(vals_list)
-        # Verrou le temps de la transaction : deux écritures simultanées ne
-        # peuvent pas se voir attribuer le même prédécesseur.
-        self.env.cr.execute("SELECT pg_advisory_xact_lock(%s)", (4815162342,))
+    @api.model
+    def _cron_sceller(self, limite=5000):
+        """Numérote et scelle les lignes en attente, hors transaction de caisse."""
+        self.env.cr.execute("SELECT pg_try_advisory_xact_lock(%s)", (self.VERROU_SCELLEMENT,))
+        if not self.env.cr.fetchone()[0]:
+            # Un scellement est déjà en cours : on laisse la main plutôt que
+            # d'attendre, la tâche repassera dans une minute.
+            return 0
+
         self.env.cr.execute(
             "SELECT sequence_no, record_hash FROM laresidence_pos_audit "
             "WHERE sequence_no IS NOT NULL ORDER BY sequence_no DESC LIMIT 1")
-        ligne = self.env.cr.fetchone()
-        numero = (ligne[0] if ligne else 0)
-        precedente = (ligne[1] if ligne else '') or ''
-        for enregistrement in enregistrements:
+        derniere = self.env.cr.fetchone()
+        numero = derniere[0] if derniere else 0
+        precedente = (derniere[1] if derniere else '') or ''
+
+        self.env.cr.execute(
+            "SELECT id FROM laresidence_pos_audit "
+            "WHERE sequence_no IS NULL ORDER BY id ASC LIMIT %s", (limite,))
+        identifiants = [ligne[0] for ligne in self.env.cr.fetchall()]
+        if not identifiants:
+            return 0
+
+        scellees = 0
+        for enregistrement in self.sudo().browse(identifiants):
             numero += 1
+            empreinte = enregistrement._calculer_empreinte(numero, precedente)
             self.env.cr.execute(
-                "UPDATE laresidence_pos_audit SET sequence_no = %s, previous_hash = %s "
-                "WHERE id = %s", (numero, precedente, enregistrement.id))
-            enregistrement.invalidate_recordset(['sequence_no', 'previous_hash'])
-            empreinte = enregistrement._calculer_empreinte()
-            self.env.cr.execute(
-                "UPDATE laresidence_pos_audit SET record_hash = %s WHERE id = %s",
-                (empreinte, enregistrement.id))
-            enregistrement.invalidate_recordset(['record_hash'])
+                "UPDATE laresidence_pos_audit "
+                "SET sequence_no = %s, previous_hash = %s, record_hash = %s WHERE id = %s",
+                (numero, precedente, empreinte, enregistrement.id))
             precedente = empreinte
-        return enregistrements
+            scellees += 1
+
+        self.invalidate_model(['sequence_no', 'previous_hash', 'record_hash'])
+        _logger.info("laresidence_pos_audit : %s ligne(s) scellée(s)", scellees)
+        return scellees
+
+    @api.model
+    def _en_attente_de_scellement(self):
+        self.env.cr.execute(
+            "SELECT count(*) FROM laresidence_pos_audit WHERE sequence_no IS NULL")
+        return self.env.cr.fetchone()[0]
 
     @api.model
     def _verifier_integrite(self, limite=None):
-        """Recalcule la chaîne et signale la première anomalie.
-
-        Retourne un état lisible : nombre de lignes contrôlées, trous dans la
-        numérotation, et première ligne dont l'empreinte ne correspond plus.
-        """
-        domaine = [('sequence_no', '!=', False)]
-        lignes = self.sudo().search(domaine, order='sequence_no asc', limit=limite or 0)
+        """Recalcule la chaîne et signale la première anomalie."""
+        lignes = self.sudo().search([('sequence_no', '!=', False)],
+                                    order='sequence_no asc', limit=limite or 0)
         attendu_precedent = ''
         attendu_numero = None
         trous = []
@@ -397,6 +431,7 @@ class LaresidencePosAudit(models.Model):
 
         return {
             'controlees': len(lignes),
+            'en_attente': self._en_attente_de_scellement(),
             'trous': trous,
             'rupture': rupture,
             'intacte': not trous and rupture is None,
@@ -406,10 +441,13 @@ class LaresidencePosAudit(models.Model):
         if not self.env.user.has_group('laresidence_pos_audit.group_pos_audit_viewer'):
             raise UserError(_("Vous n'avez pas accès au journal d'audit."))
         etat = self._verifier_integrite()
+        attente = ("\n%s ligne(s) récentes pas encore scellées (scellement toutes "
+                   "les minutes)." % etat['en_attente']) if etat['en_attente'] else ""
         if etat['intacte']:
             titre = "Journal intact"
             corps = ("%s ligne(s) contrôlées. La numérotation est continue et "
-                     "chaque empreinte correspond à son contenu." % etat['controlees'])
+                     "chaque empreinte correspond à son contenu.%s"
+                     % (etat['controlees'], attente))
             genre = 'success'
         else:
             titre = "Anomalie détectée"
@@ -420,7 +458,7 @@ class LaresidencePosAudit(models.Model):
             if etat['rupture']:
                 morceaux.append("Première anomalie au n° %s (%s)."
                                 % (etat['rupture'][1], etat['rupture'][2]))
-            corps = "\n".join(morceaux)
+            corps = "\n".join(morceaux) + attente
             genre = 'danger'
         return {
             'type': 'ir.actions.client',

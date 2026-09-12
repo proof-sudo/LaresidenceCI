@@ -329,6 +329,27 @@ export const posAudit = {
         }
     },
 
+    /**
+     * Envoi borné dans le temps.
+     *
+     * À la validation d'une commande, on veut que la trace parte avant que le
+     * serveur ne réécrive l'employé et l'heure d'ouverture. Mais attendre le
+     * réseau à cet instant précis, c'est faire patienter le serveur devant le
+     * client. On laisse donc au plus le délai indiqué, puis on rend la main :
+     * la file est de toute façon conservée dans le navigateur et repart au
+     * cycle suivant, rien n'est perdu.
+     */
+    async flushBorne(delaiMax = 1500) {
+        try {
+            await Promise.race([
+                this.flush(true),
+                new Promise((resoudre) => setTimeout(resoudre, delaiMax)),
+            ]);
+        } catch {
+            /* l'audit ne doit jamais retarder un encaissement */
+        }
+    },
+
     // ------------------------------------------------------------------
     // Persistance locale
     // ------------------------------------------------------------------
