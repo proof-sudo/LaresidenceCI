@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_pos_config_form_auto_close" model="ir.ui.view">
+        <field name="name">pos.config.form.auto.close</field>
+        <field name="model">pos.config</field>
+        <field name="inherit_id" ref="point_of_sale.pos_config_view_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//sheet" position="inside">
+                <group string="Fermeture automatique de la caisse" name="laresidence_auto_close">
+                    <field name="auto_close_enabled"/>
+                    <field name="auto_close_time" widget="float_time"
+                           invisible="not auto_close_enabled"
+                           required="auto_close_enabled"/>
+                    <field name="auto_close_idle_minutes"
+                           invisible="not auto_close_enabled"/>
+                    <field name="auto_close_block_on_prep"
+                           invisible="not auto_close_enabled"/>
+                    <field name="auto_close_full"
+                           invisible="not auto_close_enabled"/>
+                    <field name="auto_close_last_attempt" invisible="not auto_close_enabled"/>
+                    <field name="auto_close_last_result" invisible="not auto_close_enabled"/>
+                </group>
+            </xpath>
+        </field>
+    </record>
+</odoo>
