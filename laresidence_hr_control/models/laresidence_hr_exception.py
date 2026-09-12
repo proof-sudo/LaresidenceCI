@@ -102,8 +102,14 @@ class LaresidenceHrException(models.Model):
     # Odoo 19 ne reconnaît plus _sql_constraints : sans cette réécriture, la
     # contrainte n'existait pas en base et rien n'empêchait un même écart
     # d'être enregistré deux fois.
+    #
+    # « nulls not distinct » n'est pas un détail : sans cette mention,
+    # PostgreSQL tient deux valeurs nulles pour différentes, et la contrainte
+    # ne protège rien dès qu'un pointage manque — c'est-à-dire précisément sur
+    # les absences, de loin le cas le plus fréquent. (PostgreSQL 15 et plus.)
     _unique_exception = models.Constraint(
-        'unique(employee_id, date, exception_type, expected_start, attendance_id)',
+        'unique nulls not distinct '
+        '(employee_id, date, exception_type, expected_start, attendance_id)',
         "Cet écart a déjà été enregistré.",
     )
 
