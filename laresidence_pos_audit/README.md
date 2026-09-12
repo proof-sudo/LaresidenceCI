@@ -61,6 +61,78 @@ mode employé · validation
 | **Avec quel appareil** | numéro d'appareil Odoo, identifiant de poste stable, navigateur relevé côté serveur, et un relevé matériel complet — plateforme, écran, fenêtre, densité, langue, fuseau, décalage horaire déclaré, tactile, cœurs, mémoire, état du réseau |
 | **Quoi exactement** | ancienne et nouvelle valeur, et pour les écritures en base le détail champ par champ |
 
+## Intégrité — le journal se surveille lui-même
+
+Bloquer `write()` et `unlink()` ne vaut que dans l'application. Un accès direct
+à la base contourne l'ORM et n'y laisse rien.
+
+Chaque ligne porte donc un **numéro d'ordre continu** et l'**empreinte** de son
+propre contenu combinée à celle de la ligne précédente. Retirer une ligne,
+en insérer une, ou en retoucher une seule valeur rompt la chaîne à partir de ce
+point. C'est le principe retenu par Odoo pour l'inaltérabilité des factures.
+
+L'action **« Vérifier l'intégrité du journal »**, disponible depuis la liste,
+recalcule toute la chaîne et désigne la première anomalie : trou dans la
+numérotation, chaînage rompu, ou contenu modifié.
+
+Un enquêteur ne demande pas si les données sont vraies — il demande comment on
+le prouve. C'est cette question-là que la chaîne répond.
+
+## Ce qui est surveillé hors caisse
+
+Un détournement se prépare rarement dans la commande elle-même. Quinze modèles
+sont donc suivis en écriture, dont :
+
+| Modèle | Ce que ça révèle |
+|---|---|
+| `product.template` / `product.product` | **prix modifié en plein service** — l'incident du 11 septembre |
+| `res.users`, `res.groups` | quelqu'un qui s'attribue des droits |
+| `hr.employee` | code PIN ou badge réattribué |
+| `pos.config` | contrôle de caisse désactivé, droits POS élargis |
+| `pos.payment.method`, `account.journal` | mode de paiement redirigé vers un autre journal |
+| `ir.config_parameter` | **le paramètre de purge de ce journal** |
+| `ir.cron` | une tâche planifiée activée ou coupée |
+| `resource.calendar` | horaires de référence retouchés |
+| `res.device.log` | **chaque nouvelle session** : plateforme, navigateur, IP, pays, ville |
+
+Les valeurs secrètes — mots de passe, codes PIN, jetons — ne sont **jamais**
+recopiées : on enregistre qu'elles ont changé, pas ce qu'elles valent. Un
+journal de sécurité qui recopie un code PIN devient lui-même le problème.
+
+## Connexions
+
+Réussies et **échouées**, avec l'identifiant tenté, l'adresse et le navigateur.
+Une série de tentatives infructueuses la nuit depuis une adresse inconnue est
+le premier signe d'une intrusion, et Odoo n'en garde rien d'exploitable en base.
+
+L'authentification étant un point sensible, le traçage est délibérément
+prudent : la signature d'origine est transmise telle quelle, le comportement
+d'origine s'exécute en premier, la journalisation avale ses propres erreurs, et
+le paramètre `laresidence_pos_audit.trace_auth` mis à `0` la désactive sans
+redéploiement. La trace d'un échec est écrite dans une transaction séparée —
+sans quoi elle disparaîtrait avec l'annulation de la tentative.
+
+## Qui consulte le journal
+
+La lecture du journal y est notée, une fois par utilisateur et par quart
+d'heure. Savoir qui a consulté les traces fait partie des traces.
+
+## Adresses : trois niveaux
+
+| | |
+|---|---|
+| **Adresse publique** | vue par le serveur — identique pour toutes les tablettes du restaurant |
+| **Chaîne d'adresses** | relais traversés compris : un intermédiaire ne peut pas masquer l'origine |
+| **Adresse locale** | relevée par le navigateur de l'appareil — c'est elle qui distingue deux tablettes derrière le même routeur |
+
+Les navigateurs récents remplacent souvent l'adresse locale par un nom en
+`.local`. Il ne donne pas l'adresse, mais il est propre à l'appareil et stable :
+il suffit à les différencier.
+
+S'y ajoute l'**empreinte de session**, qui relie toutes les actions d'une même
+connexion. L'identifiant de session lui-même n'est jamais stocké : il serait
+réutilisable par quiconque lirait le journal.
+
 ## Garanties
 
 - `write()` et `unlink()` lèvent une erreur pour **tous** les profils,

@@ -68,6 +68,7 @@ export const posAudit = {
     deviceCache: null,
     started: false,
     _device: null,
+    _localIp: null,
 
     // ------------------------------------------------------------------
     // Cycle de vie
@@ -81,9 +82,51 @@ export const posAudit = {
         }
         this.started = true;
         this._restore();
+        this.collectLocalIp();
         this.timer = setInterval(() => this.flush(), FLUSH_INTERVAL_MS);
         window.addEventListener("pagehide", () => this._persist());
         window.addEventListener("online", () => this.flush());
+    },
+
+    /**
+     * Adresse de l'appareil sur le réseau local.
+     *
+     * Le serveur ne voit que l'adresse publique du restaurant : derrière un
+     * même routeur, toutes les tablettes lui sont identiques. Seul le
+     * navigateur connaît l'adresse interne, et il ne la livre qu'en préparant
+     * une négociation réseau.
+     *
+     * Les navigateurs récents remplacent souvent cette adresse par un nom en
+     * .local, propre à l'appareil et stable : il ne donne pas l'adresse, mais
+     * il distingue tout de même deux tablettes l'une de l'autre. Le relevé est
+     * lancé une fois au démarrage et mis en cache.
+     */
+    async collectLocalIp() {
+        if (this._localIp !== null) {
+            return this._localIp;
+        }
+        try {
+            if (typeof window.RTCPeerConnection !== "function") {
+                return null;
+            }
+            const cnx = new window.RTCPeerConnection({ iceServers: [] });
+            const adresses = new Set();
+            cnx.createDataChannel("");
+            cnx.onicecandidate = (evenement) => {
+                const texte = evenement?.candidate?.candidate || "";
+                const trouve = /((?:\d{1,3}\.){3}\d{1,3}|[0-9a-f]{1,4}(?::[0-9a-f]{1,4}){7}|[0-9a-f-]+\.local)/i.exec(texte);
+                if (trouve) {
+                    adresses.add(trouve[1]);
+                }
+            };
+            cnx.setLocalDescription(await cnx.createOffer());
+            await new Promise((r) => setTimeout(r, 1500));
+            cnx.close();
+            this._localIp = [...adresses].join(", ").slice(0, 128) || null;
+        } catch {
+            this._localIp = null;
+        }
+        return this._localIp;
     },
 
     browserId() {
@@ -130,6 +173,7 @@ export const posAudit = {
             browser_id: this.browserId(),
             device_label: this.deviceInfo().resume,
             device_info: JSON.stringify(this.deviceInfo().detail),
+            device_local_ip: this._localIp,
             config_id: store?.config?.id || null,
             session_id: store?.session?.id || store?.pos_session?.id || null,
             employee_id: cashier?.id || null,

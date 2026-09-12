@@ -16,8 +16,10 @@ Toute la valeur du modèle tient dans deux propriétés :
    laisse elle-même une trace dans le journal.
 """
 
+import hashlib
+import json
 import logging
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 from odoo import api, fields, models, _
 from odoo.exceptions import UserError
@@ -68,6 +70,9 @@ class LaresidencePosAudit(models.Model):
         ('db_create', "Création (base)"),
         ('db_write', "Modification (base)"),
         ('db_unlink', "Suppression (base)"),
+        ('audit_read', "Consultation du journal"),
+        ('auth_success', "Connexion réussie"),
+        ('auth_failure', "Échec de connexion"),
         ('audit_purge', "Purge du journal"),
     ]
 
@@ -112,6 +117,37 @@ class LaresidencePosAudit(models.Model):
     ], string="Origine", index=True, readonly=True,
         help="D'où vient l'action. « Traitement automatique » désigne une tâche "
              "planifiée ou une intervention hors interface.")
+    sequence_no = fields.Integer(
+        string="N° d'ordre", index=True, readonly=True, copy=False,
+        help="Numéro continu. Un trou dans la suite signale une suppression.")
+    previous_hash = fields.Char(
+        string="Empreinte précédente", readonly=True, copy=False, index=True)
+    record_hash = fields.Char(
+        string="Empreinte", readonly=True, copy=False, index=True,
+        help="Empreinte du contenu de cette ligne et de celle qui la précède. "
+             "Modifier ou supprimer une ligne, même directement en base, rompt "
+             "la chaîne et devient détectable.")
+
+    session_fingerprint = fields.Char(
+        string="Empreinte de session", index=True, readonly=True,
+        help="Empreinte de l'identifiant de session, relevée côté serveur. "
+             "Elle relie les actions d'une même connexion sans jamais exposer "
+             "l'identifiant lui-même, qui serait réutilisable par un tiers.")
+    device_id = fields.Many2one(
+        'res.device', string="Appareil connecté", ondelete='set null', readonly=True,
+        help="Appareil enregistré par Odoo pour cette session : plateforme, "
+             "navigateur, adresse IP publique, pays et ville.")
+    ip_chain = fields.Char(
+        string="Chaîne d'adresses IP", readonly=True,
+        help="Adresses traversées, relais compris. La dernière est celle vue "
+             "par le serveur, la première celle annoncée par le client.")
+    device_local_ip = fields.Char(
+        string="Adresse locale de l'appareil", readonly=True,
+        help="Adresse de l'appareil sur le réseau du restaurant. Elle distingue "
+             "deux tablettes qui partagent la même adresse publique. Les "
+             "navigateurs récents peuvent renvoyer un nom en .local à la place : "
+             "il reste propre à l'appareil et suffit à les différencier.")
+
     device_label = fields.Char(
         string="Appareil (résumé)", index=True, readonly=True,
         help="Description courte du poste : type de matériel, taille d'écran, "
@@ -209,6 +245,184 @@ class LaresidencePosAudit(models.Model):
         return [('order_reference', 'not in' if negative else 'in', refs or [False])]
 
     # ------------------------------------------------------------------
+    # Contexte de la requête — relevé côté serveur
+    # ------------------------------------------------------------------
+    @api.model
+    def contexte_requete(self):
+        """Tout ce que le serveur sait de l'appel, sans rien demander au client.
+
+        L'identifiant de session n'est jamais stocké tel quel : il servirait à
+        usurper la session de son propriétaire. Seule son empreinte est
+        conservée, ce qui permet de relier les actions d'une même connexion et
+        de retrouver l'appareil correspondant, sans rien exposer d'utilisable.
+        """
+        infos = {
+            'origin': 'system', 'origin_path': False, 'ip_address': False,
+            'ip_chain': False, 'user_agent': False, 'session_fingerprint': False,
+            'device_id': False,
+        }
+        try:
+            from odoo.http import request
+            if not request:
+                return infos
+
+            chemin = request.httprequest.path or ''
+            entetes = request.httprequest.headers
+            infos['origin_path'] = chemin[:128]
+            infos['ip_address'] = request.httprequest.remote_addr
+            infos['user_agent'] = str(entetes.get('User-Agent') or '')[:256]
+
+            # Chaîne complète : un relais intermédiaire ne doit pas pouvoir
+            # masquer l'adresse réelle de l'appareil.
+            transmises = entetes.get('X-Forwarded-For') or ''
+            chaine = [p.strip() for p in transmises.split(',') if p.strip()]
+            if request.httprequest.remote_addr:
+                chaine.append(request.httprequest.remote_addr)
+            infos['ip_chain'] = " → ".join(dict.fromkeys(chaine))[:256] or False
+
+            identifiant = getattr(request.session, 'sid', None)
+            if identifiant:
+                empreinte = hashlib.sha256(str(identifiant).encode('utf-8')).hexdigest()[:32]
+                infos['session_fingerprint'] = empreinte
+                appareil = self.env['res.device'].sudo().search(
+                    [('session_identifier', '=', identifiant)], limit=1)
+                if appareil:
+                    infos['device_id'] = appareil.id
+
+            referent = entetes.get('Referer') or ''
+            vient_de_la_caisse = (
+                chemin.startswith('/pos/')
+                or chemin.startswith('/laresidence/pos_audit')
+                or '/sync_from_ui' in chemin
+                or '/pos/ui' in referent
+            )
+            infos['origin'] = 'pos' if vient_de_la_caisse else 'backend'
+        except Exception:
+            _logger.debug("laresidence_pos_audit : contexte de requête indisponible")
+        return infos
+
+    # ------------------------------------------------------------------
+    # Chaînage par empreinte
+    # ------------------------------------------------------------------
+    # Le blocage de write() et unlink() ne vaut que dans l'application. Un accès
+    # direct à la base contourne l'ORM et ne laisse aucune trace. Chaque ligne
+    # porte donc l'empreinte de son propre contenu combinée à celle de la ligne
+    # qui la précède : retirer, insérer ou retoucher une ligne rompt la chaîne à
+    # partir de ce point, et le contrôle d'intégrité le désigne. C'est le même
+    # principe que l'inaltérabilité des factures dans Odoo.
+
+    CHAMPS_EMPREINTE = [
+        'sequence_no', 'event_type', 'server_datetime', 'client_datetime',
+        'user_id', 'employee_id', 'device_identifier', 'browser_id',
+        'session_fingerprint', 'ip_address', 'ip_chain', 'device_local_ip',
+        'origin', 'origin_path', 'model_name', 'res_id',
+        'order_reference', 'order_uuid', 'tracking_number', 'table_name',
+        'product_id', 'product_name', 'quantity', 'amount',
+        'payment_method', 'old_value', 'new_value', 'changes', 'note',
+    ]
+
+    def _contenu_empreinte(self):
+        """Représentation canonique et stable d'une ligne."""
+        self.ensure_one()
+        valeurs = {}
+        for champ in self.CHAMPS_EMPREINTE:
+            valeur = self[champ]
+            if isinstance(valeur, models.BaseModel):
+                valeur = valeur.id or 0
+            elif hasattr(valeur, 'isoformat'):
+                valeur = valeur.isoformat()
+            valeurs[champ] = valeur if valeur not in (False, None) else None
+        valeurs['previous_hash'] = self.previous_hash or ''
+        return json.dumps(valeurs, sort_keys=True, ensure_ascii=False, default=str)
+
+    def _calculer_empreinte(self):
+        self.ensure_one()
+        return hashlib.sha256(self._contenu_empreinte().encode('utf-8')).hexdigest()
+
+    @api.model_create_multi
+    def create(self, vals_list):
+        enregistrements = super().create(vals_list)
+        # Verrou le temps de la transaction : deux écritures simultanées ne
+        # peuvent pas se voir attribuer le même prédécesseur.
+        self.env.cr.execute("SELECT pg_advisory_xact_lock(%s)", (4815162342,))
+        self.env.cr.execute(
+            "SELECT sequence_no, record_hash FROM laresidence_pos_audit "
+            "WHERE sequence_no IS NOT NULL ORDER BY sequence_no DESC LIMIT 1")
+        ligne = self.env.cr.fetchone()
+        numero = (ligne[0] if ligne else 0)
+        precedente = (ligne[1] if ligne else '') or ''
+        for enregistrement in enregistrements:
+            numero += 1
+            self.env.cr.execute(
+                "UPDATE laresidence_pos_audit SET sequence_no = %s, previous_hash = %s "
+                "WHERE id = %s", (numero, precedente, enregistrement.id))
+            enregistrement.invalidate_recordset(['sequence_no', 'previous_hash'])
+            empreinte = enregistrement._calculer_empreinte()
+            self.env.cr.execute(
+                "UPDATE laresidence_pos_audit SET record_hash = %s WHERE id = %s",
+                (empreinte, enregistrement.id))
+            enregistrement.invalidate_recordset(['record_hash'])
+            precedente = empreinte
+        return enregistrements
+
+    @api.model
+    def verifier_integrite(self, limite=None):
+        """Recalcule la chaîne et signale la première anomalie.
+
+        Retourne un état lisible : nombre de lignes contrôlées, trous dans la
+        numérotation, et première ligne dont l'empreinte ne correspond plus.
+        """
+        domaine = [('sequence_no', '!=', False)]
+        lignes = self.sudo().search(domaine, order='sequence_no asc', limit=limite or 0)
+        attendu_precedent = ''
+        attendu_numero = None
+        trous = []
+        rupture = None
+
+        for ligne in lignes:
+            if attendu_numero is not None and ligne.sequence_no != attendu_numero:
+                trous.append((attendu_numero, ligne.sequence_no))
+            attendu_numero = ligne.sequence_no + 1
+
+            if rupture is None:
+                if (ligne.previous_hash or '') != attendu_precedent:
+                    rupture = (ligne.id, ligne.sequence_no, "chaînage rompu")
+                elif ligne._calculer_empreinte() != (ligne.record_hash or ''):
+                    rupture = (ligne.id, ligne.sequence_no, "contenu modifié")
+            attendu_precedent = ligne.record_hash or ''
+
+        return {
+            'controlees': len(lignes),
+            'trous': trous,
+            'rupture': rupture,
+            'intacte': not trous and rupture is None,
+        }
+
+    def action_verifier_integrite(self):
+        etat = self.verifier_integrite()
+        if etat['intacte']:
+            titre = "Journal intact"
+            corps = ("%s ligne(s) contrôlées. La numérotation est continue et "
+                     "chaque empreinte correspond à son contenu." % etat['controlees'])
+            genre = 'success'
+        else:
+            titre = "Anomalie détectée"
+            morceaux = ["%s ligne(s) contrôlées." % etat['controlees']]
+            if etat['trous']:
+                morceaux.append("Numérotation interrompue : %s." % ", ".join(
+                    "entre %s et %s" % (a - 1, b) for a, b in etat['trous'][:5]))
+            if etat['rupture']:
+                morceaux.append("Première anomalie au n° %s (%s)."
+                                % (etat['rupture'][1], etat['rupture'][2]))
+            corps = "\n".join(morceaux)
+            genre = 'danger'
+        return {
+            'type': 'ir.actions.client',
+            'tag': 'display_notification',
+            'params': {'title': titre, 'message': corps, 'type': genre, 'sticky': True},
+        }
+
+    # ------------------------------------------------------------------
     # Immuabilité
     # ------------------------------------------------------------------
     def write(self, vals):
@@ -223,10 +437,49 @@ class LaresidencePosAudit(models.Model):
             "des enregistrements anciens — et elle laisse elle-même une trace."))
 
     # ------------------------------------------------------------------
+    # Consultation du journal
+    # ------------------------------------------------------------------
+    # Savoir qui a consulté les traces fait partie des traces. La lecture est
+    # notée une fois par utilisateur et par quart d'heure : noter chaque
+    # rafraîchissement d'écran remplirait le journal de son propre reflet.
+    DELAI_NOTE_LECTURE = 900
+
+    @api.model
+    def web_search_read(self, domain=None, specification=None, **kwargs):
+        resultat = super().web_search_read(domain=domain, specification=specification, **kwargs)
+        try:
+            self._noter_consultation(len(resultat.get('records', [])) if resultat else 0)
+        except Exception:
+            _logger.debug("laresidence_pos_audit : consultation non notée")
+        return resultat
+
+    @api.model
+    def _noter_consultation(self, nombre):
+        if self.env.context.get('laresidence_audit_interne'):
+            return
+        limite = fields.Datetime.now() - timedelta(seconds=self.DELAI_NOTE_LECTURE)
+        deja = self.sudo().with_context(laresidence_audit_interne=True).search_count([
+            ('event_type', '=', 'audit_read'),
+            ('user_id', '=', self.env.user.id),
+            ('server_datetime', '>=', limite),
+        ])
+        if deja:
+            return
+        valeurs = {
+            'event_type': 'audit_read',
+            'server_datetime': fields.Datetime.now(),
+            'user_id': self.env.user.id,
+            'note': "Consultation du journal d'audit (%s ligne(s) affichées)." % nombre,
+        }
+        valeurs.update(self.contexte_requete())
+        self.sudo().with_context(laresidence_audit_interne=True).create([valeurs])
+
+    # ------------------------------------------------------------------
     # Écriture (appelée en sudo depuis le contrôleur)
     # ------------------------------------------------------------------
     @api.model
-    def log_events(self, events, ip_address=None, user_id=None, user_agent=None, origin_path=None):
+    def log_events(self, events, ip_address=None, user_id=None, user_agent=None,
+                   origin_path=None, session_fingerprint=None, ip_chain=None):
         """Insère un lot d'événements. Retourne le nombre de lignes écrites.
 
         Les champs de confiance (horodatage serveur, utilisateur, IP) sont
@@ -237,6 +490,7 @@ class LaresidencePosAudit(models.Model):
 
         valid_types = {code for code, _label in self.EVENT_TYPES}
         now = fields.Datetime.now()
+        contexte = self.contexte_requete()
         rows = []
 
         for ev in events:
@@ -249,6 +503,8 @@ class LaresidencePosAudit(models.Model):
             rows.append({
                 'event_type': event_type,
                 'server_datetime': now,
+                'session_fingerprint': contexte.get('session_fingerprint'),
+                'device_id': contexte.get('device_id'),
                 'client_datetime': self._parse_client_dt(ev.get('client_datetime')),
                 'device_identifier': self._trim(ev.get('device_identifier'), 32),
                 'browser_id': self._trim(ev.get('browser_id'), 64),
@@ -256,13 +512,15 @@ class LaresidencePosAudit(models.Model):
                 'session_id': self._as_id(ev.get('session_id')),
                 'employee_id': self._as_id(ev.get('employee_id')),
                 'user_id': user_id or self.env.user.id,
-                'ip_address': self._trim(ip_address, 64),
-                'user_agent': self._trim(user_agent, 256),
+                'ip_address': self._trim(ip_address or contexte.get('ip_address'), 64),
+                'user_agent': self._trim(user_agent or contexte.get('user_agent'), 256),
                 'origin': 'pos',
-                'origin_path': self._trim(origin_path, 128),
+                'origin_path': self._trim(origin_path or contexte.get('origin_path'), 128),
+                'ip_chain': self._trim(ip_chain or contexte.get('ip_chain'), 256),
                 'payment_method': self._trim(ev.get('payment_method'), 128),
                 'device_label': self._trim(ev.get('device_label'), 128),
                 'device_info': self._trim(ev.get('device_info'), 4000),
+                'device_local_ip': self._trim(ev.get('device_local_ip'), 128),
                 'order_uuid': self._trim(ev.get('order_uuid')),
                 'order_reference': self._trim(ev.get('order_reference')),
                 'tracking_number': self._trim(ev.get('tracking_number'), 32),

@@ -31,6 +31,38 @@ CHAMPS_IGNORES = {
 
 # Ce que l'on retient à la création, pour garder une trace lisible sans
 # recopier l'intégralité de l'enregistrement.
+# Modèles dont on ne suit qu'une sélection de champs. Tout suivre ferait du
+# bruit — « res.users » est réécrit à chaque connexion — et noierait les
+# changements qui comptent vraiment. Un modèle absent de ce dictionnaire est
+# suivi intégralement : c'est le cas des objets de caisse.
+CHAMPS_SURVEILLES = {
+    'res.users': ['login', 'active', 'group_ids', 'groups_id', 'password', 'totp_secret'],
+    'res.groups': ['name', 'user_ids', 'implied_ids'],
+    'product.template': ['name', 'list_price', 'standard_price', 'active',
+                         'available_in_pos', 'taxes_id', 'pos_categ_ids'],
+    'product.product': ['lst_price', 'standard_price', 'active', 'default_code'],
+    'pos.config': ['name', 'active', 'cash_control', 'module_pos_hr', 'iface_printbill',
+                   'restrict_price_control', 'manual_discount', 'use_pricelist',
+                   'pricelist_id', 'minimal_employee_ids', 'basic_employee_ids',
+                   'advanced_employee_ids', 'auto_close_enabled', 'auto_close_time',
+                   'auto_close_full'],
+    'pos.payment.method': ['name', 'journal_id', 'is_cash_count', 'active',
+                           'use_payment_terminal', 'split_transactions'],
+    'account.journal': ['name', 'type', 'restrict_mode_hash_table', 'active'],
+    'ir.config_parameter': ['key', 'value'],
+    'ir.cron': ['name', 'active', 'code', 'interval_number', 'interval_type', 'model_id'],
+    'hr.employee': ['name', 'pin', 'barcode', 'active', 'resource_calendar_id',
+                    'department_id', 'job_id'],
+    'resource.calendar': ['name', 'tz', 'hours_per_day', 'attendance_ids'],
+    'res.device.log': ['revoked'],
+}
+
+# Valeurs qui ne doivent jamais figurer dans le journal. On enregistre qu'elles
+# ont changé, jamais ce qu'elles valent : un journal de sécurité qui recopie un
+# code PIN devient lui-même le problème.
+CHAMPS_SECRETS = {'password', 'new_password', 'totp_secret', 'pin', 'token',
+                  'webhook_verify_token', 'app_secret'}
+
 CHAMPS_CREATION = {
     'pos.order': ['pos_reference', 'tracking_number', 'session_id', 'employee_id',
                   'user_id', 'partner_id', 'table_id', 'amount_total', 'state', 'date_order'],
@@ -39,6 +71,8 @@ CHAMPS_CREATION = {
     'pos.payment': ['pos_order_id', 'payment_method_id', 'amount', 'payment_date',
                     'card_type', 'transaction_id'],
     'pos.session': ['name', 'config_id', 'user_id', 'state', 'start_at'],
+    'res.device.log': ['user_id', 'platform', 'browser', 'device_type',
+                       'ip_address', 'country', 'city', 'first_activity'],
 }
 
 
@@ -53,34 +87,7 @@ class LaresidencePosAuditOrm(models.AbstractModel):
     # ------------------------------------------------------------------
     @api.model
     def _laresidence_contexte_appel(self):
-        """Origine, chemin, IP et navigateur — relevés côté serveur."""
-        infos = {'origin': 'system', 'origin_path': False,
-                 'ip_address': False, 'user_agent': False}
-        try:
-            from odoo.http import request
-            if not request:
-                return infos
-            chemin = request.httprequest.path or ''
-            infos['origin_path'] = chemin[:128]
-            infos['ip_address'] = request.httprequest.remote_addr
-            infos['user_agent'] = str(request.httprequest.user_agent or '')[:256]
-
-            # La synchronisation des commandes de caisse n'arrive pas par une
-            # adresse en /pos/ : elle emprunte le canal générique de l'ORM.
-            # S'en tenir au chemin étiquetterait « back-office » des actions de
-            # salle, ce qui viderait ce champ de son intérêt. Trois signaux sont
-            # donc croisés, dont deux déterministes.
-            referent = request.httprequest.headers.get('Referer') or ''
-            vient_de_la_caisse = (
-                chemin.startswith('/pos/')
-                or chemin.startswith('/laresidence/pos_audit')
-                or '/sync_from_ui' in chemin
-                or '/pos/ui' in referent
-            )
-            infos['origin'] = 'pos' if vient_de_la_caisse else 'backend'
-        except Exception:
-            pass
-        return infos
+        return self.env['laresidence.pos.audit'].sudo().contexte_requete()
 
     # ------------------------------------------------------------------
     # Sérialisation des valeurs
@@ -88,6 +95,8 @@ class LaresidencePosAuditOrm(models.AbstractModel):
     @api.model
     def _laresidence_lisible(self, champ, valeur):
         """Rend une valeur de champ lisible dans le journal."""
+        if champ in CHAMPS_SECRETS:
+            return "(valeur masquée)" if valeur else None
         if valeur is None or valeur is False:
             return None
         try:
@@ -190,7 +199,10 @@ class LaresidencePosAuditOrm(models.AbstractModel):
         return enregistrements
 
     def write(self, vals):
-        surveilles = [c for c in vals if c not in CHAMPS_IGNORES and c in self._fields]
+        retenus = CHAMPS_SURVEILLES.get(self._name)
+        surveilles = [c for c in vals
+                      if c not in CHAMPS_IGNORES and c in self._fields
+                      and (retenus is None or c in retenus)]
         avant = {}
         if surveilles:
             for enregistrement in self:
@@ -241,3 +253,77 @@ class PosPayment(models.Model):
 class PosSession(models.Model):
     _name = 'pos.session'
     _inherit = ['pos.session', 'laresidence.pos.audit.orm']
+
+
+# ---------------------------------------------------------------------------
+# Modèles sensibles hors caisse
+#
+# Un enquêteur ne s'arrête pas aux commandes. Le prix d'un article modifié en
+# plein service, un employé promu en droits avancés, un code PIN réattribué, un
+# mode de paiement redirigé vers un autre journal, la tâche de purge du journal
+# activée : ces gestes-là ne laissent aucune trace exploitable dans Odoo, et
+# chacun peut précéder ou masquer un détournement.
+# ---------------------------------------------------------------------------
+class ProductTemplate(models.Model):
+    _name = 'product.template'
+    _inherit = ['product.template', 'laresidence.pos.audit.orm']
+
+
+class ProductProduct(models.Model):
+    _name = 'product.product'
+    _inherit = ['product.product', 'laresidence.pos.audit.orm']
+
+
+class PosConfig(models.Model):
+    _name = 'pos.config'
+    _inherit = ['pos.config', 'laresidence.pos.audit.orm']
+
+
+class PosPaymentMethod(models.Model):
+    _name = 'pos.payment.method'
+    _inherit = ['pos.payment.method', 'laresidence.pos.audit.orm']
+
+
+class AccountJournal(models.Model):
+    _name = 'account.journal'
+    _inherit = ['account.journal', 'laresidence.pos.audit.orm']
+
+
+class IrConfigParameter(models.Model):
+    _name = 'ir.config_parameter'
+    _inherit = ['ir.config_parameter', 'laresidence.pos.audit.orm']
+
+
+class IrCron(models.Model):
+    _name = 'ir.cron'
+    _inherit = ['ir.cron', 'laresidence.pos.audit.orm']
+
+
+class ResGroups(models.Model):
+    _name = 'res.groups'
+    _inherit = ['res.groups', 'laresidence.pos.audit.orm']
+
+
+class ResUsers(models.Model):
+    _name = 'res.users'
+    _inherit = ['res.users', 'laresidence.pos.audit.orm']
+
+
+class HrEmployee(models.Model):
+    _name = 'hr.employee'
+    _inherit = ['hr.employee', 'laresidence.pos.audit.orm']
+
+
+class ResourceCalendar(models.Model):
+    _name = 'resource.calendar'
+    _inherit = ['resource.calendar', 'laresidence.pos.audit.orm']
+
+
+class ResDeviceLog(models.Model):
+    """Chaque nouvelle session ouverte par un utilisateur crée une ligne ici,
+    avec la plateforme, le navigateur, l'adresse IP publique, le pays et la
+    ville. C'est la trace native des connexions abouties : la suivre revient à
+    tenir un registre des sessions sans toucher à l'authentification."""
+
+    _name = 'res.device.log'
+    _inherit = ['res.device.log', 'laresidence.pos.audit.orm']

@@ -7,6 +7,7 @@
         <field name="arch" type="xml">
             <list string="Journal d'audit du Point de Vente" create="false" edit="false" delete="false"
                   default_order="server_datetime desc">
+                <field name="sequence_no" optional="show"/>
                 <field name="server_datetime"/>
                 <field name="event_type"/>
                 <field name="employee_id"/>
@@ -33,6 +34,11 @@
                 <field name="model_name" optional="hide"/>
                 <field name="res_id" optional="hide"/>
                 <field name="changes" optional="hide"/>
+                <field name="device_id" optional="hide"/>
+                <field name="session_fingerprint" optional="hide"/>
+                <field name="ip_chain" optional="hide"/>
+                <field name="device_local_ip" optional="hide"/>
+                <field name="record_hash" optional="hide"/>
                 <field name="note" optional="hide"/>
             </list>
         </field>
@@ -61,6 +67,10 @@
                             <field name="origin_path"/>
                             <field name="user_agent"/>
                             <field name="device_label"/>
+                            <field name="device_local_ip"/>
+                            <field name="ip_chain"/>
+                            <field name="device_id"/>
+                            <field name="session_fingerprint"/>
                         </group>
                         <group string="Contexte">
                             <field name="config_id"/>
@@ -84,6 +94,11 @@
                         <field name="model_name"/>
                         <field name="res_id"/>
                         <field name="changes" widget="text" nolabel="1" colspan="2"/>
+                    </group>
+                    <group string="Chaîne d'intégrité">
+                        <field name="sequence_no"/>
+                        <field name="previous_hash"/>
+                        <field name="record_hash"/>
                     </group>
                     <group string="Détail">
                         <field name="note" nolabel="1"/>
@@ -127,6 +142,12 @@
                 <separator/>
                 <filter name="paiements" string="Paiements"
                         domain="[('event_type','in',['payment_add','payment_remove','payment_amount'])]"/>
+                <filter name="authentification" string="Connexions et échecs"
+                        domain="[('event_type','in',['auth_success','auth_failure'])]"/>
+                <filter name="echecs_connexion" string="Échecs de connexion"
+                        domain="[('event_type','=','auth_failure')]"/>
+                <filter name="consultations" string="Consultations du journal"
+                        domain="[('event_type','=','audit_read')]"/>
                 <filter name="hors_caisse" string="Actions hors interface caisse"
                         domain="[('origin','!=','pos')]"/>
                 <filter name="ecritures_base" string="Écritures en base"
@@ -144,6 +165,8 @@
                     <filter name="g_origine" string="Origine" context="{'group_by':'origin'}"/>
                     <filter name="g_appareil" string="Appareil" context="{'group_by':'device_label'}"/>
                     <filter name="g_modele" string="Modèle concerné" context="{'group_by':'model_name'}"/>
+                    <filter name="g_session" string="Session" context="{'group_by':'session_fingerprint'}"/>
+                    <filter name="g_poste" string="Adresse locale" context="{'group_by':'device_local_ip'}"/>
                 </group>
             </search>
         </field>
@@ -160,6 +183,15 @@
             <p>Le journal se remplit dès qu'une caisse est utilisée. Il est en lecture seule :
                ni vous ni l'administrateur ne pouvez en modifier le contenu.</p>
         </field>
+    </record>
+
+    <record id="action_verifier_integrite" model="ir.actions.server">
+        <field name="name">Vérifier l'intégrité du journal</field>
+        <field name="model_id" ref="model_laresidence_pos_audit"/>
+        <field name="binding_model_id" ref="model_laresidence_pos_audit"/>
+        <field name="binding_view_types">list</field>
+        <field name="state">code</field>
+        <field name="code">action = model.action_verifier_integrite()</field>
     </record>
 
     <menuitem id="menu_laresidence_pos_audit"
