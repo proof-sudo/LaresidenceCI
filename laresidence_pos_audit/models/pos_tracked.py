@@ -180,10 +180,8 @@ class LaresidencePosAuditOrm(models.AbstractModel):
     # ------------------------------------------------------------------
     @api.model
     def _laresidence_journaliser(self, event_type, enregistrement, changements=None, note=None):
-        # Pendant l'installation ou la mise à jour d'un module, Odoo réécrit des
-        # milliers de droits et de paramètres. Ce bruit de déploiement noierait
-        # les gestes qui comptent, et ralentirait chaque mise à jour. Le registre
-        # non prêt est le signal fiable de cette phase.
+        # Filet de sécurité : les trois points d'entrée filtrent déjà, mais une
+        # trace posée par un autre chemin ne doit pas non plus passer.
         if not self.env.registry.ready:
             return
         try:
@@ -208,6 +206,19 @@ class LaresidencePosAuditOrm(models.AbstractModel):
     # Interception
     # ------------------------------------------------------------------
     @api.model
+    def _laresidence_audit_actif(self):
+        """Faux pendant l'installation ou la mise à jour d'un module.
+
+        Odoo y réécrit des milliers de droits et de paramètres : ce bruit de
+        déploiement noierait les gestes qui comptent et ralentirait chaque mise
+        à jour. Le contrôle est fait à l'entrée de create, write et unlink, et
+        non au moment d'écrire la trace : sinon on relit les champs de chaque
+        enregistrement créé pendant l'installation pour finalement ne rien en
+        faire. Le registre non prêt est le signal fiable de cette phase.
+        """
+        return self.env.registry.ready
+
+    @api.model
     def _laresidence_champs_creation(self):
         """Ce qu'on retient à la création d'un enregistrement.
 
@@ -226,6 +237,8 @@ class LaresidencePosAuditOrm(models.AbstractModel):
     @api.model_create_multi
     def create(self, vals_list):
         enregistrements = super().create(vals_list)
+        if not self._laresidence_audit_actif():
+            return enregistrements
         retenus = self._laresidence_champs_creation()
         for enregistrement in enregistrements:
             valeurs = {champ: self._laresidence_lisible(champ, enregistrement[champ])
@@ -234,6 +247,8 @@ class LaresidencePosAuditOrm(models.AbstractModel):
         return enregistrements
 
     def write(self, vals):
+        if not self._laresidence_audit_actif():
+            return super().write(vals)
         retenus = CHAMPS_SURVEILLES.get(self._name)
         surveilles = [c for c in vals
                       if c not in CHAMPS_IGNORES and c in self._fields
@@ -260,6 +275,8 @@ class LaresidencePosAuditOrm(models.AbstractModel):
         return resultat
 
     def unlink(self):
+        if not self._laresidence_audit_actif():
+            return super().unlink()
         retenus = self._laresidence_champs_creation()
         for enregistrement in self:
             valeurs = {c: self._laresidence_lisible(c, enregistrement[c])
