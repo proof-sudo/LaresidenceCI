@@ -101,16 +101,28 @@ journal de sécurité qui recopie un code PIN devient lui-même le problème.
 
 ## Connexions
 
-Réussies et **échouées**, avec l'identifiant tenté, l'adresse et le navigateur.
-Une série de tentatives infructueuses la nuit depuis une adresse inconnue est
-le premier signe d'une intrusion, et Odoo n'en garde rien d'exploitable en base.
+Chaque session ouverte laisse une ligne : utilisateur, plateforme, navigateur,
+adresse IP, pays et ville. Elle vient du modèle `res.device.log`, qu'Odoo 19
+alimente lui-même et que ce module suit — aucune intervention dans le chemin
+d'authentification.
 
-L'authentification étant un point sensible, le traçage est délibérément
-prudent : la signature d'origine est transmise telle quelle, le comportement
-d'origine s'exécute en premier, la journalisation avale ses propres erreurs, et
-le paramètre `laresidence_pos_audit.trace_auth` mis à `0` la désactive sans
-redéploiement. La trace d'un échec est écrite dans une transaction séparée —
-sans quoi elle disparaîtrait avec l'annulation de la tentative.
+**Les tentatives de connexion refusées ne sont pas captées en base.** Elles
+n'existent que dans le journal du serveur.
+
+Ce n'est pas un oubli. Les capturer suppose de s'intercaler dans `_login`, ce
+qui a été tenté et retiré : deux échecs de construction consécutifs, dont un
+qui rendait toute connexion impossible. Une faute à cet endroit met tout le
+monde dehors, personnel comme administrateur, et aucune vérification statique
+ne la révèle — l'installation se passe bien, c'est la connexion qui échoue.
+
+La fonction reste souhaitable et sera reprise à part, avec un mécanisme qui ne
+touche pas au chemin d'authentification : lecture différée du journal serveur
+par une tâche planifiée, ou exploitation des compteurs internes d'Odoo. Les
+types d'événement `auth_success` et `auth_failure` restent déclarés pour
+l'accueillir.
+
+En attendant, les échecs de connexion se lisent dans `~/logs/odoo.log` de
+l'instance, à la ligne « Login failed ».
 
 ## Qui consulte le journal
 
