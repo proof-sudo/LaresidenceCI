@@ -3,6 +3,7 @@ from odoo import models
 
 class Reservation(models.Model):
     _name = "residence.reservation"
+    _description = "Réservation"
     _inherit = ["webhook.mixin"]
 
     def write(self, vals):
