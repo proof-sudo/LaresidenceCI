@@ -158,6 +158,31 @@ export const posAudit = {
         }
     },
 
+    /**
+     * Total TTC d'une commande. `getTotalWithTax()` n'existe pas en Odoo 19 —
+     * le total vit dans le champ `amount_total`. Les autres noms sont laissés
+     * en repli pour ne pas dépendre d'une seule version.
+     */
+    totalOf(order) {
+        if (!order) {
+            return 0;
+        }
+        try {
+            for (const cle of ["amount_total", "priceIncl", "totalDue"]) {
+                const v = order[cle];
+                if (typeof v === "number" && !Number.isNaN(v)) {
+                    return v;
+                }
+            }
+            if (typeof order.getTotalWithTax === "function") {
+                return order.getTotalWithTax() || 0;
+            }
+        } catch {
+            /* un total illisible ne doit pas empêcher l'événement de partir */
+        }
+        return 0;
+    },
+
     lineInfo(line) {
         if (!line) {
             return {};

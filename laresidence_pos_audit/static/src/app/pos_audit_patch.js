@@ -133,7 +133,7 @@ patchSi(PosStore, "deleteOrders", {
     async deleteOrders(orders, serverIds = [], ignoreChange = false) {
         for (const order of orders || []) {
             posAudit.push(this, "order_delete", order, {
-                amount: order?.getTotalWithTax?.() ?? 0,
+                amount: posAudit.totalOf(order),
                 note: "Suppression de la commande depuis la caisse.",
             });
         }
@@ -149,7 +149,7 @@ patchSi(PosStore, "printReceipt", {
     async printReceipt(opts = {}) {
         const order = opts?.order || commandeCourante(this);
         posAudit.push(this, "print_receipt", order, {
-            amount: order?.getTotalWithTax?.() ?? 0,
+            amount: posAudit.totalOf(order),
         });
         return super.printReceipt(...arguments);
     },
@@ -159,7 +159,7 @@ patchSi(ControlButtons, "clickPrintBill", {
     async clickPrintBill() {
         const order = commandeCourante(this.pos);
         posAudit.push(this.pos, "print_bill", order, {
-            amount: order?.getTotalWithTax?.() ?? 0,
+            amount: posAudit.totalOf(order),
             note: "Impression de l'addition présentée au client.",
         });
         return super.clickPrintBill(...arguments);
@@ -173,7 +173,7 @@ patchSi(PaymentScreen, "validateOrder", {
     async validateOrder(isForceValidate = false) {
         const order = this.currentOrder || null;
         posAudit.push(this.pos, "validate", order, {
-            amount: order?.getTotalWithTax?.() ?? 0,
+            amount: posAudit.totalOf(order),
             note: "Validation du paiement et clôture de la commande.",
         });
         // La commande est sur le point d'être réécrite côté serveur — employé
