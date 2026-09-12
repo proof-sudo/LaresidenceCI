@@ -232,3 +232,9 @@ export const posAudit = {
         }
     },
 };
+
+// Démarrage au chargement du bundle : la file laissée par une session
+// précédente repart dès l'ouverture de la caisse, sans attendre qu'une
+// première action ait lieu. C'est ce qui rend un redémarrage de tablette
+// inoffensif pour les événements en attente.
+posAudit.ensure(null);

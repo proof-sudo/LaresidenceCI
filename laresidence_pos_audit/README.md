@@ -57,6 +57,28 @@ rétention ». Chaque purge inscrit elle-même une ligne dans le journal.
 - Bouton **Journal d'audit** sur une commande POS
 - Bouton **Journal d'audit** sur une session POS
 
+## Points d'accroche
+
+Relevés sur l'instance, pas supposés — trois ne sont pas là où on les
+attendrait :
+
+| Action | Classe | Module |
+|---|---|---|
+| ouverture, ligne, caissier, table, transfert, suppression, reçu | `PosStore` | `services/pos_store` |
+| retrait de ligne | `PosOrder` | `models/pos_order` |
+| impression de l'addition | `ControlButtons` | `screens/product_screen/control_buttons` |
+| validation | `PaymentScreen` | `screens/payment_screen` |
+
+La classe `OrderPaymentValidation`, qui porte `finalizeValidation`, existe mais
+n'est pas exportée par son module : elle est inatteignable depuis un module
+tiers. La validation est donc observée une couche au-dessus, sur
+`PaymentScreen.validateOrder` — ce qui a l'avantage de déposer l'événement
+*avant* que la commande ne parte au serveur.
+
+Un patch dont la méthode cible a disparu est ignoré avec un avertissement en
+console : une évolution d'Odoo dégrade l'audit, elle n'empêche jamais la
+caisse de démarrer.
+
 ## Limites connues
 
 - Les événements sont produits par le navigateur : une tablette qui n'a jamais

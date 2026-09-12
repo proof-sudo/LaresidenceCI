@@ -1,8 +1,9 @@
 /** @odoo-module **/
 
 import { PosStore } from "@point_of_sale/app/services/pos_store";
-import { OrderPaymentValidation } from "@point_of_sale/app/utils/order_payment_validation";
+import { PosOrder } from "@point_of_sale/app/models/pos_order";
 import { ControlButtons } from "@point_of_sale/app/screens/product_screen/control_buttons/control_buttons";
+import { PaymentScreen } from "@point_of_sale/app/screens/payment_screen/payment_screen";
 import { patch } from "@web/core/utils/patch";
 import { posAudit } from "./audit_service";
 
@@ -11,23 +12,40 @@ import { posAudit } from "./audit_service";
  * dépose un événement. Aucun ne modifie le résultat, aucun ne peut faire échouer
  * l'action observée (`posAudit.push` avale ses propres erreurs).
  *
- * Les méthodes dont la présence dépend d'un module tiers (table, transfert,
- * caissier) ne sont patchées que si elles existent réellement, pour que le
- * module reste installable si l'une de ces dépendances évolue.
+ * Les points d'accroche ont été relevés sur l'instance elle-même plutôt que
+ * supposés — trois d'entre eux ne sont pas là où on les attendrait :
+ *
+ *   - `removeOrderline` appartient au modèle de commande (PosOrder), pas au
+ *     magasin ;
+ *   - la validation du paiement passe par `PaymentScreen.validateOrder` ; la
+ *     classe OrderPaymentValidation qui porte `finalizeValidation` existe mais
+ *     n'est pas exportée par son module, donc inatteignable depuis ici ;
+ *   - `clickPrintBill` est sur les boutons d'action, pas sur le magasin.
+ *
+ * Un patch dont la méthode cible a disparu est ignoré avec un avertissement,
+ * pour qu'une évolution d'Odoo dégrade l'audit au lieu d'empêcher la caisse
+ * de démarrer.
  */
 
-function patchIfExists(prototype, name, implementation) {
-    if (typeof prototype[name] === "function") {
-        patch(prototype, implementation);
-    } else {
-        console.warn(`laresidence_pos_audit : méthode ${name} absente, audit partiel sur ce point.`);
+function patchSi(classe, nom, implementation) {
+    if (!classe || !classe.prototype) {
+        console.warn(`laresidence_pos_audit : classe absente pour ${nom}, audit partiel sur ce point.`);
+        return;
     }
+    if (typeof classe.prototype[nom] !== "function") {
+        console.warn(`laresidence_pos_audit : méthode ${nom} absente, audit partiel sur ce point.`);
+        return;
+    }
+    patch(classe.prototype, implementation);
 }
 
+const commandeCourante = (store) =>
+    (store && typeof store.getOrder === "function" ? store.getOrder() : null) || null;
+
 // ---------------------------------------------------------------------------
-// Ouverture, lignes, validation
+// Ouverture et lignes
 // ---------------------------------------------------------------------------
-patch(PosStore.prototype, {
+patchSi(PosStore, "createNewOrder", {
     createNewOrder(data = {}) {
         const order = super.createNewOrder(...arguments);
         posAudit.push(this, "order_open", order, {
@@ -35,20 +53,21 @@ patch(PosStore.prototype, {
         });
         return order;
     },
+});
 
+patchSi(PosStore, "addLineToCurrentOrder", {
     async addLineToCurrentOrder(vals, opts = {}, configure = true) {
         const line = await super.addLineToCurrentOrder(...arguments);
-        const order = typeof this.getOrder === "function" ? this.getOrder() : null;
-        posAudit.push(this, "line_add", order, posAudit.lineInfo(line));
+        posAudit.push(this, "line_add", commandeCourante(this), posAudit.lineInfo(line));
         return line;
     },
 });
 
-patchIfExists(PosStore.prototype, "removeOrderline", {
+// `this` est ici la commande elle-même : le magasin vient du cache du service.
+patchSi(PosOrder, "removeOrderline", {
     removeOrderline(line) {
         // Déposé avant l'appel : après, la ligne n'existe plus.
-        const order = typeof this.getOrder === "function" ? this.getOrder() : null;
-        posAudit.push(this, "line_remove", order, posAudit.lineInfo(line));
+        posAudit.push(null, "line_remove", this, posAudit.lineInfo(line));
         return super.removeOrderline(...arguments);
     },
 });
@@ -56,54 +75,52 @@ patchIfExists(PosStore.prototype, "removeOrderline", {
 // ---------------------------------------------------------------------------
 // Caissier
 // ---------------------------------------------------------------------------
-patchIfExists(PosStore.prototype, "setCashier", {
+patchSi(PosStore, "setCashier", {
     setCashier(employee) {
-        const previous = posAudit.cashierOf(this);
-        const result = super.setCashier(...arguments);
-        const current = posAudit.cashierOf(this);
-        const order = typeof this.getOrder === "function" ? this.getOrder() : null;
-        posAudit.push(this, "cashier_change", order, {
-            employee_id: current?.id || employee?.id || null,
-            old_value: previous?.name || null,
-            new_value: current?.name || employee?.name || null,
+        const precedent = posAudit.cashierOf(this);
+        const resultat = super.setCashier(...arguments);
+        const courant = posAudit.cashierOf(this);
+        posAudit.push(this, "cashier_change", commandeCourante(this), {
+            employee_id: courant?.id || employee?.id || null,
+            old_value: precedent?.name || null,
+            new_value: courant?.name || employee?.name || null,
         });
-        return result;
+        return resultat;
     },
 });
 
-patchIfExists(PosStore.prototype, "checkPreviousLoggedCashier", {
+patchSi(PosStore, "checkPreviousLoggedCashier", {
     checkPreviousLoggedCashier() {
-        const result = super.checkPreviousLoggedCashier(...arguments);
-        const current = posAudit.cashierOf(this);
-        if (current) {
+        const resultat = super.checkPreviousLoggedCashier(...arguments);
+        const courant = posAudit.cashierOf(this);
+        if (courant) {
             posAudit.push(this, "cashier_restore", null, {
-                employee_id: current.id,
-                new_value: current.name,
+                employee_id: courant.id,
+                new_value: courant.name,
                 note: "Caissier restauré depuis la mémoire du navigateur, sans saisie du code.",
             });
         }
-        return result;
+        return resultat;
     },
 });
 
 // ---------------------------------------------------------------------------
 // Table et transfert
 // ---------------------------------------------------------------------------
-patchIfExists(PosStore.prototype, "setTable", {
+patchSi(PosStore, "setTable", {
     async setTable(table, orderUuid = null) {
-        const before = typeof this.getOrder === "function" ? this.getOrder() : null;
-        const previous = before?.table_id?.table_number ?? null;
-        const result = await super.setTable(...arguments);
-        const order = typeof this.getOrder === "function" ? this.getOrder() : null;
-        posAudit.push(this, "table_set", order, {
-            old_value: previous,
+        const avant = commandeCourante(this);
+        const precedente = avant?.table_id?.table_number ?? null;
+        const resultat = await super.setTable(...arguments);
+        posAudit.push(this, "table_set", commandeCourante(this), {
+            old_value: precedente,
             new_value: table?.table_number ?? null,
         });
-        return result;
+        return resultat;
     },
 });
 
-patchIfExists(PosStore.prototype, "transferOrder", {
+patchSi(PosStore, "transferOrder", {
     transferOrder(order) {
         posAudit.push(this, "order_transfer", order, {
             note: "Transfert de la commande vers une autre table.",
@@ -112,7 +129,7 @@ patchIfExists(PosStore.prototype, "transferOrder", {
     },
 });
 
-patchIfExists(PosStore.prototype, "deleteOrders", {
+patchSi(PosStore, "deleteOrders", {
     async deleteOrders(orders, serverIds = [], ignoreChange = false) {
         for (const order of orders || []) {
             posAudit.push(this, "order_delete", order, {
@@ -128,9 +145,9 @@ patchIfExists(PosStore.prototype, "deleteOrders", {
 // ---------------------------------------------------------------------------
 // Impressions
 // ---------------------------------------------------------------------------
-patchIfExists(PosStore.prototype, "printReceipt", {
+patchSi(PosStore, "printReceipt", {
     async printReceipt(opts = {}) {
-        const order = opts?.order || (typeof this.getOrder === "function" ? this.getOrder() : null);
+        const order = opts?.order || commandeCourante(this);
         posAudit.push(this, "print_receipt", order, {
             amount: order?.getTotalWithTax?.() ?? 0,
         });
@@ -138,9 +155,9 @@ patchIfExists(PosStore.prototype, "printReceipt", {
     },
 });
 
-patchIfExists(ControlButtons.prototype, "clickPrintBill", {
+patchSi(ControlButtons, "clickPrintBill", {
     async clickPrintBill() {
-        const order = this.pos?.getOrder?.() || null;
+        const order = commandeCourante(this.pos);
         posAudit.push(this.pos, "print_bill", order, {
             amount: order?.getTotalWithTax?.() ?? 0,
             note: "Impression de l'addition présentée au client.",
@@ -152,18 +169,17 @@ patchIfExists(ControlButtons.prototype, "clickPrintBill", {
 // ---------------------------------------------------------------------------
 // Validation — seul point où l'on attend la fin de l'envoi
 // ---------------------------------------------------------------------------
-patchIfExists(OrderPaymentValidation.prototype, "finalizeValidation", {
-    async finalizeValidation() {
-        const order = this.order || null;
-        const store = this.pos || posAudit.pos;
-        posAudit.push(store, "validate", order, {
+patchSi(PaymentScreen, "validateOrder", {
+    async validateOrder(isForceValidate = false) {
+        const order = this.currentOrder || null;
+        posAudit.push(this.pos, "validate", order, {
             amount: order?.getTotalWithTax?.() ?? 0,
             note: "Validation du paiement et clôture de la commande.",
         });
-        // La commande est sur le point d'être réécrite côté serveur
-        // (employé et date d'ouverture écrasés) : on s'assure que le journal
-        // est parti avant que l'information d'origine ne disparaisse.
+        // La commande est sur le point d'être réécrite côté serveur — employé
+        // et date d'ouverture écrasés. On s'assure que le journal est parti
+        // avant que l'information d'origine ne disparaisse.
         await posAudit.flush(true);
-        return super.finalizeValidation(...arguments);
+        return super.validateOrder(...arguments);
     },
 });
