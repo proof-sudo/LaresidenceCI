@@ -3,7 +3,7 @@
     <data noupdate="1">
         <record id="group_hr_exception_notified" model="res.groups">
             <field name="name">Présences : destinataire des alertes d'écart</field>
-            <field name="category_id" ref="base.module_category_hidden"/>
+            <field name="privilege_id" ref="hr_attendance.res_groups_privilege_attendances"/>
             <field name="comment">Les utilisateurs de ce groupe reçoivent le récapitulatif
                 quotidien des écarts de présence. Ajoutez-y le gestionnaire du planning.</field>
         </record>

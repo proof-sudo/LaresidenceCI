@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from odoo import fields, models
+from odoo import api, fields, models
 
 
 class HrEmployee(models.Model):
@@ -7,6 +7,7 @@ class HrEmployee(models.Model):
 
     exception_count = fields.Integer(string="Écarts à examiner", compute='_compute_exception_count')
 
+    @api.depends('name')
     def _compute_exception_count(self):
         modele = self.env['laresidence.hr.exception']
         for employee in self:

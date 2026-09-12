@@ -92,12 +92,12 @@ patchIfExists(PosStore.prototype, "checkPreviousLoggedCashier", {
 patchIfExists(PosStore.prototype, "setTable", {
     async setTable(table, orderUuid = null) {
         const before = typeof this.getOrder === "function" ? this.getOrder() : null;
-        const previous = before?.table_id?.table_number ?? before?.table_id?.name ?? null;
+        const previous = before?.table_id?.table_number ?? null;
         const result = await super.setTable(...arguments);
         const order = typeof this.getOrder === "function" ? this.getOrder() : null;
         posAudit.push(this, "table_set", order, {
             old_value: previous,
-            new_value: table?.table_number ?? table?.name ?? null,
+            new_value: table?.table_number ?? null,
         });
         return result;
     },

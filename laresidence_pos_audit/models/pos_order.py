@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from odoo import fields, models
+from odoo import api, fields, models
 
 
 class PosOrder(models.Model):
@@ -7,6 +7,7 @@ class PosOrder(models.Model):
 
     audit_count = fields.Integer(string="Événements d'audit", compute='_compute_audit_count')
 
+    @api.depends('pos_reference')
     def _compute_audit_count(self):
         audit = self.env['laresidence.pos.audit']
         for order in self:

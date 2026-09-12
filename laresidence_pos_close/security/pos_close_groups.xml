@@ -3,7 +3,7 @@
     <data noupdate="1">
         <record id="group_pos_close_notified" model="res.groups">
             <field name="name">Caisse : destinataire des alertes de fermeture</field>
-            <field name="category_id" ref="base.module_category_hidden"/>
+            <field name="privilege_id" ref="point_of_sale.res_groups_privilege_point_of_sale"/>
             <field name="comment">Les utilisateurs de ce groupe sont prévenus lorsqu'une caisse
                 n'a pas pu être fermée automatiquement, avec le détail de ce qui reste en cours.</field>
         </record>

@@ -17,6 +17,7 @@ Toute la valeur du modèle tient dans deux propriétés :
 """
 
 import logging
+from datetime import datetime, timezone
 
 from odoo import api, fields, models, _
 from odoo.exceptions import UserError
@@ -30,7 +31,6 @@ class LaresidencePosAudit(models.Model):
     _name = 'laresidence.pos.audit'
     _description = "Journal d'audit du Point de Vente"
     _order = 'server_datetime desc, id desc'
-    _rec_name = 'display_label'
 
     EVENT_TYPES = [
         ('order_open', "Ouverture de commande"),
@@ -115,7 +115,16 @@ class LaresidencePosAudit(models.Model):
             else:
                 rec.clock_skew = 0
 
-    @api.depends('event_type', 'order_reference', 'product_name', 'employee_id')
+    @api.depends('event_type', 'order_reference', 'product_name')
+    def _compute_display_name(self):
+        labels = dict(self.EVENT_TYPES)
+        for rec in self:
+            bits = [labels.get(rec.event_type, rec.event_type or '')]
+            if rec.order_reference:
+                bits.append(rec.order_reference)
+            rec.display_name = ' · '.join(bits)
+
+    @api.depends('event_type', 'order_reference', 'product_name')
     def _compute_display_label(self):
         labels = dict(self.EVENT_TYPES)
         for rec in self:
@@ -126,6 +135,7 @@ class LaresidencePosAudit(models.Model):
                 bits.append(rec.product_name)
             rec.display_label = ' · '.join(bits)
 
+    @api.depends('order_reference')
     def _compute_order_id(self):
         """Résolution paresseuse : le journal ne stocke pas de lien vers la
         commande, pour n'avoir jamais besoin de réécrire une ligne d'audit."""
@@ -244,8 +254,8 @@ class LaresidencePosAudit(models.Model):
             return False
         try:
             if isinstance(value, (int, float)):
-                return fields.Datetime.to_datetime(
-                    __import__('datetime').datetime.utcfromtimestamp(value / 1000.0))
+                horodatage = datetime.fromtimestamp(value / 1000.0, tz=timezone.utc)
+                return horodatage.replace(tzinfo=None)
             return fields.Datetime.to_datetime(str(value).replace('T', ' ').replace('Z', '')[:19])
         except Exception:
             return False

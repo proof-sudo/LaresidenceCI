@@ -36,7 +36,9 @@ class PosSession(models.Model):
 
         brouillons = self.order_ids.filtered(lambda o: o.state == 'draft')
         if brouillons:
-            tables = [o.table_id.table_number or o.table_id.name
+            # restaurant.table n'a pas de champ « name » en Odoo 19 :
+            # table_number, et display_name en repli.
+            tables = [o.table_id.table_number or o.table_id.display_name
                       for o in brouillons if o.table_id]
             detail = (" (tables %s)" % ", ".join(str(t) for t in tables if t)) if tables else ""
             blocages.append("%s commande(s) encore ouverte(s)%s" % (len(brouillons), detail))

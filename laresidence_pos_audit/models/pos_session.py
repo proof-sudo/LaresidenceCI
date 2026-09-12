@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from odoo import fields, models
+from odoo import api, fields, models
 
 
 class PosSession(models.Model):
@@ -7,6 +7,7 @@ class PosSession(models.Model):
 
     audit_count = fields.Integer(string="Événements d'audit", compute='_compute_audit_count')
 
+    @api.depends('name')
     def _compute_audit_count(self):
         audit = self.env['laresidence.pos.audit']
         for session in self:

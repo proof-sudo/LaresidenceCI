@@ -119,7 +119,7 @@ export const posAudit = {
         }
         let tableName = null;
         try {
-            tableName = order?.table_id?.table_number ?? order?.table_id?.name ?? null;
+            tableName = order?.table_id?.table_number ?? null;
         } catch {
             tableName = null;
         }
