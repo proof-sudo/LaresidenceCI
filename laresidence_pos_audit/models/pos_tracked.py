@@ -36,7 +36,12 @@ CHAMPS_IGNORES = {
 # changements qui comptent vraiment. Un modèle absent de ce dictionnaire est
 # suivi intégralement : c'est le cas des objets de caisse.
 CHAMPS_SURVEILLES = {
-    'res.users': ['login', 'active', 'group_ids', 'groups_id', 'password', 'totp_secret'],
+    # « name » et « email » ne sont pas du confort : renommer un compte, ou en
+    # détourner l'adresse, c'est prendre l'identité de quelqu'un d'autre dans
+    # tout le reste du journal. Ces champs ne bougent presque jamais — les
+    # suivre ne coûte aucun bruit.
+    'res.users': ['login', 'name', 'email', 'active', 'share', 'company_id',
+                  'company_ids', 'group_ids', 'groups_id', 'password', 'totp_secret'],
     'res.groups': ['name', 'user_ids', 'implied_ids'],
     'product.template': ['name', 'list_price', 'standard_price', 'active',
                          'available_in_pos', 'taxes_id', 'pos_categ_ids'],
