@@ -93,7 +93,7 @@ class LaresidencePosAuditAccessConfig(models.TransientModel):
     def _utilisateurs_actuels(self):
         groupe = self.env.ref('laresidence_pos_audit.group_pos_audit_viewer',
                               raise_if_not_found=False)
-        return [(6, 0, groupe.users.ids)] if groupe else False
+        return [(6, 0, groupe.user_ids.ids)] if groupe else False
 
     def action_appliquer(self):
         self.ensure_one()
@@ -102,7 +102,7 @@ class LaresidencePosAuditAccessConfig(models.TransientModel):
         groupe = self.env.ref('laresidence_pos_audit.group_pos_audit_viewer',
                               raise_if_not_found=False)
         if groupe:
-            avant = set(groupe.users.ids)
+            avant = set(groupe.user_ids.ids)
             apres = set(self.user_ids.ids)
             if avant != apres:
                 groupe.sudo().write({'user_ids': [(6, 0, list(apres))]})

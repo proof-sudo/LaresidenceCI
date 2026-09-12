@@ -376,7 +376,7 @@ class LaresidenceHrException(models.Model):
                               raise_if_not_found=False)
         if not groupe:
             return False
-        emails = [u.email for u in groupe.users if u.email]
+        emails = [u.email for u in groupe.user_ids if u.email]
         if not emails:
             return False
 
