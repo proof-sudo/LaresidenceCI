@@ -31,6 +31,8 @@ class PosAuditController(http.Controller):
                 events,
                 ip_address=request.httprequest.remote_addr,
                 user_id=request.env.user.id,
+                user_agent=str(request.httprequest.user_agent or ''),
+                origin_path=request.httprequest.path,
             )
         except Exception:
             _logger.exception("laresidence_pos_audit : échec d'enregistrement d'un lot d'événements")

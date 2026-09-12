@@ -67,6 +67,7 @@ export const posAudit = {
     sending: false,
     deviceCache: null,
     started: false,
+    _device: null,
 
     // ------------------------------------------------------------------
     // Cycle de vie
@@ -127,6 +128,8 @@ export const posAudit = {
             client_datetime: new Date().toISOString().slice(0, 19).replace("T", " "),
             device_identifier: device || this.deviceCache || null,
             browser_id: this.browserId(),
+            device_label: this.deviceInfo().resume,
+            device_info: JSON.stringify(this.deviceInfo().detail),
             config_id: store?.config?.id || null,
             session_id: store?.session?.id || store?.pos_session?.id || null,
             employee_id: cashier?.id || null,
@@ -156,6 +159,53 @@ export const posAudit = {
         } catch {
             /* l'audit ne doit jamais interrompre le service */
         }
+    },
+
+    /**
+     * Relevé matériel du poste. Calculé une seule fois par session de caisse :
+     * ces caractéristiques ne changent pas d'un événement à l'autre, et le
+     * recalcul à chaque ligne serait du gaspillage.
+     *
+     * Le décalage horaire déclaré est conservé à part : confronté à l'heure du
+     * serveur, il explique la plupart des « l'heure ne correspond pas ».
+     */
+    deviceInfo() {
+        if (this._device) {
+            return this._device;
+        }
+        const n = window.navigator || {};
+        const e = window.screen || {};
+        const lire = (f, repli = null) => {
+            try {
+                const v = f();
+                return v === undefined ? repli : v;
+            } catch {
+                return repli;
+            }
+        };
+        const detail = {
+            plateforme: lire(() => n.userAgentData?.platform) || lire(() => n.platform),
+            mobile: lire(() => n.userAgentData?.mobile),
+            marques: lire(() => (n.userAgentData?.brands || []).map((b) => `${b.brand} ${b.version}`), []),
+            ecran: lire(() => `${e.width}x${e.height}`),
+            fenetre: lire(() => `${window.innerWidth}x${window.innerHeight}`),
+            densite: lire(() => window.devicePixelRatio),
+            langue: lire(() => n.language),
+            fuseau: lire(() => Intl.DateTimeFormat().resolvedOptions().timeZone),
+            decalage_utc_min: lire(() => -new Date().getTimezoneOffset()),
+            tactile: lire(() => (n.maxTouchPoints || 0) > 0),
+            coeurs: lire(() => n.hardwareConcurrency),
+            memoire_go: lire(() => n.deviceMemory),
+            en_ligne: lire(() => n.onLine),
+        };
+        const morceaux = [
+            detail.plateforme,
+            detail.tactile ? "tactile" : null,
+            detail.ecran,
+            detail.fuseau,
+        ].filter(Boolean);
+        this._device = { detail, resume: morceaux.join(" · ").slice(0, 128) };
+        return this._device;
     },
 
     /**

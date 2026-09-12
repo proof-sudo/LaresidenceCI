@@ -33,12 +33,29 @@ class LaresidencePosAudit(models.Model):
     _order = 'server_datetime desc, id desc'
 
     EVENT_TYPES = [
+        ('session_open', "Ouverture de session"),
+        ('login', "Connexion caissier"),
+        ('logout', "Déconnexion caissier"),
         ('order_open', "Ouverture de commande"),
         ('line_add', "Ajout de ligne"),
         ('line_remove', "Retrait de ligne"),
         ('line_qty', "Modification de quantité"),
         ('line_price', "Modification de prix"),
         ('line_discount', "Remise"),
+        ('line_note', "Note de ligne"),
+        ('payment_add', "Ajout d'un paiement"),
+        ('payment_remove', "Retrait d'un paiement"),
+        ('payment_amount', "Montant de paiement modifié"),
+        ('partner_set', "Client rattaché"),
+        ('guests_set', "Nombre de couverts"),
+        ('pricelist_set', "Changement de tarif"),
+        ('fiscal_position_set', "Changement de position fiscale"),
+        ('note_set', "Note de commande"),
+        ('invoice_toggle', "Facturation demandée ou annulée"),
+        ('kitchen_send', "Envoi en préparation"),
+        ('order_split', "Division de l'addition"),
+        ('reprint', "Réimpression d'un ticket"),
+        ('refund', "Remboursement"),
         ('cashier_change', "Changement de caissier"),
         ('cashier_restore', "Reconnexion caissier sans code"),
         ('table_set', "Affectation de table"),
@@ -48,6 +65,9 @@ class LaresidencePosAudit(models.Model):
         ('validate', "Validation"),
         ('order_delete', "Suppression de commande"),
         ('session_start', "Ouverture de session POS"),
+        ('db_create', "Création (base)"),
+        ('db_write', "Modification (base)"),
+        ('db_unlink', "Suppression (base)"),
         ('audit_purge', "Purge du journal"),
     ]
 
@@ -81,6 +101,38 @@ class LaresidencePosAudit(models.Model):
                               help="Compte Odoo ayant émis la requête. Renseigné par le serveur, "
                                    "il ne peut pas être falsifié par la tablette.")
     ip_address = fields.Char(string="Adresse IP", readonly=True)
+    user_agent = fields.Char(
+        string="Navigateur", readonly=True,
+        help="Chaîne d'identification du navigateur, relevée côté serveur : "
+             "elle distingue une tablette iPad d'un poste Windows.")
+    origin = fields.Selection([
+        ('pos', "Interface caisse"),
+        ('backend', "Back-office ou appel externe"),
+        ('system', "Traitement automatique"),
+    ], string="Origine", index=True, readonly=True,
+        help="D'où vient l'action. « Traitement automatique » désigne une tâche "
+             "planifiée ou une intervention hors interface.")
+    device_label = fields.Char(
+        string="Appareil (résumé)", index=True, readonly=True,
+        help="Description courte du poste : type de matériel, taille d'écran, "
+             "fuseau horaire. Permet de reconnaître une tablette d'un coup d'œil.")
+    device_info = fields.Text(
+        string="Appareil (détail)", readonly=True,
+        help="Relevé technique complet du poste au moment de l'action : "
+             "plateforme, écran, langue, fuseau, décalage horaire déclaré, "
+             "tactile, mémoire, état du réseau.")
+    origin_path = fields.Char(
+        string="Chemin d'appel", readonly=True,
+        help="Adresse technique par laquelle l'action est arrivée. Elle sépare "
+             "sans ambiguïté une action de caisse d'une modification faite "
+             "depuis le back-office.")
+
+    model_name = fields.Char(string="Modèle concerné", index=True, readonly=True)
+    res_id = fields.Integer(string="Identifiant de l'enregistrement", index=True, readonly=True)
+    changes = fields.Text(
+        string="Valeurs modifiées", readonly=True,
+        help="Détail champ par champ : ancienne valeur puis nouvelle valeur.")
+    payment_method = fields.Char(string="Mode de paiement", readonly=True)
 
     # --- Objet concerné ---------------------------------------------------
     order_uuid = fields.Char(string="UUID commande", index=True, readonly=True)
@@ -174,7 +226,7 @@ class LaresidencePosAudit(models.Model):
     # Écriture (appelée en sudo depuis le contrôleur)
     # ------------------------------------------------------------------
     @api.model
-    def log_events(self, events, ip_address=None, user_id=None):
+    def log_events(self, events, ip_address=None, user_id=None, user_agent=None, origin_path=None):
         """Insère un lot d'événements. Retourne le nombre de lignes écrites.
 
         Les champs de confiance (horodatage serveur, utilisateur, IP) sont
@@ -205,6 +257,12 @@ class LaresidencePosAudit(models.Model):
                 'employee_id': self._as_id(ev.get('employee_id')),
                 'user_id': user_id or self.env.user.id,
                 'ip_address': self._trim(ip_address, 64),
+                'user_agent': self._trim(user_agent, 256),
+                'origin': 'pos',
+                'origin_path': self._trim(origin_path, 128),
+                'payment_method': self._trim(ev.get('payment_method'), 128),
+                'device_label': self._trim(ev.get('device_label'), 128),
+                'device_info': self._trim(ev.get('device_info'), 4000),
                 'order_uuid': self._trim(ev.get('order_uuid')),
                 'order_reference': self._trim(ev.get('order_reference')),
                 'tracking_number': self._trim(ev.get('tracking_number'), 32),

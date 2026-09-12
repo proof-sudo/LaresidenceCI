@@ -25,6 +25,14 @@
                 <field name="session_id" optional="hide"/>
                 <field name="user_id" optional="hide"/>
                 <field name="ip_address" optional="hide"/>
+                <field name="payment_method" optional="hide"/>
+                <field name="origin" optional="show"/>
+                <field name="device_label" optional="hide"/>
+                <field name="user_agent" optional="hide"/>
+                <field name="origin_path" optional="hide"/>
+                <field name="model_name" optional="hide"/>
+                <field name="res_id" optional="hide"/>
+                <field name="changes" optional="hide"/>
                 <field name="note" optional="hide"/>
             </list>
         </field>
@@ -49,6 +57,10 @@
                             <field name="employee_id"/>
                             <field name="user_id"/>
                             <field name="ip_address"/>
+                            <field name="origin"/>
+                            <field name="origin_path"/>
+                            <field name="user_agent"/>
+                            <field name="device_label"/>
                         </group>
                         <group string="Contexte">
                             <field name="config_id"/>
@@ -65,10 +77,19 @@
                             <field name="amount"/>
                             <field name="old_value"/>
                             <field name="new_value"/>
+                            <field name="payment_method"/>
                         </group>
+                    </group>
+                    <group string="Écriture en base" invisible="not model_name">
+                        <field name="model_name"/>
+                        <field name="res_id"/>
+                        <field name="changes" widget="text" nolabel="1" colspan="2"/>
                     </group>
                     <group string="Détail">
                         <field name="note" nolabel="1"/>
+                    </group>
+                    <group string="Relevé de l'appareil" invisible="not device_info">
+                        <field name="device_info" widget="text" nolabel="1" colspan="2"/>
                     </group>
                 </sheet>
             </form>
@@ -87,6 +108,8 @@
                 <field name="browser_id"/>
                 <field name="product_name"/>
                 <field name="table_name"/>
+                <field name="device_label"/>
+                <field name="payment_method"/>
                 <filter name="today" string="Aujourd'hui"
                         domain="[('server_datetime','&gt;=', datetime.datetime.combine(context_today(), datetime.time(0,0,0)))]"/>
                 <separator/>
@@ -102,6 +125,13 @@
                 <filter name="suppressions" string="Retraits et suppressions"
                         domain="[('event_type','in',['line_remove','order_delete'])]"/>
                 <separator/>
+                <filter name="paiements" string="Paiements"
+                        domain="[('event_type','in',['payment_add','payment_remove','payment_amount'])]"/>
+                <filter name="hors_caisse" string="Actions hors interface caisse"
+                        domain="[('origin','!=','pos')]"/>
+                <filter name="ecritures_base" string="Écritures en base"
+                        domain="[('event_type','in',['db_create','db_write','db_unlink'])]"/>
+                <separator/>
                 <filter name="horloge" string="Horloge d'appareil décalée"
                         domain="['|',('clock_skew','&gt;',120),('clock_skew','&lt;',-120)]"/>
                 <group>
@@ -111,6 +141,9 @@
                     <filter name="g_order" string="Commande" context="{'group_by':'order_reference'}"/>
                     <filter name="g_session" string="Session" context="{'group_by':'session_id'}"/>
                     <filter name="g_date" string="Date" context="{'group_by':'server_datetime:day'}"/>
+                    <filter name="g_origine" string="Origine" context="{'group_by':'origin'}"/>
+                    <filter name="g_appareil" string="Appareil" context="{'group_by':'device_label'}"/>
+                    <filter name="g_modele" string="Modèle concerné" context="{'group_by':'model_name'}"/>
                 </group>
             </search>
         </field>
