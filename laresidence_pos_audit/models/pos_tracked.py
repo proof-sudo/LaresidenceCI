@@ -207,15 +207,29 @@ class LaresidencePosAuditOrm(models.AbstractModel):
     # ------------------------------------------------------------------
     # Interception
     # ------------------------------------------------------------------
+    @api.model
+    def _laresidence_champs_creation(self):
+        """Ce qu'on retient à la création d'un enregistrement.
+
+        À défaut d'une liste dédiée, on reprend celle des champs surveillés en
+        modification : une création qui n'enregistrerait rien du contenu créé
+        ne renseigne personne — c'était le cas des articles, dont la création
+        ne portait qu'un objet vide.
+        """
+        retenus = CHAMPS_CREATION.get(self._name)
+        if retenus is None:
+            retenus = CHAMPS_SURVEILLES.get(self._name)
+        if retenus is None:
+            retenus = [c for c in ('name', 'display_name', 'active') if c in self._fields]
+        return [c for c in retenus if c in self._fields]
+
     @api.model_create_multi
     def create(self, vals_list):
         enregistrements = super().create(vals_list)
-        retenus = CHAMPS_CREATION.get(self._name, [])
+        retenus = self._laresidence_champs_creation()
         for enregistrement in enregistrements:
-            valeurs = {}
-            for champ in retenus:
-                if champ in self._fields:
-                    valeurs[champ] = self._laresidence_lisible(champ, enregistrement[champ])
+            valeurs = {champ: self._laresidence_lisible(champ, enregistrement[champ])
+                       for champ in retenus}
             enregistrement._laresidence_journaliser('db_create', enregistrement, {'création': valeurs})
         return enregistrements
 
@@ -246,10 +260,10 @@ class LaresidencePosAuditOrm(models.AbstractModel):
         return resultat
 
     def unlink(self):
+        retenus = self._laresidence_champs_creation()
         for enregistrement in self:
-            retenus = CHAMPS_CREATION.get(self._name, [])
             valeurs = {c: self._laresidence_lisible(c, enregistrement[c])
-                       for c in retenus if c in self._fields}
+                       for c in retenus}
             enregistrement._laresidence_journaliser(
                 'db_unlink', enregistrement, {'supprimé': valeurs},
                 note="Suppression définitive de l'enregistrement.")
