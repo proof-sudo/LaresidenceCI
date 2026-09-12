@@ -99,11 +99,13 @@ class LaresidenceHrException(models.Model):
     company_id = fields.Many2one('res.company', string="Société",
                                  default=lambda self: self.env.company, index=True)
 
-    _sql_constraints = [
-        ('unique_exception',
-         'unique(employee_id, date, exception_type, expected_start, attendance_id)',
-         "Cet écart a déjà été enregistré."),
-    ]
+    # Odoo 19 ne reconnaît plus _sql_constraints : sans cette réécriture, la
+    # contrainte n'existait pas en base et rien n'empêchait un même écart
+    # d'être enregistré deux fois.
+    _unique_exception = models.Constraint(
+        'unique(employee_id, date, exception_type, expected_start, attendance_id)',
+        "Cet écart a déjà été enregistré.",
+    )
 
     # ------------------------------------------------------------------
     # Affichage

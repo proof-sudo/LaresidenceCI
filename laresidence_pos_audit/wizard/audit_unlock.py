@@ -11,7 +11,9 @@ class LaresidencePosAuditUnlock(models.TransientModel):
     _name = 'laresidence.pos.audit.unlock'
     _description = "Saisie du code d'accès au journal d'audit"
 
-    code = fields.Char(string="Code d'accès", required=True, password=True)
+    # Le masquage à la saisie est un attribut de la vue (password="True"),
+    # pas du champ : Odoo 19 le refuse ici.
+    code = fields.Char(string="Code d'accès", required=True)
     motif = fields.Selection([
         ('consultation', "Consulter le journal"),
         ('desinstallation', "Autoriser la désinstallation du module"),
@@ -78,9 +80,9 @@ class LaresidencePosAuditAccessConfig(models.TransientModel):
         help="Ces personnes voient le menu du journal. Les autres n'en ont "
              "aucune trace. Toute modification de cette liste est elle-même "
              "inscrite dans le journal.")
-    code_actuel = fields.Char(string="Code actuel", password=True,
+    code_actuel = fields.Char(string="Code actuel",
                               help="À renseigner uniquement si un code est déjà défini.")
-    code_nouveau = fields.Char(string="Nouveau code", password=True)
+    code_nouveau = fields.Char(string="Nouveau code")
     duree_minutes = fields.Integer(
         string="Durée d'ouverture (minutes)",
         default=lambda self: self.env['laresidence.pos.audit.acces']._duree_minutes(),

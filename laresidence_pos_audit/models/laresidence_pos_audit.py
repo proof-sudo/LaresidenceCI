@@ -194,7 +194,6 @@ class LaresidencePosAudit(models.Model):
     order_id = fields.Many2one('pos.order', string="Commande", compute='_compute_order_id',
                                search='_search_order_id', readonly=True, store=False)
 
-    _sql_constraints = []
 
     # ------------------------------------------------------------------
     # Calculs

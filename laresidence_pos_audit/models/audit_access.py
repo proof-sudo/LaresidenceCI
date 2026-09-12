@@ -50,9 +50,13 @@ class LaresidencePosAuditSession(models.Model):
                               ondelete='cascade', index=True)
     unlocked_until = fields.Datetime(string="Accès ouvert jusqu'à", required=True)
 
-    _sql_constraints = [
-        ('unique_user', 'unique(user_id)', "Un seul déverrouillage par utilisateur."),
-    ]
+    # Odoo 19 ne reconnaît plus _sql_constraints : la contrainte ne se créait
+    # tout simplement pas, et rien n'empêchait deux déverrouillages simultanés
+    # pour le même utilisateur.
+    _unique_user = models.Constraint(
+        'unique(user_id)',
+        "Un seul déverrouillage par utilisateur.",
+    )
 
 
 class LaresidencePosAuditAcces(models.AbstractModel):
