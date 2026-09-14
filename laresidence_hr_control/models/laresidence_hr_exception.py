@@ -260,7 +260,13 @@ class LaresidenceHrException(models.Model):
         if isinstance(date_to, str):
             date_to = fields.Date.to_date(date_to)
 
-        employees = employees or self.env['hr.employee'].search([])
+        # Appelé aussi bien depuis la tâche planifiée, qui passe un
+        # enregistrement, que depuis l'extérieur — action serveur, appel
+        # distant — où l'on ne dispose que d'identifiants.
+        if not employees:
+            employees = self.env['hr.employee'].search([])
+        elif isinstance(employees, (list, tuple, int)):
+            employees = self.env['hr.employee'].browse(employees).exists()
         tol = self._tolerances()
         created = 0
 
