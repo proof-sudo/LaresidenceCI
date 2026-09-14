@@ -30,6 +30,7 @@ PARAM_EARLY_IN = 'laresidence_hr_control.tolerance_early_in'
 PARAM_EARLY_OUT = 'laresidence_hr_control.tolerance_early_out'
 PARAM_LATE_OUT = 'laresidence_hr_control.tolerance_late_out'
 PARAM_ABSENCE = 'laresidence_hr_control.detect_absence'
+PARAM_PLANNING_PUBLIE = 'laresidence_hr_control.planning_published_only'
 
 DEFAULTS = {
     PARAM_LATE_IN: 10,    # retard toléré à la prise de poste
@@ -167,6 +168,8 @@ class LaresidenceHrException(models.Model):
                 out[key] = default
         brut = icp.get_param(PARAM_ABSENCE, '1')
         out[PARAM_ABSENCE] = str(brut).strip().lower() not in ('0', 'false', 'no', 'non')
+        brut = icp.get_param(PARAM_PLANNING_PUBLIE, '1')
+        out[PARAM_PLANNING_PUBLIE] = str(brut).strip().lower() not in ('0', 'false', 'no', 'non')
         return out
 
     # ------------------------------------------------------------------
@@ -187,7 +190,7 @@ class LaresidenceHrException(models.Model):
         return [tuple(m) for m in merged]
 
     @api.model
-    def _reference_intervals(self, employee, day_start, day_end):
+    def _reference_intervals(self, employee, day_start, day_end, planning_publie=True):
         """Retourne [(debut, fin, creneau_ou_False, type_de_reference)] en UTC naïf.
 
         Un poste appartient à la journée où il **commence**, pas à chacune de
@@ -202,11 +205,21 @@ class LaresidenceHrException(models.Model):
         début.
         """
         # Planning : le créneau compte pour le jour où il débute.
-        slots = self.env['planning.slot'].search([
+        #
+        # Et seulement s'il a été publié. Un créneau en brouillon n'a jamais
+        # été communiqué à l'employé : lui reprocher un retard sur cette base
+        # ne tiendrait pas devant lui, encore moins devant un tiers. À défaut
+        # de planning publié, on retombe sur l'horaire contractuel, qui est
+        # opposable parce qu'il a été signé. Le jour où les plannings sont
+        # publiés, la référence redevient le planning sans rien changer au code.
+        domaine = [
             ('employee_id', '=', employee.id),
             ('start_datetime', '>=', day_start),
             ('start_datetime', '<=', day_end),
-        ], order='start_datetime')
+        ]
+        if planning_publie:
+            domaine.append(('state', '=', 'published'))
+        slots = self.env['planning.slot'].search(domaine, order='start_datetime')
         if slots:
             return [(s.start_datetime, s.end_datetime, s, 'planning') for s in slots]
 
@@ -296,7 +309,8 @@ class LaresidenceHrException(models.Model):
 
     @api.model
     def _compute_for_day(self, employee, day, day_start, day_end, attendances, tol):
-        references = self._reference_intervals(employee, day_start, day_end)
+        references = self._reference_intervals(
+            employee, day_start, day_end, tol[PARAM_PLANNING_PUBLIE])
         rows = []
         restants = list(attendances)
 
