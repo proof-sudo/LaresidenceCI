@@ -607,6 +607,13 @@ class LaresidencePosAudit(models.Model):
     # ------------------------------------------------------------------
     # Utilitaires de normalisation
     # ------------------------------------------------------------------
+    @api.model
+    def _nom_utilisateur(self, user_id):
+        if not user_id:
+            return "non relevé"
+        utilisateur = self.env['res.users'].sudo().browse(user_id).exists()
+        return utilisateur.login if utilisateur else "compte n° %s, supprimé depuis" % user_id
+
     @staticmethod
     def _trim(value, length=128):
         if value in (None, False, ''):
@@ -672,13 +679,16 @@ class LaresidencePosAudit(models.Model):
                 continue
 
             # Ce que le journal connaît déjà : créé et pas encore supprimé.
+            # On récupère au passage le détenteur relevé à la création : c'est
+            # la seule trace qui restera de lui une fois la clé effacée.
             self.env.cr.execute(
                 "SELECT res_id, "
-                "       bool_or(event_type = 'api_key_remove') AS supprime "
+                "       bool_or(event_type = 'api_key_remove') AS supprime, "
+                "       max(user_id) FILTER (WHERE event_type = 'api_key_create') AS detenteur "
                 "FROM laresidence_pos_audit "
                 "WHERE model_name = %s AND event_type IN ('api_key_create', 'api_key_remove') "
                 "GROUP BY res_id", (modele,))
-            connus = {ligne[0] for ligne in self.env.cr.fetchall() if not ligne[1]}
+            connus = {ligne[0]: ligne[2] for ligne in self.env.cr.fetchall() if not ligne[1]}
 
             self.env.cr.execute(
                 'SELECT id, user_id, scope, name, create_date, expiration_date '
@@ -686,7 +696,7 @@ class LaresidencePosAudit(models.Model):
             presents = {ligne[0]: ligne for ligne in self.env.cr.fetchall()}
 
             maintenant = fields.Datetime.now()
-            for identifiant in sorted(set(presents) - connus):
+            for identifiant in sorted(set(presents) - set(connus)):
                 _id, user_id, portee, nom, cree_le, expire_le = presents[identifiant]
                 total += 1
                 self.sudo().create([{
@@ -706,7 +716,7 @@ class LaresidencePosAudit(models.Model):
                            expire_le or "jamais", maintenant), 512),
                 }])
 
-            for identifiant in sorted(connus - set(presents)):
+            for identifiant in sorted(set(connus) - set(presents)):
                 total += 1
                 self.sudo().create([{
                     'event_type': 'api_key_remove',
@@ -714,10 +724,15 @@ class LaresidencePosAudit(models.Model):
                     'model_name': modele,
                     'res_id': identifiant,
                     'origin': 'system',
+                    # user_id reste vide à dessein : ce champ désigne l'auteur
+                    # de la requête, et la suppression est ici constatée, non
+                    # observée. Le détenteur, lui, est nommé dans le détail.
                     'note': self._trim(
-                        "%s n° %s supprimée. Constatée absente de la table au %s ; "
-                        "la suppression est antérieure d'au plus une minute."
-                        % (libelle, identifiant, maintenant), 512),
+                        "%s n° %s supprimée. Détenteur relevé à la création : %s. "
+                        "Constatée absente de la table au %s ; la suppression est "
+                        "antérieure d'au plus une minute."
+                        % (libelle, identifiant,
+                           self._nom_utilisateur(connus.get(identifiant)), maintenant), 512),
                 }])
 
         if total:
