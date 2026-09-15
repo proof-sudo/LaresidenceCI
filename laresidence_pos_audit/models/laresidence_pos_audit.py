@@ -523,8 +523,8 @@ class LaresidencePosAudit(models.Model):
         if controle._code_defini() and not controle._acces_ouvert():
             raise UserError(_(
                 "Le journal est verrouillé.\n\n"
-                "Saisissez le code d'accès depuis Point de Vente → Configuration → "
-                "Accès au journal d'audit, puis revenez ici. "
+                "Saisissez le code depuis Point de Vente → Analyse → "
+                "Déverrouiller le journal, puis revenez ici. "
                 "Cette tentative a été enregistrée."))
         resultat = super().web_search_read(domain=domain, specification=specification, **kwargs)
         try:

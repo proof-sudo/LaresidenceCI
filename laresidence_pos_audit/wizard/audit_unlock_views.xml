@@ -73,6 +73,19 @@
         <field name="target">new</field>
     </record>
 
+    <!-- Saisie du code, accessible à quiconque a le droit de consulter.
+         Sans cette porte, un consultant voyait le journal verrouillé et se
+         faisait renvoyer vers un menu de configuration qu'il n'a pas le droit
+         de voir : une impasse. -->
+    <record id="action_audit_unlock" model="ir.actions.act_window">
+        <field name="name">Déverrouiller le journal d'audit</field>
+        <field name="res_model">laresidence.pos.audit.unlock</field>
+        <field name="view_mode">form</field>
+        <field name="view_id" ref="view_audit_unlock_form"/>
+        <field name="target">new</field>
+        <field name="context">{'default_motif': 'consultation'}</field>
+    </record>
+
     <record id="action_ouvrir_journal" model="ir.actions.server">
         <field name="name">Journal d'audit</field>
         <field name="model_id" ref="model_laresidence_pos_audit"/>

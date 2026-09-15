@@ -210,6 +210,13 @@
               groups="laresidence_pos_audit.group_pos_audit_viewer"
               sequence="90"/>
 
+    <menuitem id="menu_laresidence_pos_audit_unlock"
+              name="Déverrouiller le journal"
+              parent="point_of_sale.menu_point_rep"
+              action="action_audit_unlock"
+              groups="laresidence_pos_audit.group_pos_audit_viewer"
+              sequence="91"/>
+
     <menuitem id="menu_laresidence_pos_audit_access"
               name="Accès au journal d'audit"
               parent="point_of_sale.menu_point_config_product"
