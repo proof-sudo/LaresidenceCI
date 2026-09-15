@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 {
     'name': "La Résidence — Contrôle des présences",
-    'version': '19.0.2',
+    'version': '19.0.3',
     'category': 'Human Resources/Attendances',
     'summary': "Écarts entre les pointages et l'horaire de référence (planning ou horaire contractuel)",
     'description': """

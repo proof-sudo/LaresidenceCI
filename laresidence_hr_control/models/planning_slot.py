@@ -43,25 +43,35 @@ class PlanningSlot(models.Model):
     def _compute_laresidence_ecart(self):
         libelles = dict(self.env['laresidence.hr.exception']._fields['exception_type'].selection)
 
-        # Jusqu'où l'analyse est-elle allée ? La détection tourne une fois par
-        # jour sur la veille : un créneau n'est déclaré conforme que si la
-        # journée qui le contient a effectivement été passée en revue. Sans
-        # cela, tout créneau terminé depuis une minute s'afficherait
-        # « Conforme » alors que rien n'a encore été regardé — le pire des
-        # affichages, parce qu'il rassure à tort. Une seule requête, quel que
-        # soit le nombre de créneaux.
-        tache = self.env.ref('laresidence_hr_control.ir_cron_laresidence_hr_exception',
-                             raise_if_not_found=False)
-        analyse_jusqua = tache and tache.sudo().lastcall
+        # Quelles journées ont réellement été passées en revue ?
+        #
+        # Premier essai : « la tâche est passée après la fin du créneau ». Faux,
+        # et vérifié faux en production — la détection ne traite qu'un jour, la
+        # veille. Les 2 171 créneaux antérieurs, jamais analysés, se sont
+        # affichés « Conforme » d'un coup. Exactement l'affichage qui rassure à
+        # tort que ce champ était censé éviter.
+        #
+        # On s'appuie donc sur une trace, pas sur une heure : une journée
+        # analysée a produit des écarts. Sur cinquante-quatre employés, une
+        # journée traitée sans le moindre écart n'existe pas. Et l'erreur, s'il
+        # y en a une, penche du bon côté : on affiche « pas encore analysé »
+        # plutôt qu'un « Conforme » que personne n'a vérifié.
+        jours = {c.start_datetime.date() for c in self if c.start_datetime}
+        analyses = set()
+        if jours:
+            lignes = self.env['laresidence.hr.exception'].sudo().search_read(
+                [('date', 'in', list(jours))], ['date'])
+            # Normalisé des deux côtés : selon les versions, une date relue
+            # revient tantôt en objet, tantôt en chaîne. Comparer sans y penser
+            # donnerait un ensemble vide et « pas encore analysé » partout.
+            analyses = {fields.Date.to_date(l['date']) for l in lignes if l.get('date')}
 
         for creneau in self:
             ecarts = creneau.laresidence_exception_ids
             creneau.laresidence_exception_count = len(ecarts)
             if not ecarts:
-                analysee = bool(
-                    analyse_jusqua and creneau.end_datetime
-                    and creneau.end_datetime < analyse_jusqua)
-                if analysee:
+                jour = creneau.start_datetime and creneau.start_datetime.date()
+                if jour in analyses:
                     creneau.laresidence_ecart_state = 'conforme'
                     creneau.laresidence_ecart = "Conforme"
                 else:
