@@ -1,0 +1,156 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="view_hr_exception_list" model="ir.ui.view">
+        <field name="name">laresidence.hr.exception.list</field>
+        <field name="model">laresidence.hr.exception</field>
+        <field name="arch" type="xml">
+            <list string="Écarts de présence" create="false"
+                  decoration-danger="state == 'unjustified'"
+                  decoration-success="state == 'justified'"
+                  decoration-muted="exception_type == 'unplanned'">
+                <field name="date"/>
+                <field name="employee_id"/>
+                <field name="department_id" optional="hide"/>
+                <field name="exception_type"/>
+                <field name="reference_type"/>
+                <field name="expected_start" optional="show"/>
+                <field name="actual_start" optional="show"/>
+                <field name="expected_end" optional="hide"/>
+                <field name="actual_end" optional="hide"/>
+                <field name="delta_display" string="Écart"/>
+                <field name="out_mode" optional="hide"/>
+                <field name="state" widget="badge"
+                       decoration-warning="state == 'to_review'"
+                       decoration-success="state == 'justified'"
+                       decoration-danger="state == 'unjustified'"/>
+                <field name="delta_minutes" column_invisible="1"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_hr_exception_form" model="ir.ui.view">
+        <field name="name">laresidence.hr.exception.form</field>
+        <field name="model">laresidence.hr.exception</field>
+        <field name="arch" type="xml">
+            <form string="Écart de présence" create="false">
+                <header>
+                    <button name="action_justify" type="object" string="Justifié"
+                            class="btn-primary" invisible="state == 'justified'"/>
+                    <button name="action_unjustify" type="object" string="Non justifié"
+                            class="btn-secondary" invisible="state == 'unjustified'"/>
+                    <button name="action_reset" type="object" string="Remettre à examiner"
+                            invisible="state == 'to_review'"/>
+                    <field name="state" widget="statusbar" statusbar_visible="to_review,justified,unjustified"/>
+                </header>
+                <sheet>
+                    <div class="oe_title">
+                        <h1><field name="employee_id" readonly="1"/></h1>
+                        <h3><field name="exception_type" readonly="1"/> — <field name="delta_display" readonly="1"/></h3>
+                    </div>
+                    <group>
+                        <group string="Référence">
+                            <field name="reference_type" readonly="1"/>
+                            <field name="planning_slot_id" readonly="1"
+                                   invisible="reference_type != 'planning'"/>
+                            <field name="expected_start" readonly="1"/>
+                            <field name="expected_end" readonly="1"/>
+                        </group>
+                        <group string="Constaté">
+                            <field name="attendance_id" readonly="1"/>
+                            <field name="actual_start" readonly="1"/>
+                            <field name="actual_end" readonly="1"/>
+                            <field name="in_mode" readonly="1"/>
+                            <field name="out_mode" readonly="1"/>
+                        </group>
+                    </group>
+                    <group string="Traitement">
+                        <field name="reason" placeholder="Motif communiqué par l'employé, décision prise…"/>
+                        <field name="validated_uid" readonly="1"/>
+                        <field name="validated_on" readonly="1"/>
+                    </group>
+                    <field name="date" invisible="1"/>
+                    <field name="company_id" invisible="1"/>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_hr_exception_search" model="ir.ui.view">
+        <field name="name">laresidence.hr.exception.search</field>
+        <field name="model">laresidence.hr.exception</field>
+        <field name="arch" type="xml">
+            <search string="Écarts de présence">
+                <field name="employee_id"/>
+                <field name="department_id"/>
+                <filter name="to_review" string="À examiner" domain="[('state','=','to_review')]"/>
+                <filter name="unjustified" string="Non justifiés" domain="[('state','=','unjustified')]"/>
+                <separator/>
+                <filter name="retards" string="Retards" domain="[('exception_type','=','late_in')]"/>
+                <filter name="avances" string="Prises de poste anticipées" domain="[('exception_type','=','early_in')]"/>
+                <filter name="sans_sortie" string="Sorties non badgées" domain="[('exception_type','=','no_checkout')]"/>
+                <filter name="absences" string="Absences" domain="[('exception_type','=','absence')]"/>
+                <filter name="hors_reference" string="Hors référence" domain="[('exception_type','=','unplanned')]"/>
+                <separator/>
+                <filter name="sur_planning" string="Basés sur le planning" domain="[('reference_type','=','planning')]"/>
+                <filter name="sur_horaire" string="Basés sur l'horaire contractuel" domain="[('reference_type','=','calendar')]"/>
+                <separator/>
+                <filter name="semaine" string="Cette semaine" domain="[('date','&gt;=', (context_today() - datetime.timedelta(days=7)).strftime('%Y-%m-%d'))]"/>
+                <group>
+                    <filter name="g_emp" string="Employé" context="{'group_by':'employee_id'}"/>
+                    <filter name="g_dep" string="Département" context="{'group_by':'department_id'}"/>
+                    <filter name="g_type" string="Type d'écart" context="{'group_by':'exception_type'}"/>
+                    <filter name="g_ref" string="Référence" context="{'group_by':'reference_type'}"/>
+                    <filter name="g_state" string="Statut" context="{'group_by':'state'}"/>
+                    <filter name="g_date" string="Date" context="{'group_by':'date'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="view_hr_exception_pivot" model="ir.ui.view">
+        <field name="name">laresidence.hr.exception.pivot</field>
+        <field name="model">laresidence.hr.exception</field>
+        <field name="arch" type="xml">
+            <pivot string="Écarts de présence">
+                <field name="employee_id" type="row"/>
+                <field name="exception_type" type="col"/>
+            </pivot>
+        </field>
+    </record>
+
+    <record id="action_hr_exception" model="ir.actions.act_window">
+        <field name="name">Écarts de présence</field>
+        <field name="res_model">laresidence.hr.exception</field>
+        <field name="view_mode">list,form,pivot</field>
+        <field name="search_view_id" ref="view_hr_exception_search"/>
+        <field name="context">{'search_default_to_review': 1, 'create': False}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Aucun écart à examiner.</p>
+            <p>Les écarts sont calculés chaque nuit sur la journée écoulée, en comparant
+               les pointages au créneau de planning de l'employé — ou, à défaut, à son
+               horaire contractuel.</p>
+        </field>
+    </record>
+
+    <record id="action_hr_exception_generate" model="ir.actions.server">
+        <field name="name">Recalculer les écarts des 7 derniers jours</field>
+        <field name="model_id" ref="model_laresidence_hr_exception"/>
+        <field name="binding_model_id" ref="model_laresidence_hr_exception"/>
+        <field name="binding_view_types">list</field>
+        <field name="state">code</field>
+        <field name="code">
+aujourd_hui = datetime.date.today()
+model.generate(aujourd_hui - datetime.timedelta(days=7), aujourd_hui - datetime.timedelta(days=1))
+        </field>
+    </record>
+
+    <menuitem id="menu_hr_exception"
+              name="Écarts de présence"
+              parent="hr_attendance.menu_hr_attendance_reporting"
+              action="action_hr_exception"
+              groups="hr_attendance.group_hr_attendance_officer"
+              sequence="50"/>
+
+</odoo>

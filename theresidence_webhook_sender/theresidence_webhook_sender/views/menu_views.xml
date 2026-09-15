@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    
+    <!-- Menu principal -->
+    <menuitem id="menu_webhook_root"
+              name="Webhooks The Residence"
+              sequence="100"
+              web_icon="theresidence_webhook_sender,static/description/icon.png"/>
+    
+    <!-- Sous-menu Configuration -->
+    <menuitem id="menu_webhook_config"
+              name="Configuration"
+              parent="menu_webhook_root"
+              action="action_webhook_config"
+              sequence="10"/>
+    
+    <!-- Sous-menu Queue -->
+    <menuitem id="menu_webhook_queue"
+              name="Queue"
+              parent="menu_webhook_root"
+              action="action_webhook_queue"
+              sequence="20"/>
+    
+    <!-- Sous-menu Logs -->
+    <menuitem id="menu_webhook_logs"
+              name="Logs"
+              parent="menu_webhook_root"
+              action="action_webhook_log"
+              sequence="30"/>
+    
+</odoo>

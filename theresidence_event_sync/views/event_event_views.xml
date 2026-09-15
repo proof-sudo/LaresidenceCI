@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ─────────────────────────────────────────────────────────
+         event.event — Vue formulaire
+    ───────────────────────────────────────────────────────────── -->
+    <record id="view_event_form_tr" model="ir.ui.view">
+        <field name="name">event.event.form.tr</field>
+        <field name="model">event.event</field>
+        <field name="inherit_id" ref="event.view_event_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//notebook" position="inside">
+                <page string="The Residence" name="tr_sync">
+                    <group string="Synchronisation backend">
+                        <field name="x_tr_external_id" readonly="1"
+                               string="ID Externe TR"
+                               help="UUID de l'événement dans le backend The Residence."/>
+                    </group>
+                    <group string="Audience (types de membres)">
+                        <field name="x_tr_audience_ids"
+                               widget="many2many_tags"
+                               string="Types de membres ciblés"
+                               help="Laisser vide = ouvert à tous les membres."/>
+                    </group>
+                </page>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- ─────────────────────────────────────────────────────────
+         event.event — Vue liste
+    ───────────────────────────────────────────────────────────── -->
+    <record id="view_event_tree_tr" model="ir.ui.view">
+        <field name="name">event.event.tree.tr</field>
+        <field name="model">event.event</field>
+        <field name="inherit_id" ref="event.view_event_tree"/>
+        <field name="arch" type="xml">
+            <xpath expr="//list//field[@name='date_begin']" position="before">
+                <field name="x_tr_external_id" string="ID Externe TR" optional="show"/>
+            </xpath>
+        </field>
+    </record>
+
+</odoo>

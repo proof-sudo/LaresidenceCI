@@ -1,0 +1,11 @@
+
+<odoo>
+    <record id="cron_retry_webhooks" model="ir.cron">
+        <field name="name">Retry Failed Webhooks</field>
+        <field name="model_id" ref="model_residence_webhook_event"/>
+        <field name="state">code</field>
+        <field name="code">model.search([('state','=','failed'),('retry_count','&lt;',5)]).send_event()</field>
+        <field name="interval_number">1</field>
+        <field name="interval_type">minutes</field>
+    </record>
+</odoo>

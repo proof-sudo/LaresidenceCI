@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="action_pos_session_check_close" model="ir.actions.server">
+        <field name="name">Vérifier si la caisse peut être fermée</field>
+        <field name="model_id" ref="point_of_sale.model_pos_session"/>
+        <field name="binding_model_id" ref="point_of_sale.model_pos_session"/>
+        <field name="binding_view_types">list,form</field>
+        <field name="state">code</field>
+        <field name="code">
+blocages = []
+for session in records:
+    if session.state in ('opening_control', 'opened'):
+        for b in session._laresidence_auto_close_blockers():
+            blocages.append("%s : %s" % (session.name, b))
+if blocages:
+    titre = "La caisse ne peut pas être fermée"
+    corps = "\n".join("- " + b for b in blocages)
+    genre = "warning"
+else:
+    titre = "La caisse peut être fermée"
+    corps = "Aucune commande ouverte, aucune préparation en attente, aucune activité récente."
+    genre = "success"
+action = {
+    'type': 'ir.actions.client',
+    'tag': 'display_notification',
+    'params': {'title': titre, 'message': corps, 'type': genre, 'sticky': True},
+}
+        </field>
+    </record>
+</odoo>

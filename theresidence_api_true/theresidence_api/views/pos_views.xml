@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ===================== -->
+    <!-- POS.ORDER INHERIT     -->
+    <!-- ===================== -->
+
+    <!-- Inherit Form View -->
+    <record id="view_pos_order_form_inherit_theresidence" model="ir.ui.view">
+        <field name="name">pos.order.form.inherit.theresidence</field>
+        <field name="model">pos.order</field>
+        <field name="inherit_id" ref="point_of_sale.view_pos_pos_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//notebook" position="inside">
+                <page string="The Residence" name="theresidence" invisible="not x_tr_is_mobile_order">
+                    <group>
+                        <group string="Informations commande mobile">
+                            <field name="x_tr_is_mobile_order" invisible="1"/>
+                            <field name="x_tr_uuid" readonly="1"/>
+                            <field name="x_tr_qr_token" readonly="1"/>
+                            <field name="x_tr_order_status"/>
+                            <field name="x_tr_order_mode"/>
+                        </group>
+                        <group string="Membre">
+                            <field name="x_tr_member_id"/>
+                        </group>
+                    </group>
+                    <group invisible="x_tr_order_mode != 'DELIVERY'">
+                        <field name="x_tr_delivery_address" placeholder="Adresse de livraison..."/>
+                    </group>
+                </page>
+            </xpath>
+            <!-- Ajouter les boutons d'action -->
+            <xpath expr="//header" position="inside">
+                <button name="action_confirm_order" type="object" string="Confirmer" 
+                    class="btn-primary" invisible="not x_tr_is_mobile_order or x_tr_order_status != 'PENDING'"/>
+                <button name="action_ready_order" type="object" string="Prête" 
+                    class="btn-primary" invisible="not x_tr_is_mobile_order or x_tr_order_status != 'CONFIRMED'"/>
+                <button name="action_complete_order" type="object" string="Terminée" 
+                    class="btn-primary" invisible="not x_tr_is_mobile_order or x_tr_order_status != 'READY'"/>
+                <button name="action_cancel_order" type="object" string="Annuler" 
+                    class="btn-secondary" invisible="not x_tr_is_mobile_order or x_tr_order_status in ('COMPLETED', 'CANCELLED')"/>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- Inherit list View -->
+    <record id="view_pos_order_list_inherit_theresidence" model="ir.ui.view">
+        <field name="name">pos.order.list.inherit.theresidence</field>
+        <field name="model">pos.order</field>
+        <field name="inherit_id" ref="point_of_sale.view_pos_order_tree"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='state']" position="after">
+                <field name="x_tr_is_mobile_order" column_invisible="1"/>
+                <field name="x_tr_order_status" optional="hide" decoration-success="x_tr_order_status == 'COMPLETED'" decoration-warning="x_tr_order_status == 'PENDING'" decoration-info="x_tr_order_status in ('CONFIRMED', 'READY')" decoration-danger="x_tr_order_status == 'CANCELLED'"/>
+                <field name="x_tr_order_mode" optional="hide"/>
+                <field name="x_tr_member_id" optional="hide"/>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- Search View -->
+    <record id="view_pos_order_search_inherit_theresidence" model="ir.ui.view">
+        <field name="name">pos.order.search.inherit.theresidence</field>
+        <field name="model">pos.order</field>
+        <field name="inherit_id" ref="point_of_sale.view_pos_order_filter"/>
+        <field name="arch" type="xml">
+            <xpath expr="//filter[1]" position="before">
+                <filter string="Commandes mobile TR" name="tr_mobile_orders" domain="[('x_tr_is_mobile_order', '=', True)]"/>
+                <separator/>
+            </xpath>
+            <xpath expr="//group" position="inside">
+                <filter string="Statut TR" name="group_tr_status" context="{'group_by': 'x_tr_order_status'}"/>
+                <filter string="Mode commande" name="group_order_mode" context="{'group_by': 'x_tr_order_mode'}"/>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- Action pour les commandes mobiles -->
+    <record id="action_theresidence_orders" model="ir.actions.act_window">
+        <field name="name">Commandes Mobile</field>
+        <field name="res_model">pos.order</field>
+        <field name="view_mode">list,form</field>
+        <field name="domain">[('x_tr_is_mobile_order', '=', True)]</field>
+        <field name="context">{'default_x_tr_is_mobile_order': True}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Aucune commande mobile
+            </p>
+            <p>
+                Les commandes passées via l'application mobile apparaîtront ici.
+            </p>
+        </field>
+    </record>
+
+    <menuitem id="menu_theresidence_orders"
+        name="Commandes"
+        parent="menu_theresidence_root"
+        action="action_theresidence_orders"
+        groups="theresidence_api.group_tr_orders,theresidence_api.group_tr_admin"
+        sequence="3"/>
+
+
+</odoo>

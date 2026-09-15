@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- Redirige le bouton "Print Badge" existant vers notre template avec QR -->
+    <record id="hr.hr_employee_print_badge" model="ir.actions.report">
+        <field name="report_name">laresidence_attendance_qr.print_employee_badge_custom</field>
+        <field name="report_file">laresidence_attendance_qr.print_employee_badge_custom</field>
+    </record>
+
+</odoo>

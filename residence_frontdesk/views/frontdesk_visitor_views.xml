@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ═══════════════════════════════════════════════════
+         VUE FORMULAIRE : ajout de partner_id avant le champ name
+         ═══════════════════════════════════════════════════ -->
+    <record id="frontdesk_visitor_view_form_partner" model="ir.ui.view">
+        <field name="name">frontdesk.visitor.view.form.partner</field>
+        <field name="model">frontdesk.visitor</field>
+        <field name="inherit_id" ref="frontdesk.frontdesk_visitor_view_form"/>
+        <field name="arch" type="xml">
+
+            <!-- Injecter partner_id juste avant le champ name -->
+            <xpath expr="//field[@name='name']" position="before">
+                <field name="partner_id"
+                       placeholder="Rechercher ou créer un contact…"
+                       readonly="state == 'canceled'"
+                       options="{'no_open': False, 'quick_create': True}"
+                       context="{'show_address': False}"/>
+            </xpath>
+
+        </field>
+    </record>
+
+    <!-- ═══════════════════════════════════════════════════
+         VUE LISTE : ajout de partner_id en colonne optionnelle
+         ═══════════════════════════════════════════════════ -->
+    <record id="frontdesk_visitor_view_list_partner" model="ir.ui.view">
+        <field name="name">frontdesk.visitor.view.list.partner</field>
+        <field name="model">frontdesk.visitor</field>
+        <field name="inherit_id" ref="frontdesk.frontdesk_visitor_view_tree"/>
+        <field name="arch" type="xml">
+
+            <!-- Injecter partner_id juste après name dans la liste -->
+            <xpath expr="//field[@name='name']" position="after">
+                <field name="partner_id" optional="show"/>
+            </xpath>
+
+        </field>
+    </record>
+
+    <!-- ═══════════════════════════════════════════════════
+         VUE RECHERCHE : possibilité de filtrer par contact
+         ═══════════════════════════════════════════════════ -->
+    <record id="frontdesk_visitor_view_search_partner" model="ir.ui.view">
+        <field name="name">frontdesk.visitor.view.search.partner</field>
+        <field name="model">frontdesk.visitor</field>
+        <field name="inherit_id" ref="frontdesk.frontdesk_visitor_view_search"/>
+        <field name="arch" type="xml">
+
+            <!-- Ajouter la recherche par contact après la recherche par nom -->
+            <xpath expr="//field[@name='name']" position="after">
+                <field name="partner_id" string="Contact"/>
+            </xpath>
+
+        </field>
+    </record>
+
+</odoo>
