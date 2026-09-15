@@ -308,6 +308,20 @@ class LaresidenceHrException(models.Model):
                         r.get('attendance_id') or False) not in deja_traite]
             if rows:
                 created += len(self.create(rows))
+
+            # Les créneaux de la journée portent le constat de présence. Ceux
+            # qui reçoivent un écart sont recalculés d'eux-mêmes ; ceux qui
+            # n'en reçoivent aucun, non — ils resteraient muets alors qu'ils
+            # viennent justement d'être déclarés conformes. On les marque donc
+            # explicitement comme à recalculer.
+            creneaux = self.env['planning.slot'].sudo().search([
+                ('employee_id', 'in', employees.ids),
+                ('start_datetime', '>=', day_start),
+                ('start_datetime', '<=', day_end),
+            ])
+            if creneaux:
+                creneaux.modified(['laresidence_exception_ids'])
+
             day += timedelta(days=1)
 
         _logger.info("laresidence_hr_control : %s écart(s) généré(s) du %s au %s", created, date_from, date_to)

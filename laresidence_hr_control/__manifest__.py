@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 {
     'name': "La Résidence — Contrôle des présences",
-    'version': '19.0.1',
+    'version': '19.0.2',
     'category': 'Human Resources/Attendances',
     'summary': "Écarts entre les pointages et l'horaire de référence (planning ou horaire contractuel)",
     'description': """
@@ -41,6 +41,7 @@ avec les absences, un employé en congé ne génère donc pas d'écart.
         'security/ir.model.access.csv',
         'views/laresidence_hr_exception_views.xml',
         'views/hr_employee_views.xml',
+        'views/planning_slot_views.xml',
         'data/ir_cron.xml',
     ],
     'installable': True,
