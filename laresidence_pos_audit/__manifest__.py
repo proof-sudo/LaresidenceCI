@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 {
     'name': 'La Résidence — Journal d\'audit du Point de Vente',
-    'version': '19.0.1',
+    'version': '19.0.2',
     'category': 'Point of Sale',
     'summary': "Journal d'événements immuable du POS : qui a ouvert une commande, quand, sur quel appareil",
     'description': """

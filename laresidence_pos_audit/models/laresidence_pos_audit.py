@@ -511,6 +511,21 @@ class LaresidencePosAudit(models.Model):
 
     @api.model
     def web_search_read(self, domain=None, specification=None, **kwargs):
+        # Le code est exigé ici, à la lecture, et non sur le menu.
+        #
+        # Il l'était sur une action de code attachée au menu. Odoo 19 refuse
+        # d'exécuter ce type d'action depuis l'interface, même à un
+        # administrateur : le journal était devenu inaccessible à tout le monde,
+        # constaté en production. Et sur le fond, un contrôle posé sur la
+        # navigation ne protège rien — il suffit d'ouvrir le modèle autrement.
+        # Ici, il garde la donnée elle-même.
+        controle = self.env['laresidence.pos.audit.acces']
+        if controle._code_defini() and not controle._acces_ouvert():
+            raise UserError(_(
+                "Le journal est verrouillé.\n\n"
+                "Saisissez le code d'accès depuis Point de Vente → Configuration → "
+                "Accès au journal d'audit, puis revenez ici. "
+                "Cette tentative a été enregistrée."))
         resultat = super().web_search_read(domain=domain, specification=specification, **kwargs)
         try:
             self._noter_consultation(len(resultat.get('records', [])) if resultat else 0)

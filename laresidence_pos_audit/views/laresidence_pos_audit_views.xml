@@ -206,7 +206,7 @@
     <menuitem id="menu_laresidence_pos_audit"
               name="Journal d'audit"
               parent="point_of_sale.menu_point_rep"
-              action="action_ouvrir_journal"
+              action="action_laresidence_pos_audit"
               groups="laresidence_pos_audit.group_pos_audit_viewer"
               sequence="90"/>
 
