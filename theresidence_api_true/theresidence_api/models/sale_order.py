@@ -75,6 +75,67 @@ class SaleOrder(models.Model):
     x_tr_sub_start_date = fields.Date(string='Début abonnement')
     x_tr_sub_end_date = fields.Date(string='Fin abonnement')
 
+    # === Champs Facturation / FNE ===
+    x_tr_fne_reference = fields.Char(
+        string='N° FNE', compute='_compute_tr_fne_reference', store=True,
+    )
+    x_tr_billing_status = fields.Selection([
+        ('no', 'Rien à facturer'),
+        ('to_invoice', 'À facturer'),
+        ('invoiced_paid', 'Facturé'),
+        ('invoiced_overdue', 'Relance client'),
+        ('upselling', 'Upsell'),
+    ], string='Statut facturation', compute='_compute_tr_billing_status', store=True)
+
+    @api.depends('invoice_ids.move_type', 'invoice_ids.state', 'invoice_ids.fne_sent', 'invoice_ids.fne_reference_dgi')
+    def _compute_tr_fne_reference(self):
+        for order in self:
+            invoices = order.invoice_ids.filtered(
+                lambda m: m.move_type == 'out_invoice' and m.state == 'posted' and m.fne_sent
+            )
+            latest = invoices.sorted('id', reverse=True)[:1]
+            order.x_tr_fne_reference = latest.fne_reference_dgi or False
+
+    @api.depends(
+        'invoice_status', 'invoice_ids.state', 'invoice_ids.move_type',
+        'invoice_ids.payment_state', 'invoice_ids.invoice_date_due',
+    )
+    def _compute_tr_billing_status(self):
+        today = fields.Date.context_today(self)
+        for order in self:
+            posted_invoices = order.invoice_ids.filtered(
+                lambda m: m.move_type == 'out_invoice' and m.state == 'posted'
+            )
+            overdue = posted_invoices.filtered(
+                lambda m: m.payment_state in ('not_paid', 'partial')
+                and m.invoice_date_due and m.invoice_date_due < today
+            )
+            if overdue:
+                order.x_tr_billing_status = 'invoiced_overdue'
+            elif order.invoice_status == 'upselling':
+                order.x_tr_billing_status = 'upselling'
+            elif order.invoice_status == 'invoiced':
+                order.x_tr_billing_status = 'invoiced_paid'
+            elif order.invoice_status == 'to invoice':
+                order.x_tr_billing_status = 'to_invoice'
+            else:
+                order.x_tr_billing_status = 'no'
+
+    @api.model
+    def _cron_refresh_tr_billing_status(self):
+        """Force le recalcul quotidien de x_tr_billing_status.
+
+        Champ stocké pour être filtrable/groupable en liste, mais son
+        déclenchement 'Relance client' dépend de la date du jour : sans ce
+        cron, le passage de la date d'échéance ne déclenche aucun
+        recalcul tant qu'aucun champ dont il dépend (facture, etc.) ne change.
+        """
+        orders = self.search([
+            '|', ('x_tr_is_reservation', '=', True), ('x_tr_is_subscription', '=', True),
+            ('invoice_ids', '!=', False),
+        ])
+        orders._compute_tr_billing_status()
+
     @api.model_create_multi
     def create(self, vals_list):
         for vals in vals_list:

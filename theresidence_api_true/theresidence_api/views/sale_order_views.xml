@@ -105,6 +105,7 @@
         <field name="arch" type="xml">
             <list string="Réservations" default_order="x_tr_start_time asc">
                 <field name="name" string="N° Réservation" optional="show"/>
+                <field name="x_tr_fne_reference" string="N° FNE" optional="show"/>
                 <field name="partner_id" string="Client" optional="show"/>
                 <field name="x_tr_space_id" string="Espace" optional="show"/>
                 <field name="x_tr_start_time" string="Début" optional="show"/>
@@ -118,6 +119,12 @@
                        decoration-danger="x_tr_reservation_status == 'CANCELLED'"/>
                 <field name="user_id" string="Vendeur" optional="show"/>
                 <field name="amount_total" string="Montant" optional="show"/>
+                <field name="x_tr_billing_status" string="Statut facturation" optional="show" widget="badge"
+                       decoration-muted="x_tr_billing_status == 'no'"
+                       decoration-info="x_tr_billing_status == 'to_invoice'"
+                       decoration-success="x_tr_billing_status == 'invoiced_paid'"
+                       decoration-danger="x_tr_billing_status == 'invoiced_overdue'"
+                       decoration-warning="x_tr_billing_status == 'upselling'"/>
             </list>
         </field>
     </record>
@@ -148,11 +155,16 @@
                 <separator/>
                 <filter string="Réservations TR" name="tr_reservations" domain="[('x_tr_is_reservation', '=', True)]"/>
                 <filter string="Abonnements TR" name="tr_subscriptions" domain="[('x_tr_is_subscription', '=', True)]"/>
+                <separator/>
+                <filter string="À facturer" name="tr_billing_to_invoice" domain="[('x_tr_billing_status', '=', 'to_invoice')]"/>
+                <filter string="Facturé" name="tr_billing_invoiced" domain="[('x_tr_billing_status', '=', 'invoiced_paid')]"/>
+                <filter string="Relance client" name="tr_billing_overdue" domain="[('x_tr_billing_status', '=', 'invoiced_overdue')]"/>
             </xpath>
             <xpath expr="//group" position="inside">
                 <filter string="Statut réservation" name="group_reservation_status" context="{'group_by': 'x_tr_reservation_status'}"/>
                 <filter string="Espace" name="group_space" context="{'group_by': 'x_tr_space_id'}"/>
                 <filter string="Statut abonnement" name="group_subscription_status" context="{'group_by': 'x_tr_subscription_status'}"/>
+                <filter string="Statut facturation" name="group_billing_status" context="{'group_by': 'x_tr_billing_status'}"/>
             </xpath>
         </field>
     </record>

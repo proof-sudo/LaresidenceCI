@@ -27,11 +27,13 @@
         'sale',
         'sale_renting',
         'point_of_sale',
+        'odoo_fne_connector',
     ],
     'data': [
         'security/groups.xml',
         'security/ir.model.access.csv',
         'data/reference_data.xml',
+        'data/cron_billing_status.xml',
         'views/api_views.xml',
         'views/res_users_views.xml',
         'views/res_partner_views.xml',
