@@ -55,6 +55,8 @@
                 <field name="x_tr_order_status" optional="hide" decoration-success="x_tr_order_status == 'COMPLETED'" decoration-warning="x_tr_order_status == 'PENDING'" decoration-info="x_tr_order_status in ('CONFIRMED', 'READY')" decoration-danger="x_tr_order_status == 'CANCELLED'"/>
                 <field name="x_tr_order_mode" optional="hide"/>
                 <field name="x_tr_member_id" optional="hide"/>
+                <field name="x_tr_payment_method_ids" widget="many2many_tags" optional="show"/>
+                <field name="x_tr_payment_detail" optional="hide"/>
             </xpath>
         </field>
     </record>
@@ -72,6 +74,10 @@
             <xpath expr="//group" position="inside">
                 <filter string="Statut TR" name="group_tr_status" context="{'group_by': 'x_tr_order_status'}"/>
                 <filter string="Mode commande" name="group_order_mode" context="{'group_by': 'x_tr_order_mode'}"/>
+                <filter string="Méthode de paiement" name="group_payment_method" context="{'group_by': 'x_tr_payment_method_ids'}"/>
+            </xpath>
+            <xpath expr="//search" position="inside">
+                <field name="x_tr_payment_method_ids" string="Méthode de paiement"/>
             </xpath>
         </field>
     </record>

@@ -45,8 +45,41 @@ class PosOrder(models.Model):
     x_tr_delivery_address = fields.Text(string='Adresse livraison')
     x_tr_qr_token = fields.Char(string='Token QR', copy=False)
     x_tr_member_id = fields.Many2one('res.partner', string='Membre', domain=[('x_tr_is_member', '=', True)])
-    
-    
+
+    x_tr_payment_method_ids = fields.Many2many(
+        'pos.payment.method',
+        string="Méthodes de paiement",
+        compute='_compute_x_tr_payment',
+        store=True,
+        help="Méthodes de paiement effectivement utilisées pour régler la commande.",
+    )
+    x_tr_payment_detail = fields.Char(
+        string="Détail paiement",
+        compute='_compute_x_tr_payment',
+        store=True,
+        help="Montant réglé par méthode, par exemple « Carte 30 000 + Espèces 16 000 ».",
+    )
+
+    @api.depends('payment_ids', 'payment_ids.payment_method_id', 'payment_ids.amount')
+    def _compute_x_tr_payment(self):
+        for order in self:
+            paiements = order.payment_ids.filtered('payment_method_id')
+            order.x_tr_payment_method_ids = paiements.payment_method_id
+            if not paiements:
+                order.x_tr_payment_detail = False
+                continue
+            totaux = {}
+            for paiement in paiements:
+                methode = paiement.payment_method_id
+                totaux[methode] = totaux.get(methode, 0.0) + paiement.amount
+            decimales = order.currency_id.decimal_places if order.currency_id else 2
+            morceaux = []
+            for methode, montant in totaux.items():
+                montant_texte = '{:,.{d}f}'.format(montant, d=decimales).replace(',', '\u202f')
+                morceaux.append('%s %s' % (methode.name, montant_texte))
+            order.x_tr_payment_detail = ' + '.join(morceaux)
+
+
     # Sync automatique state Odoo → x_tr_order_status pour commandes mobiles
     _STATE_TO_ORDER_STATUS = {
         'paid':   'PAID',

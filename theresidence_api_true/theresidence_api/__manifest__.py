@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 {
     'name': 'The Residence - API Module',
-    'version': '19.0.3',
+    'version': '19.0.4',
     'category': 'Technical',
     'summary': 'REST API pour l\'application mobile The Residence',
     'description': """
