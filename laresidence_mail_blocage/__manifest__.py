@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 {
     'name': "La Résidence — Blocage total des envois d'e-mails",
-    'version': '19.0.2',
+    'version': '19.0.3',
     'category': 'Productivity/Discuss',
     'summary': "Aucun e-mail ne peut sortir de la base, quelle qu'en soit l'origine",
     'description': """
@@ -28,13 +28,28 @@ Deux verrous, indépendants l'un de l'autre :
 
 Chaque blocage est écrit dans le journal du serveur, donc traçable.
 
+**Fenêtre d'envoi temporaire.** Il arrive qu'un envoi soit nécessaire — une
+facture à faire partir tout de suite. Le menu ``Paramètres > Blocage des
+e-mails`` permet d'ouvrir les envois pour 5 minutes à 1 heure, motif
+obligatoire. La fenêtre **se referme toute seule** à l'échéance : il n'y a
+pas d'état « ouvert » qu'on puisse oublier de refermer. Chaque ouverture est
+consignée avec sa date, sa durée, son motif et son auteur.
+
+**Suivi.** Le même menu liste les messages qui ont été bloqués — objet,
+destinataire, module d'origine — et permet, fenêtre ouverte, d'en renvoyer
+un précis.
+
 **Pour rétablir les envois**, il suffit de désinstaller ce module. Rien
 d'autre n'est modifié dans la base.
     """,
     'author': 'Djakaridja Traore',
     'license': 'LGPL-3',
     'depends': ['mail'],
-    'data': [],
+    'data': [
+        'security/ir.model.access.csv',
+        'wizard/mail_ouverture_wizard_views.xml',
+        'views/mail_blocage_views.xml',
+    ],
     'installable': True,
     'application': False,
     'auto_install': False,
