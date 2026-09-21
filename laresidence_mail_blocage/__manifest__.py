@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 {
     'name': "La Résidence — Blocage total des envois d'e-mails",
-    'version': '19.0.1',
+    'version': '19.0.2',
     'category': 'Productivity/Discuss',
     'summary': "Aucun e-mail ne peut sortir de la base, quelle qu'en soit l'origine",
     'description': """
@@ -20,9 +20,11 @@ Deux verrous, indépendants l'un de l'autre :
    chaque message est marqué « annulé », avec le motif inscrit dans la fiche.
    Aucune erreur n'est levée, donc aucun processus métier n'est interrompu.
 
-2. **Remise SMTP.** ``ir.mail_server.connect()`` et ``send_email()`` refusent
-   la connexion. Ce second verrou couvre les rares envois qui ne passent pas
-   par la file — accusés de rejet, bouton de test de connexion.
+2. **Remise SMTP.** ``ir.mail_server._disable_send()`` renvoie vrai. C'est le
+   point que le framework vérifie lui-même dans ``_connect__()`` et dans
+   ``send_email()`` : aucune connexion n'est ouverte, aucun message n'est
+   remis. Ce second verrou couvre les envois qui ne passent pas par la file
+   — accusés de rejet, bouton de test de connexion.
 
 Chaque blocage est écrit dans le journal du serveur, donc traçable.
 
