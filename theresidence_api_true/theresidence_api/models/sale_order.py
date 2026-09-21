@@ -134,7 +134,14 @@ class SaleOrder(models.Model):
             '|', ('x_tr_is_reservation', '=', True), ('x_tr_is_subscription', '=', True),
             ('invoice_ids', '!=', False),
         ])
-        orders._compute_tr_billing_status()
+        if not orders:
+            return
+        # Passer par le circuit de recalcul de l'ORM, et non par un appel
+        # direct au _compute_ : une affectation hors protection declenche
+        # un write() reel sur chaque commande, donc le webhook "Commandes
+        # de vente" part meme quand le statut n'a pas bouge.
+        self.env.add_to_compute(self._fields['x_tr_billing_status'], orders)
+        orders.flush_recordset(['x_tr_billing_status'])
 
     @api.model_create_multi
     def create(self, vals_list):
