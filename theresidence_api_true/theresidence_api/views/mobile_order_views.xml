@@ -1,0 +1,348 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ─── Séquence ──────────────────────────────────────────────────────── -->
+
+    <record id="seq_mobile_order" model="ir.sequence">
+        <field name="name">Pré-commande Mobile</field>
+        <field name="code">mobile.order</field>
+        <field name="prefix">MOB/%(year)s/%(month)s/</field>
+        <field name="padding">4</field>
+        <field name="company_id" eval="False"/>
+    </record>
+
+    <!-- ─── Action ───────────────────────────────────────────────────────── -->
+
+    <record id="action_mobile_order" model="ir.actions.act_window">
+        <field name="name">Pré-commandes Mobiles</field>
+        <field name="res_model">mobile.order</field>
+        <field name="view_mode">kanban,list,form</field>
+        <field name="context">{'search_default_pending': 1}</field>
+    </record>
+
+    <!-- ─── Vue Kanban ───────────────────────────────────────────────────── -->
+
+ <record id="view_mobile_order_kanban" model="ir.ui.view">
+    <field name="name">mobile.order.kanban</field>
+    <field name="model">mobile.order</field>
+    <field name="arch" type="xml">
+        <kanban default_group_by="x_tr_order_status" quick_create="false">
+            <field name="name"/>
+            <field name="x_tr_order_status"/>
+            <field name="x_tr_order_mode"/>
+            <field name="amount_total"/>
+            <field name="partner_id"/>
+            <field name="x_tr_member_id"/>
+            <field name="pos_order_id"/>
+            <field name="pos_order_status"/>
+            <field name="date_order"/>
+
+            <progressbar
+                field="x_tr_order_status"
+                colors='{
+                    "PENDING":     "warning",
+                    "CONFIRMED":   "info",
+                    "SENT_TO_POS": "success",
+                    "REJECTED":    "danger"
+                }'
+            />
+
+            <templates>
+                <t t-name="card">   <!-- ✅ corrigé -->
+                    <div class="oe_kanban_card oe_kanban_global_click">
+
+                        <!-- En-tête -->
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <strong class="text-truncate">
+                                <field name="name"/>
+                            </strong>
+                            <span t-attf-class="badge rounded-pill
+                                #{record.x_tr_order_mode.raw_value === 'DELIVERY' ? 'bg-primary' :
+                                  record.x_tr_order_mode.raw_value === 'DINE_IN'  ? 'bg-success' :
+                                  'bg-secondary'} text-white ms-1">
+                                <field name="x_tr_order_mode"/>
+                            </span>
+                        </div>
+
+                        <!-- Client / Membre -->
+                        <div class="text-muted small mb-1">
+                            <i class="fa fa-user me-1"/>
+                            <t t-if="record.x_tr_member_id.raw_value">
+                                <field name="x_tr_member_id"/>
+                            </t>
+                            <t t-elif="record.partner_id.raw_value">
+                                <field name="partner_id"/>
+                            </t>
+                            <t t-else="">
+                                <em>Anonyme</em>
+                            </t>
+                        </div>
+
+                        <!-- Date -->
+                        <div class="text-muted small mb-1">
+                            <i class="fa fa-calendar me-1"/>
+                            <field name="date_order" widget="datetime"/>
+                        </div>
+
+                        <!-- Total + statut POS -->
+                        <div class="d-flex justify-content-between align-items-center mt-2">
+                            <span class="fw-bold">
+                                <field name="amount_total" widget="monetary"/>
+                            </span>
+                            <t t-if="record.pos_order_id.raw_value">
+                                <span t-attf-class="badge rounded-pill
+                                    #{record.pos_order_status.raw_value === 'COMPLETED' ? 'bg-success' :
+                                      record.pos_order_status.raw_value === 'CANCELLED' ? 'bg-danger'  :
+                                      record.pos_order_status.raw_value === 'READY'     ? 'bg-info'    :
+                                      'bg-warning'} text-white">
+                                    POS : <field name="pos_order_status"/>
+                                </span>
+                            </t>
+                        </div>
+
+                    </div>
+                </t>
+            </templates>
+        </kanban>
+    </field>
+</record>
+
+    <!-- ─── Vue Liste ────────────────────────────────────────────────────── -->
+
+    <record id="view_mobile_order_list" model="ir.ui.view">
+        <field name="name">mobile.order.list</field>
+        <field name="model">mobile.order</field>
+        <field name="arch" type="xml">
+            <list string="Pré-commandes mobiles" decoration-warning="x_tr_order_status == 'PENDING'"
+                  decoration-info="x_tr_order_status == 'CONFIRMED'"
+                  decoration-success="x_tr_order_status == 'SENT_TO_POS'"
+                  decoration-danger="x_tr_order_status == 'REJECTED'">
+                <field name="name"/>
+                <field name="date_order"/>
+                <field name="partner_id"/>
+                <field name="x_tr_member_id"/>
+                <field name="x_tr_order_mode"/>
+                <field name="x_tr_order_status" widget="badge"
+                       decoration-warning="x_tr_order_status == 'PENDING'"
+                       decoration-info="x_tr_order_status == 'CONFIRMED'"
+                       decoration-success="x_tr_order_status == 'SENT_TO_POS'"
+                       decoration-danger="x_tr_order_status == 'REJECTED'"/>
+                <field name="amount_total" widget="monetary"/>
+                <field name="pos_order_id"/>
+                <field name="pos_order_status" widget="badge"
+                       decoration-success="pos_order_status == 'COMPLETED'"
+                       decoration-danger="pos_order_status == 'CANCELLED'"
+                       decoration-info="pos_order_status == 'READY'"
+                       optional="show"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- ─── Vue Formulaire ───────────────────────────────────────────────── -->
+
+    <record id="view_mobile_order_form" model="ir.ui.view">
+        <field name="name">mobile.order.form</field>
+        <field name="model">mobile.order</field>
+        <field name="arch" type="xml">
+            <form string="Pré-commande Mobile">
+                <header>
+
+                    <!-- Boutons de workflow -->
+                    <button name="action_validate"
+                            string="Confirmer"
+                            type="object"
+                            class="btn-primary"
+                            invisible="x_tr_order_status != 'PENDING'"
+                            confirm="Confirmer cette commande ?"/>
+
+                    <button name="action_send_to_pos"
+                            string="Envoyer au POS"
+                            type="object"
+                            class="btn-success"
+                            invisible="x_tr_order_status != 'CONFIRMED'"
+                            confirm="Cette commande va être créée dans le POS. Continuer ?"/>
+
+                    <button name="action_reject"
+                            string="Rejeter"
+                            type="object"
+                            class="btn-danger"
+                            invisible="x_tr_order_status in ('SENT_TO_POS', 'REJECTED')"/>
+
+                    <!-- <button name="action_reset_to_pending"
+                            string="Remettre en attente"
+                            type="object"
+                            invisible="x_tr_order_status != 'REJECTED'"/> -->
+
+                    <!-- Barre de statut -->
+                    <field name="x_tr_order_status"
+                           widget="statusbar"
+                           statusbar_visible="PENDING,CONFIRMED,SENT_TO_POS"/>
+                </header>
+
+                <sheet>
+                    <!-- Titre -->
+                    <div class="oe_title">
+                        <h1><field name="name" readonly="1"/></h1>
+                    </div>
+
+                    <group>
+                        <group string="Identification">
+                            <field name="x_tr_uuid" readonly="1"/>
+                            <field name="x_tr_qr_token" readonly="1"/>
+                            <field name="date_order"/>
+                        </group>
+                        <group string="Client">
+                            <field name="partner_id"/>
+                            <field name="x_tr_member_id"/>
+                            <field name="x_tr_order_mode"/>
+                            <field name="x_tr_delivery_address"
+                                   invisible="x_tr_order_mode != 'DELIVERY'"
+                                   required="x_tr_order_mode == 'DELIVERY'"/>
+                        </group>
+                    </group>
+
+                    <notebook>
+
+                        <!-- Onglet Produits -->
+                        <page string="Produits" name="lines">
+                            <field name="lines"
+                                   readonly="x_tr_order_status in ('SENT_TO_POS', 'REJECTED')">
+                                <list editable="bottom">
+                                    <field name="product_id"/>
+                                    <field name="qty"/>
+                                    <field name="price_unit"/>
+                                    <field name="discount"/>
+                                    <field name="tax_ids" widget="many2many_tags"/>
+                                    <field name="price_subtotal" readonly="1"/>
+                                    <field name="price_subtotal_incl" readonly="1"/>
+                                </list>
+                            </field>
+                            <group class="oe_subtotal_footer">
+                                <field name="amount_tax" readonly="1"/>
+                                <field name="amount_total" readonly="1"
+                                       class="oe_subtotal_footer_separator"/>
+                            </group>
+                        </page>
+
+                        <!-- Onglet POS (visible seulement si envoyée) -->
+                        <page string="Commande POS" name="pos"
+                              invisible="not pos_order_id">
+                            <group>
+                                <field name="pos_order_id" readonly="1"/>
+                                <field name="pos_order_status" readonly="1" widget="badge"
+                                       decoration-success="pos_order_status == 'COMPLETED'"
+                                       decoration-danger="pos_order_status == 'CANCELLED'"
+                                       decoration-info="pos_order_status == 'READY'"
+                                       decoration-warning="pos_order_status == 'PENDING'"/>
+                            </group>
+                        </page>
+
+                        <!-- Onglet Notes -->
+                        <page string="Notes" name="notes">
+                            <field name="note"
+                                   placeholder="Notes du client..."
+                                   readonly="x_tr_order_status in ('SENT_TO_POS', 'REJECTED')"/>
+                            <field name="rejection_reason"
+                                   readonly="1"
+                                   invisible="x_tr_order_status != 'REJECTED'"
+                                   string="Motif de rejet"/>
+                        </page>
+
+                    </notebook>
+                </sheet>
+
+                <!-- Chatter (tracking=True sur x_tr_order_status) -->
+                <chatter/>
+
+            </form>
+        </field>
+    </record>
+    <record id="view_wizard_reject_order" model="ir.ui.view">
+    <field name="name">mobile.order.reject.wizard.form</field>
+    <field name="model">mobile.order.reject.wizard</field>
+    <field name="arch" type="xml">
+        <form string="Rejeter la commande">
+            <group>
+                <field name="rejection_reason" placeholder="Expliquez le motif du rejet..."/>
+            </group>
+            <footer>
+                <button name="action_confirm_reject"
+                        string="Confirmer le rejet"
+                        type="object"
+                        class="btn-danger"/>
+                <button string="Annuler" class="btn-secondary" special="cancel"/>
+            </footer>
+        </form>
+    </field>
+</record>
+
+    <!-- ─── Vue Recherche ────────────────────────────────────────────────── -->
+
+    <!-- <record id="view_mobile_order_search" model="ir.ui.view">
+        <field name="name">mobile.order.search</field>
+        <field name="model">mobile.order</field>
+        <field name="arch" type="xml">
+            <search string="Rechercher une pré-commande">
+
+                <field name="name" string="Référence"/>
+                <field name="partner_id" string="Client"/>
+                <field name="x_tr_member_id" string="Membre"/>
+                <field name="x_tr_uuid" string="UUID"/>
+
+                <filter name="pending"
+                        string="En attente"
+                        domain="[('x_tr_order_status', '=', 'PENDING')]"/>
+                <filter name="confirmed"
+                        string="Confirmées"
+                        domain="[('x_tr_order_status', '=', 'CONFIRMED')]"/>
+                <filter name="sent"
+                        string="Envoyées au POS"
+                        domain="[('x_tr_order_status', '=', 'SENT_TO_POS')]"/>
+                <filter name="rejected"
+                        string="Rejetées"
+                        domain="[('x_tr_order_status', '=', 'REJECTED')]"/>
+
+                <separator/>
+
+                <filter name="pickup"
+                        string="Retrait"
+                        domain="[('x_tr_order_mode', '=', 'PICKUP')]"/>
+                <filter name="delivery"
+                        string="Livraison"
+                        domain="[('x_tr_order_mode', '=', 'DELIVERY')]"/>
+                <filter name="dine_in"
+                        string="Sur place"
+                        domain="[('x_tr_order_mode', '=', 'DINE_IN')]"/>
+
+                <separator/>
+
+                <filter name="today"
+                        string="Aujourd'hui"
+                        domain="[('date_order', '>=', datetime.datetime.combine(context_today(), datetime.time(0,0,0)))]"/>
+
+                <group expand="0" string="Grouper par">
+                    <filter name="group_status"
+                            string="Statut"
+                            context="{'group_by': 'x_tr_order_status'}"/>
+                    <filter name="group_mode"
+                            string="Mode"
+                            context="{'group_by': 'x_tr_order_mode'}"/>
+                    <filter name="group_partner"
+                            string="Client"
+                            context="{'group_by': 'partner_id'}"/>
+                    <filter name="group_date"
+                            string="Date"
+                            context="{'group_by': 'date_order:day'}"/>
+                </group>
+
+            </search>
+        </field>
+    </record> -->
+
+    <menuitem id="menu_mobile_orders"
+                  name="Pré-commandes Mobiles"
+                  parent="point_of_sale.menu_point_root"
+                  action="action_mobile_order"
+                  groups="theresidence_api.group_tr_orders,theresidence_api.group_tr_admin"
+                  sequence="50"/>
+</odoo>

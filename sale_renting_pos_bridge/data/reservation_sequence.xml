@@ -1,0 +1,8 @@
+<odoo>
+    <record id="seq_pos_room_reservation" model="ir.sequence">
+        <field name="name">POS Room Reservation</field>
+        <field name="code">pos.room.reservation</field>
+        <field name="prefix">POSR-</field>
+        <field name="padding">5</field>
+    </record>
+</odoo>

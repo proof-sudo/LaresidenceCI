@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+
+        <!-- ===== Vue liste ===== -->
+        <record id="view_purchase_approval_rule_list" model="ir.ui.view">
+            <field name="name">purchase.approval.rule.list</field>
+            <field name="model">purchase.approval.rule</field>
+            <field name="arch" type="xml">
+                <list string="Règles de validation achat" editable="bottom">
+                    <field name="sequence" widget="handle"/>
+                    <field name="name"/>
+                    <field name="category_id"/>
+                    <field name="strict_category"/>
+                    <field name="approver_id"/>
+                    <field name="active"/>
+                </list>
+            </field>
+        </record>
+
+        <!-- ===== Vue formulaire ===== -->
+        <record id="view_purchase_approval_rule_form" model="ir.ui.view">
+            <field name="name">purchase.approval.rule.form</field>
+            <field name="model">purchase.approval.rule</field>
+            <field name="arch" type="xml">
+                <form string="Règle de validation achat">
+                    <sheet>
+                        <div class="oe_button_box" name="button_box"/>
+                        <widget name="web_ribbon" title="Archivé" bg_color="bg-danger"
+                                invisible="active"/>
+                        <group>
+                            <group>
+                                <field name="name"/>
+                                <field name="category_id"/>
+                                <field name="strict_category"/>
+                            </group>
+                            <group>
+                                <field name="approver_id"/>
+                                <field name="active" invisible="1"/>
+                            </group>
+                        </group>
+                        <group string="Description du comportement">
+                            <div class="alert alert-info" role="alert">
+                                <span invisible="strict_category">
+                                    Cette règle s'applique aux produits de la catégorie
+                                    <b><field name="category_id" nolabel="1" readonly="1"/></b>
+                                    et de toutes ses sous-catégories.
+                                </span>
+                                <span invisible="not strict_category">
+                                    Cette règle s'applique uniquement aux produits dont la catégorie
+                                    est exactement <b><field name="category_id" nolabel="1" readonly="1"/></b>.
+                                </span>
+                            </div>
+                        </group>
+                    </sheet>
+                </form>
+            </field>
+        </record>
+
+        <!-- ===== Action ===== -->
+        <record id="action_purchase_approval_rule" model="ir.actions.act_window">
+            <field name="name">Règles de validation</field>
+            <field name="res_model">purchase.approval.rule</field>
+            <field name="view_mode">list,form</field>
+        </record>
+
+        <!-- ===== Menu ===== -->
+        <menuitem id="menu_purchase_approval_rule"
+                  name="Règles de validation achat"
+                  parent="purchase.menu_purchase_config"
+                  action="action_purchase_approval_rule"
+                  sequence="50"
+                  groups="purchase.group_purchase_manager"/>
+
+    </data>
+</odoo>
