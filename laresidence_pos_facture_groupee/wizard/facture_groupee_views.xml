@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="facture_groupee_form" model="ir.ui.view">
+        <field name="name">laresidence.pos.facture.groupee.form</field>
+        <field name="model">laresidence.pos.facture.groupee</field>
+        <field name="arch" type="xml">
+            <form string="Facture groupée">
+                <div class="alert alert-info" role="alert">
+                    Seules apparaissent les commandes réglées en <b>compte client</b>,
+                    non annulées et pas encore rattachées à une facture. Les commandes
+                    passées au nom d'un contact remontent avec celles de sa société.
+                </div>
+                <group>
+                    <group>
+                        <field name="partner_id" options="{'no_create': True}"/>
+                        <field name="journal_id" options="{'no_create': True}"/>
+                    </group>
+                    <group>
+                        <field name="date_debut"/>
+                        <field name="date_fin"/>
+                        <field name="currency_id" invisible="1"/>
+                        <field name="montant_total"/>
+                    </group>
+                </group>
+                <field name="order_ids" nolabel="1">
+                    <list create="false" edit="false">
+                        <field name="name" string="Référence"/>
+                        <field name="date_order" string="Date"/>
+                        <field name="partner_id" string="Au nom de"/>
+                        <field name="session_id" string="Session"/>
+                        <field name="amount_total" string="Montant" sum="Total"/>
+                        <field name="state" string="État"/>
+                    </list>
+                </field>
+                <footer>
+                    <button name="action_generer" type="object" class="btn-primary"
+                            string="Générer la facture"/>
+                    <button string="Annuler" special="cancel" class="btn-secondary"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_facture_groupee" model="ir.actions.act_window">
+        <field name="name">Facture groupée — compte client</field>
+        <field name="res_model">laresidence.pos.facture.groupee</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+
+    <menuitem id="menu_facture_groupee"
+              name="Facture groupée — compte client"
+              parent="point_of_sale.menu_point_of_sale"
+              action="action_facture_groupee"
+              groups="account.group_account_invoice"
+              sequence="45"/>
+
+</odoo>

@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="account_move_form_facture_groupee" model="ir.ui.view">
+        <field name="name">account.move.form.facture.groupee</field>
+        <field name="model">account.move</field>
+        <field name="inherit_id" ref="account.view_move_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//div[@name='button_box']" position="inside">
+                <button name="action_laresidence_voir_commandes" type="object"
+                        class="oe_stat_button" icon="fa-shopping-basket"
+                        invisible="laresidence_pos_order_count == 0">
+                    <field name="laresidence_pos_order_count" widget="statinfo"
+                           string="Commandes caisse"/>
+                </button>
+            </xpath>
+        </field>
+    </record>
+
+</odoo>
