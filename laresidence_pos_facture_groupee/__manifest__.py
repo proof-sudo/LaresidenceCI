@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 {
     'name': "La Résidence — Facture groupée des comptes clients",
-    'version': '19.0.3',
+    'version': '19.0.4',
     'category': 'Point of Sale',
     'summary': "Une facture unique pour toutes les commandes d'un client réglées en compte client",
     'description': """
@@ -18,14 +18,23 @@ nom d'un contact remontent avec celles de sa société — sans quoi un même
 client recevrait plusieurs factures, ce que ce module est précisément censé
 éviter.
 
-**Une ligne par commande.** Référence du ticket et date. Une commande qui
-mélange plusieurs taux donne une ligne par taux, le nom de la taxe en
-complément : une ligne unique portant le total perdrait la ventilation et la
-facture serait fausse fiscalement.
+**Deux niveaux de détail, au choix à chaque facture.**
 
-Le montant repris est le prix de vente utilisé par la caisse, remise déduite.
-Les taxes 18 % et 9 % étant incluses dans les prix, c'est cette valeur que le
-moteur de taxes attend pour retrouver exactement le total du ticket.
+*Articles regroupés par ticket* — le réglage par défaut. Un intertitre par
+ticket, puis les articles réellement consommés. Le client voit ce qu'il a
+pris et quand, ce qu'une référence de ticket ne dit pas. Chaque ligne portant
+sa propre taxe, la ventilation de TVA est exacte sans traitement particulier,
+et les intertitres ne portent aucun montant.
+
+*Une ligne par ticket* — référence et date seulement, pour un compte au
+volume important. Une commande qui mélange plusieurs taux donne alors une
+ligne par taux : une ligne unique portant le total perdrait la ventilation et
+la facture serait fausse fiscalement.
+
+Dans les deux cas le montant repris est le prix de vente utilisé par la
+caisse, remise déduite. Les taxes 18 % et 9 % étant incluses dans les prix,
+c'est cette valeur que le moteur de taxes attend pour retrouver exactement le
+total du ticket.
 
 **Pas de double facturation possible.** Chaque commande couverte garde le lien
 vers sa facture groupée et disparaît des commandes éligibles, y compris pour

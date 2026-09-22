@@ -28,6 +28,13 @@ class FactureGroupee(models.TransientModel):
     currency_id = fields.Many2one(
         'res.currency', string="Devise",
         default=lambda self: self.env.company.currency_id)
+    detail = fields.Selection(
+        [('article', "Articles regroupés par ticket"),
+         ('ticket', "Une ligne par ticket")],
+        string="Niveau de détail", required=True, default='article',
+        help="« Articles » place un intertitre par ticket puis le détail de ce "
+             "qui a été consommé. « Une ligne par ticket » ne donne que la "
+             "référence et le montant.")
     journal_id = fields.Many2one(
         'account.journal', string="Journal de vente",
         domain="[('type', '=', 'sale')]",
@@ -78,6 +85,40 @@ class FactureGroupee(models.TransientModel):
         comptes = produit.product_tmpl_id.get_product_accounts(
             fiscal_pos=ligne.order_id.fiscal_position_id)
         return comptes.get('income')
+
+    def _libelle_ticket(self, commande):
+        return "Ticket %s du %s" % (
+            commande.name,
+            fields.Datetime.context_timestamp(self, commande.date_order).strftime('%d/%m/%Y'))
+
+    def _lignes_detaillees(self):
+        """Un intertitre par ticket, puis les articles réellement consommés.
+
+        En reprenant les articles d'origine, Odoo retrouve seul les comptes de
+        produit et les taxes : chaque ligne porte la sienne, donc la
+        ventilation de TVA est exacte sans avoir à dédoubler quoi que ce soit.
+        Les intertitres ne portent aucun montant et n'ont donc aucune
+        incidence sur les totaux.
+        """
+        self.ensure_one()
+        valeurs = []
+        for commande in self.order_ids.sorted('date_order'):
+            if not commande.lines:
+                continue
+            valeurs.append((0, 0, {
+                'display_type': 'line_section',
+                'name': self._libelle_ticket(commande),
+            }))
+            for ligne in commande.lines:
+                valeurs.append((0, 0, {
+                    'product_id': ligne.product_id.id,
+                    'name': ligne.full_product_name or ligne.product_id.display_name,
+                    'quantity': ligne.qty,
+                    'price_unit': ligne.price_unit,
+                    'discount': ligne.discount or 0.0,
+                    'tax_ids': [(6, 0, ligne.tax_ids_after_fiscal_position.ids)],
+                }))
+        return valeurs
 
     def _lignes_facture(self):
         """Une ligne par commande, dédoublée si la commande mélange des taxes.
@@ -143,7 +184,9 @@ class FactureGroupee(models.TransientModel):
             'invoice_date': fields.Date.context_today(self),
             'invoice_origin': "Point de vente — commandes du %s au %s" % (
                 self.date_debut.strftime('%d/%m/%Y'), self.date_fin.strftime('%d/%m/%Y')),
-            'invoice_line_ids': self._lignes_facture(),
+            'invoice_line_ids': (
+                self._lignes_detaillees() if self.detail == 'article'
+                else self._lignes_facture()),
         })
         self.order_ids.write({'laresidence_facture_groupee_id': facture.id})
         _logger.info(

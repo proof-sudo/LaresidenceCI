@@ -14,6 +14,7 @@
                 <group>
                     <group>
                         <field name="partner_id" options="{'no_create': True}"/>
+                        <field name="detail" widget="radio"/>
                         <field name="journal_id" options="{'no_create': True}"/>
                     </group>
                     <group>
