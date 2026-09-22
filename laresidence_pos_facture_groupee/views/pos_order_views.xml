@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="pos_order_list_regularisation" model="ir.ui.view">
+        <field name="name">pos.order.list.regularisation</field>
+        <field name="model">pos.order</field>
+        <field name="inherit_id" ref="point_of_sale.view_pos_order_tree"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='state']" position="after">
+                <field name="laresidence_regularisee" string="Régularisée" optional="show"
+                       widget="boolean_toggle" readonly="1"/>
+                <field name="laresidence_regularisation_motif" string="Motif" optional="hide"/>
+                <field name="laresidence_facture_groupee_id" string="Facture groupée" optional="hide"/>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="pos_order_search_regularisation" model="ir.ui.view">
+        <field name="name">pos.order.search.regularisation</field>
+        <field name="model">pos.order</field>
+        <field name="inherit_id" ref="point_of_sale.view_pos_order_filter"/>
+        <field name="arch" type="xml">
+            <xpath expr="//filter[1]" position="before">
+                <filter string="Régularisées" name="laresidence_regularisees"
+                        domain="[('laresidence_regularisee', '=', True)]"/>
+                <filter string="Hors régularisées" name="laresidence_hors_regularisees"
+                        domain="[('laresidence_regularisee', '=', False)]"/>
+                <separator/>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="pos_order_form_regularisation" model="ir.ui.view">
+        <field name="name">pos.order.form.regularisation</field>
+        <field name="model">pos.order</field>
+        <field name="inherit_id" ref="point_of_sale.view_pos_pos_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//sheet" position="inside">
+                <group string="Régularisation" invisible="not laresidence_regularisee">
+                    <field name="laresidence_regularisee" invisible="1"/>
+                    <field name="laresidence_regularisation_motif" readonly="1"/>
+                    <field name="laresidence_avoir_id" readonly="1"/>
+                    <field name="laresidence_regularisation_date" readonly="1"/>
+                    <field name="laresidence_regularisation_user_id" readonly="1"/>
+                </group>
+            </xpath>
+        </field>
+    </record>
+
+</odoo>

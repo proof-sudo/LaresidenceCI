@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="regularisation_form" model="ir.ui.view">
+        <field name="name">laresidence.pos.regularisation.form</field>
+        <field name="model">laresidence.pos.regularisation</field>
+        <field name="arch" type="xml">
+            <form string="Régulariser des commandes">
+                <div class="alert alert-info" role="alert">
+                    Odoo n'autorise pas à repasser une commande payée à l'état
+                    « annulé ». La commande est donc marquée <b>régularisée</b> et
+                    un avoir est créé en brouillon, article par article.
+                </div>
+                <field name="avertissement" invisible="not avertissement" nolabel="1"
+                       readonly="1" class="alert alert-warning" widget="text"/>
+                <group>
+                    <group>
+                        <field name="motif" placeholder="Ex. : commande saisie par erreur"/>
+                        <field name="journal_id" options="{'no_create': True}"/>
+                    </group>
+                    <group>
+                        <field name="currency_id" invisible="1"/>
+                        <field name="montant_total"/>
+                    </group>
+                </group>
+                <field name="order_ids" nolabel="1">
+                    <list create="false" edit="false">
+                        <field name="name" string="Référence"/>
+                        <field name="date_order" string="Date"/>
+                        <field name="partner_id" string="Client"/>
+                        <field name="amount_total" string="Montant" sum="Total"/>
+                    </list>
+                </field>
+                <footer>
+                    <button name="action_regulariser" type="object" class="btn-primary"
+                            string="Créer les avoirs"/>
+                    <button string="Annuler" special="cancel" class="btn-secondary"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_regularisation" model="ir.actions.act_window">
+        <field name="name">Régulariser les commandes</field>
+        <field name="res_model">laresidence.pos.regularisation</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+        <field name="binding_model_id" ref="point_of_sale.model_pos_order"/>
+        <field name="binding_view_types">list</field>
+    </record>
+
+</odoo>

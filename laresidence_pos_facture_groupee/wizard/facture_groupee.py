@@ -53,6 +53,7 @@ class FactureGroupee(models.TransientModel):
             ('payment_ids.payment_method_id.type', '=', 'pay_later'),
             ('account_move', '=', False),
             ('laresidence_facture_groupee_id', '=', False),
+            ('laresidence_regularisee', '=', False),
             ('date_order', '>=', self.date_debut),
             ('date_order', '<=', self.date_fin),
         ]
