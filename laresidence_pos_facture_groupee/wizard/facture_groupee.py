@@ -47,10 +47,14 @@ class FactureGroupee(models.TransientModel):
         """
         self.ensure_one()
         societe = self.partner_id.commercial_partner_id
+        # pos.payment.method.type est calcule et non stocke : il ne peut pas
+        # servir dans un domaine. On resout donc les methodes en Python.
+        methodes = self.env['pos.payment.method'].search([]).filtered(
+            lambda m: m.type == 'pay_later')
         return [
             ('partner_id.commercial_partner_id', '=', societe.id),
             ('state', 'in', ('paid', 'done', 'invoiced')),
-            ('payment_ids.payment_method_id.type', '=', 'pay_later'),
+            ('payment_ids.payment_method_id', 'in', methodes.ids),
             ('account_move', '=', False),
             ('laresidence_facture_groupee_id', '=', False),
             ('laresidence_regularisee', '=', False),

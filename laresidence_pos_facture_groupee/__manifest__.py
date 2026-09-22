@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 {
     'name': "La Résidence — Facture groupée des comptes clients",
-    'version': '19.0.2',
+    'version': '19.0.3',
     'category': 'Point of Sale',
     'summary': "Une facture unique pour toutes les commandes d'un client réglées en compte client",
     'description': """
