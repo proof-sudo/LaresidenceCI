@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="pos_order_list_facturation" model="ir.ui.view">
+        <field name="name">pos.order.list.facturation</field>
+        <field name="model">pos.order</field>
+        <field name="inherit_id" ref="point_of_sale.view_pos_order_tree"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='state']" position="after">
+                <field name="laresidence_statut_facture" string="Facturation"
+                       optional="show" readonly="1"
+                       decoration-warning="laresidence_statut_facture == 'a_faire'"
+                       decoration-info="laresidence_statut_facture == 'odoo_faite'"
+                       decoration-success="laresidence_statut_facture == 'fne_faite'"/>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="pos_order_search_facturation" model="ir.ui.view">
+        <field name="name">pos.order.search.facturation</field>
+        <field name="model">pos.order</field>
+        <field name="inherit_id" ref="point_of_sale.view_pos_order_filter"/>
+        <field name="arch" type="xml">
+            <xpath expr="//filter[1]" position="before">
+                <filter string="Facture à réaliser" name="laresidence_a_faire"
+                        domain="[('laresidence_statut_facture', '=', 'a_faire')]"/>
+                <filter string="Facture Odoo faite, FNE en attente" name="laresidence_odoo_faite"
+                        domain="[('laresidence_statut_facture', '=', 'odoo_faite')]"/>
+                <filter string="Facture FNE réalisée" name="laresidence_fne_faite"
+                        domain="[('laresidence_statut_facture', '=', 'fne_faite')]"/>
+                <separator/>
+            </xpath>
+            <xpath expr="//group" position="inside">
+                <filter string="Statut de facturation" name="laresidence_groupe_statut"
+                        context="{'group_by': 'laresidence_statut_facture'}"/>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="pos_order_form_facturation" model="ir.ui.view">
+        <field name="name">pos.order.form.facturation</field>
+        <field name="model">pos.order</field>
+        <field name="inherit_id" ref="point_of_sale.view_pos_pos_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//sheet" position="inside">
+                <group string="Facturation">
+                    <field name="laresidence_statut_facture" readonly="1"/>
+                    <field name="laresidence_facture_demandee" readonly="1"/>
+                </group>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="action_pos_order_a_facturer" model="ir.actions.act_window">
+        <field name="name">Commandes à facturer</field>
+        <field name="res_model">pos.order</field>
+        <field name="view_mode">list,form</field>
+        <field name="domain">[('laresidence_statut_facture', 'in', ['a_faire', 'odoo_faite'])]</field>
+        <field name="context">{'search_default_laresidence_groupe_statut': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Rien à facturer pour le moment.
+            </p>
+            <p>
+                Cette liste réunit les commandes dont un client a demandé la facture
+                en caisse, et celles dont la facture existe mais n'est pas encore
+                certifiée.
+            </p>
+        </field>
+    </record>
+
+    <menuitem id="menu_pos_order_a_facturer"
+              name="Commandes à facturer"
+              parent="point_of_sale.menu_point_of_sale"
+              action="action_pos_order_a_facturer"
+              sequence="15"/>
+
+</odoo>
