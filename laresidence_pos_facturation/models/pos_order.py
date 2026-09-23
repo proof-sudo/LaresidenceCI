@@ -91,6 +91,22 @@ class PosOrder(models.Model):
             else:
                 commande.laresidence_reglement = 'partiel'
 
+    # Aucune surcharge de _load_pos_data_fields ici, et c'est délibéré.
+    #
+    # pos.order ne restreint pas ses champs : sa méthode renvoie une liste
+    # vide, et Odoo lit cette liste vide comme « charge tout ». La preuve est
+    # dans _load_pos_data_relations :
+    #
+    #     if (name not in fields and len(fields)) or ...:
+    #         continue
+    #
+    # tant que la liste est vide, la condition ne filtre rien. Y ajouter un
+    # seul nom la fait passer de « tout » à « ce nom-là seulement » : la
+    # caisse perd alors lines, amount_total et le reste, et s'arrête sur un
+    # this.lines indéfini. C'est ce qui l'a empêchée de démarrer.
+    #
+    # laresidence_facture_demandee part donc au comptoir de lui-même.
+
     def _get_invoice_lines_values(self, line_values, line, move_type):
         """Rattache la ligne de facture à la ligne de devis dont elle provient.
 
