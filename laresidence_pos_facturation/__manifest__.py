@@ -16,7 +16,7 @@ il ne facture pas.
 Il rattache aussi la facture issue d'une commande liée à un devis à ce devis,
 sans que le client soit compté deux fois.
 """,
-    'version': '19.0.3',
+    'version': '19.0.4',
     'category': 'Sales/Point of Sale',
     'author': "Djakaridja Traore",
     'license': 'LGPL-3',
@@ -28,12 +28,10 @@ sans que le client soit compté deux fois.
     'data': [
         'views/pos_order_views.xml',
     ],
-    'assets': {
-        'point_of_sale._assets_pos': [
-            'laresidence_pos_facturation/static/src/app/facturation_patch.js',
-            'laresidence_pos_facturation/static/src/app/facturation_patch.xml',
-        ],
-    },
+    # Les deux fichiers de static/src/app ne sont volontairement pas chargés :
+    # installés, ils empêchent la caisse de démarrer (constat reproduit deux
+    # fois par installation/désinstallation sur le build tracabilite). Ils
+    # restent dans le dépôt le temps d'en trouver la cause.
     'installable': True,
     'application': False,
 }

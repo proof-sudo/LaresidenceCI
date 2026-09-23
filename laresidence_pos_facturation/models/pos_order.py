@@ -91,14 +91,6 @@ class PosOrder(models.Model):
             else:
                 commande.laresidence_reglement = 'partiel'
 
-    @api.model
-    def _load_pos_data_fields(self, config):
-        """Sans cette ligne, la réponse du caissier ne quitte jamais le navigateur."""
-        champs = super()._load_pos_data_fields(config)
-        if 'laresidence_facture_demandee' not in champs:
-            champs.append('laresidence_facture_demandee')
-        return champs
-
     def _get_invoice_lines_values(self, line_values, line, move_type):
         """Rattache la ligne de facture à la ligne de devis dont elle provient.
 
