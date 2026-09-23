@@ -129,6 +129,18 @@ class Regularisation(models.TransientModel):
             raise UserError(
                 "Sans client, l'avoir n'a pas de destinataire. Commandes concernées : %s"
                 % ', '.join(sans_client.mapped('name')))
+        # Une commande déjà facturée ne porte plus sa créance à la caisse :
+        # c'est la facture qui la porte. L'extourner ici créerait un avoir
+        # sans contrepartie à solder, et la facture resterait due.
+        facturees = self.order_ids.filtered('account_move')
+        if facturees:
+            raise UserError(
+                "Ces commandes sont déjà facturées : %s.\n\n"
+                "Leur montant est porté par la facture, plus par la caisse. "
+                "Pour les annuler, passez par un avoir sur la facture "
+                "elle-même (%s), ce qu'Odoo fait nativement."
+                % (', '.join(facturees.mapped('name')),
+                   ', '.join(facturees.mapped('account_move.name'))))
 
         avoirs = self.env['account.move']
         maintenant = fields.Datetime.now()
