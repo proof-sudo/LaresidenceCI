@@ -66,19 +66,41 @@ class Facturation(models.TransientModel):
 
     @api.depends('order_ids', 'regrouper_societe')
     def _compute_synthese(self):
+        """Annonce à l'avance ce qui empêchera une facture unique.
+
+        Odoo regroupe sur la clé (point de vente, client, vendeur, position
+        fiscale). Deux causes de découpage se rencontrent ici : des
+        consommations réparties sur la société et ses contacts, que l'option
+        ci-contre résout ; et des positions fiscales différentes, qu'il ne
+        faut surtout pas forcer — la position « National » remappe les taxes,
+        donc fusionner produirait une facture fausse.
+        """
         for fiche in self:
             fiche.montant_total = sum(fiche.order_ids.mapped('amount_total'))
+            messages = []
             fiches_clients = fiche.order_ids.mapped('partner_id')
             if len(fiches_clients) > 1 and not fiche.regrouper_societe:
-                fiche.avertissement = (
+                messages.append(
                     "Ces consommations sont réparties sur %s fiches : %s.\n"
                     "En l'état, Odoo produira une facture par fiche. Cochez "
                     "l'option ci-dessous pour n'en avoir qu'une, au nom de la "
                     "société — les commandes concernées seront alors "
                     "rattachées à la société."
                     % (len(fiches_clients), ', '.join(fiches_clients.mapped('display_name'))))
-            else:
-                fiche.avertissement = False
+            positions = {c.fiscal_position_id for c in fiche.order_ids}
+            if len(positions) > 1:
+                noms = sorted(p.display_name if p else "aucune position fiscale"
+                              for p in positions)
+                messages.append(
+                    "Ces consommations relèvent de positions fiscales "
+                    "différentes : %s.\n"
+                    "Odoo produira une facture par position, et c'est "
+                    "volontaire : une position fiscale remappe les taxes, les "
+                    "réunir donnerait une facture fausse. Si ces commandes "
+                    "auraient dû relever de la même position, c'est la fiche "
+                    "des commandes qu'il faut corriger, pas la facture."
+                    % ', '.join(noms))
+            fiche.avertissement = '\n\n'.join(messages) or False
 
     def action_facturer(self):
         self.ensure_one()

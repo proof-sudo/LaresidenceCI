@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 {
     'name': "La Résidence — Comptes clients du point de vente",
-    'version': '19.0.3',
+    'version': '19.0.4',
     'category': 'Point of Sale',
     'summary': "Traçabilité des lignes de facture et régularisation des commandes en compte client",
     'description': """
