@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 {
     'name': "La Résidence — Comptes clients du point de vente",
-    'version': '19.0.2',
+    'version': '19.0.3',
     'category': 'Point of Sale',
     'summary': "Traçabilité des lignes de facture et régularisation des commandes en compte client",
     'description': """
@@ -27,6 +27,21 @@ qu'un intertitre dépend du rapport. Et c'est le libellé que le connecteur
 DGI transmet comme description de l'article : un intertitre, dépourvu
 d'article, n'est pas envoyé du tout.
 
+**Un écran guidé pour facturer.**
+
+Le chemin natif demande plusieurs gestes et deux filtres, dont un que rien
+ne rappelle : ne retenir que le compte client. Le menu ``Point de Vente >
+Comptes clients`` propose donc deux entrées. « Comptes clients à facturer »
+montre, regroupé par client, tout ce qui reste à facturer. « Facturer un
+compte client » demande un client et une période, présente les
+consommations éligibles déjà cochées, et prévient quand elles sont
+réparties sur plusieurs fiches — une option permet alors de tout rattacher
+à la société pour n'obtenir qu'une facture.
+
+La facturation elle-même est confiée à l'assistant natif d'Odoo : facture
+consolidée, extourne des écritures de clôture des sessions fermées et
+validation sont de son ressort, pas du nôtre.
+
 **Régularisation d'une commande payée.**
 
 Odoo interdit de repasser une commande payée à l'état « annulé » : le noyau
@@ -45,6 +60,7 @@ manuel avec l'écriture d'origine.
     'depends': ['point_of_sale', 'account'],
     'data': [
         'security/ir.model.access.csv',
+        'wizard/facturation_views.xml',
         'wizard/regularisation_views.xml',
         'views/pos_order_views.xml',
     ],
