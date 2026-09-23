@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 {
     'name': "La Résidence — Comptes clients du point de vente",
-    'version': '19.0.4',
+    'version': '19.0.5',
     'category': 'Point of Sale',
     'summary': "Traçabilité des lignes de facture et régularisation des commandes en compte client",
     'description': """
@@ -46,10 +46,20 @@ validation sont de son ressort, pas du nôtre.
 
 Odoo interdit de repasser une commande payée à l'état « annulé » : le noyau
 n'autorise que paid, done et invoiced. Depuis la liste des commandes, une
-sélection et un motif produisent un avoir en brouillon par commande, repris
-article par article, et marquent la commande comme régularisée — motif,
-auteur, date et lien vers l'avoir. La commande dit alors ce qui s'est
-réellement passé : elle a existé, elle a été extournée.
+sélection et un motif suffisent. Pour chaque commande, l'avoir est créé
+article par article, **validé** et **lettré** contre la créance ouverte du
+client ; la commande est marquée régularisée, avec le motif, l'auteur, la
+date et le lien vers l'avoir.
+
+Un seul geste, et rien ne reste en suspens. C'est délibéré : un avoir
+laissé en brouillon laisserait la commande marquée « régularisée » alors
+que rien n'aurait été extourné — le client devrait toujours l'argent, et
+plus personne ne le facturerait.
+
+Le lettrage n'a lieu que si une seule créance ouverte correspond, au nom du
+même tiers, pour le montant exact et dans l'écriture de clôture de la
+session concernée. En cas de doute, le module s'abstient et le consigne
+dans le journal du serveur plutôt que de solder la mauvaise créance.
 
 Pour un règlement autre que le compte client, dont la ligne de tiers est
 déjà lettrée, l'assistant prévient nommément : il restera un rapprochement

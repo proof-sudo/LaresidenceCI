@@ -8,8 +8,9 @@
             <form string="Régulariser des commandes">
                 <div class="alert alert-info" role="alert">
                     Odoo n'autorise pas à repasser une commande payée à l'état
-                    « annulé ». La commande est donc marquée <b>régularisée</b> et
-                    un avoir est créé en brouillon, article par article.
+                    « annulé ». La commande est donc marquée <b>régularisée</b>, et
+                    un avoir est créé article par article, <b>validé et lettré</b>
+                    contre la créance du client. Rien ne reste à faire ensuite.
                 </div>
                 <field name="avertissement" invisible="not avertissement" nolabel="1"
                        readonly="1" class="alert alert-warning" widget="text"/>

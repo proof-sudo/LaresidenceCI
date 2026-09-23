@@ -85,6 +85,37 @@ class Regularisation(models.TransientModel):
             }))
         return valeurs
 
+    def _lettrer(self, commande, avoir):
+        """Solde l'avoir contre la créance ouverte de la commande.
+
+        La caisse impute le règlement différé au compte de tiers, sous le
+        libellé « <session> - <mode de règlement> ». On ne rapproche que
+        lorsqu'une seule ligne ouverte correspond, au nom du même tiers et
+        pour le montant exact : en cas de doute on s'abstient et on le
+        journalise, plutôt que de solder la mauvaise créance.
+        """
+        ligne_avoir = avoir.line_ids.filtered(
+            lambda l: l.account_id.account_type == 'asset_receivable' and not l.reconciled)
+        if len(ligne_avoir) != 1:
+            return False
+        candidates = self.env['account.move.line'].search([
+            ('account_id', '=', ligne_avoir.account_id.id),
+            ('partner_id', '=', ligne_avoir.partner_id.id),
+            ('parent_state', '=', 'posted'),
+            ('reconciled', '=', False),
+            ('debit', '=', commande.amount_total),
+            ('move_id', '=', commande.session_id.move_id.id),
+        ])
+        if len(candidates) != 1:
+            _logger.info(
+                "Régularisation de %s : lettrage non fait, %s créance(s) "
+                "correspondante(s) au lieu d'une.", commande.name, len(candidates))
+            return False
+        (ligne_avoir | candidates).reconcile()
+        _logger.info("Régularisation de %s : avoir %s lettré contre la créance.",
+                     commande.name, avoir.name)
+        return True
+
     def action_regulariser(self):
         self.ensure_one()
         if not self.journal_id:
@@ -118,10 +149,12 @@ class Regularisation(models.TransientModel):
                 'laresidence_regularisation_date': maintenant,
                 'laresidence_regularisation_user_id': self.env.user.id,
             })
+            avoir.action_post()
+            self._lettrer(commande, avoir)
             avoirs |= avoir
             _logger.info(
                 "Régularisation de %s par %s : avoir %s — %s",
-                commande.name, self.env.user.login, avoir.id, self.motif)
+                commande.name, self.env.user.login, avoir.name, self.motif)
 
         return {
             'type': 'ir.actions.act_window',
