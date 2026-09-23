@@ -10,7 +10,6 @@
                 <field name="laresidence_regularisee" string="Régularisée" optional="show"
                        widget="boolean_toggle" readonly="1"/>
                 <field name="laresidence_regularisation_motif" string="Motif" optional="hide"/>
-                <field name="laresidence_facture_groupee_id" string="Facture groupée" optional="hide"/>
             </xpath>
         </field>
     </record>
