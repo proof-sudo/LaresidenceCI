@@ -16,7 +16,7 @@ il ne facture pas.
 Il rattache aussi la facture issue d'une commande liée à un devis à ce devis,
 sans que le client soit compté deux fois.
 """,
-    'version': '19.0.2',
+    'version': '19.0.3',
     'category': 'Sales/Point of Sale',
     'author': "Djakaridja Traore",
     'license': 'LGPL-3',

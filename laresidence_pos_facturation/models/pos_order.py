@@ -12,6 +12,12 @@ STATUTS = [
     ('fne_faite', "Facture FNE réalisée"),
 ]
 
+REGLEMENTS = [
+    ('non', "Non réglé"),
+    ('partiel', "Réglé partiellement"),
+    ('total', "Réglé en totalité"),
+]
+
 
 class PosOrder(models.Model):
     """La caisse enregistre une demande, la comptabilité produit la facture.
@@ -45,6 +51,45 @@ class PosOrder(models.Model):
                 commande.laresidence_statut_facture = 'a_faire'
             else:
                 commande.laresidence_statut_facture = 'aucune'
+
+    laresidence_reglement = fields.Selection(
+        REGLEMENTS, string="Règlement", default='non',
+        compute='_compute_laresidence_reglement', store=True, index=True,
+        help="Dit si l'argent est rentré, ce que le statut de facturation ne "
+             "dit pas : une commande en compte client est « payée » en caisse "
+             "alors que le client doit encore.")
+
+    @api.depends('amount_total', 'currency_id',
+                 'payment_ids', 'payment_ids.amount',
+                 'payment_ids.payment_method_id',
+                 'account_move', 'account_move.state',
+                 'account_move.amount_residual', 'account_move.amount_total')
+    def _compute_laresidence_reglement(self):
+        """Une facture fait foi ; sinon on regarde ce qui est entré en caisse.
+
+        Le paiement « Compte client » n'est pas un encaissement : il ouvre une
+        créance. Une commande réglée ainsi reste donc non réglée tant que sa
+        facture n'est pas payée — c'est toute la différence entre l'état de la
+        caisse et l'état du compte du client.
+        """
+        for commande in self:
+            devise = commande.currency_id or commande.company_id.currency_id
+            facture = commande.account_move
+            if facture and facture.state == 'posted':
+                restant, reference = facture.amount_residual, facture.amount_total
+            else:
+                differes = commande.payment_ids.payment_method_id.filtered(
+                    lambda m: m.type == 'pay_later')
+                encaisse = sum(commande.payment_ids.filtered(
+                    lambda p: p.payment_method_id not in differes).mapped('amount'))
+                restant, reference = commande.amount_total - encaisse, commande.amount_total
+
+            if not devise or devise.is_zero(restant):
+                commande.laresidence_reglement = 'total'
+            elif devise.compare_amounts(restant, reference) >= 0:
+                commande.laresidence_reglement = 'non'
+            else:
+                commande.laresidence_reglement = 'partiel'
 
     @api.model
     def _load_pos_data_fields(self, config):
