@@ -131,3 +131,72 @@ sous-total des lignes de caisse sans condition.
   utilisé sur ces bases, donc jamais observé ici.
 - Cas d'un devis partiellement consommé en caisse.
 - Cas d'un devis réglé en compte client, qui part ensuite dans la facture groupée.
+
+---
+
+# Vérification du module `laresidence_pos_facturation`
+
+Build `tracabilite-38549703`, module installé en **19.0.2**, base neuve avec
+données de démonstration. Enregistrements créés pour l'occasion.
+
+## Le parcours mesuré
+
+Devis **S00047** — 10 × 100, soit 1 000 HT et 1 150 TTC — consommé en caisse
+puis facturé.
+
+| Étape | Statut devis | Qté facturée | Reste à facturer | Factures sur le devis | Statut commande |
+|---|---|---|---|---|---|
+| Devis confirmé | à facturer | 0 | 1 150 | 0 | — |
+| Commande payée | facturé | 10 | 0 | 0 | Aucune facture liée |
+| **Commande facturée** | **facturé** | **10** | **0** | **1** | **Facture Odoo faite** |
+
+Facture produite : `INV/2026/00012`, comptabilisée, 1 150, origine `S00047`,
+état de paiement « payé ».
+
+Les trois chiffres qui comptent : quantité facturée **10 et non 20**, montant
+facturé **1 000 et non 2 000**, reste à facturer **0 et non −1 150**. Le lien
+documentaire est là sans double comptage.
+
+## Le statut, ses quatre états
+
+Vérifiés un par un sur la base :
+
+| Condition posée | Statut obtenu |
+|---|---|
+| Rien demandé, aucune facture | `Aucune facture liée` |
+| Demande enregistrée en caisse | `Facture FNE à réaliser` |
+| Facture comptabilisée | `Facture Odoo faite` |
+| Facture certifiée | `Facture FNE réalisée` |
+| Certification retirée | retour à `Facture Odoo faite` |
+
+Les deux derniers états se déduisent de la facture : ils suivent d'eux-mêmes,
+dans les deux sens.
+
+## Le correctif 19.0.2
+
+En 19.0.1, la facture remontait bien sur le devis et les quantités étaient
+justes, mais le reste à facturer du devis tombait à **−1 150** et le devis se
+déclarait « à facturer » : quelqu'un aurait rééditer une seconde facture.
+
+Cause : `pos_sale` retranche le montant des lignes de caisse du reste à
+facturer **au niveau du devis** également, et la facture désormais reliée le
+comptait une seconde fois. La correction remet ce montant pour les commandes
+déjà facturées, en respectant l'exclusion des acomptes déjà facturés que le
+standard applique avant de retrancher.
+
+## Côté caisse : livré, pas encore vu à l'écran
+
+Le paquet de la caisse se compile sans erreur (5,8 Mo, généré à 14h57) et
+contient bien le champ synchronisé, les deux questions et le gabarit qui
+retire le bouton Facture.
+
+En revanche l'interface de caisse de ce build, chargée de données de
+démonstration, n'a pas pu être capturée. **Le comportement visuel — bouton
+absent, deux fenêtres à l'encaissement — reste à constater de visu**, sur
+demo2 ou en caisse.
+
+## Note sur le build en échec
+
+Le premier build de ce module n'avait pas de base de données : `install.log`
+vide, `odoo.log` indiquant « Database not initialized ». Le module n'y était
+pour rien — une relance a tout installé normalement.
