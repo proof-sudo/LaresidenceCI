@@ -59,7 +59,7 @@ class PosOrder(models.Model):
              "dit pas : une commande en compte client est « payée » en caisse "
              "alors que le client doit encore.")
 
-    @api.depends('amount_total', 'currency_id',
+    @api.depends('state', 'amount_total', 'currency_id',
                  'payment_ids', 'payment_ids.amount',
                  'payment_ids.payment_method_id',
                  'account_move', 'account_move.state',
@@ -73,6 +73,13 @@ class PosOrder(models.Model):
         caisse et l'état du compte du client.
         """
         for commande in self:
+            # Une commande annulée ne doit rien : le champ reste vide plutôt
+            # que d'afficher « Non réglé ». Constaté sur les données réelles,
+            # où 110 commandes annulées gonflaient le non-réglé de 25 402 894.
+            if commande.state == 'cancel':
+                commande.laresidence_reglement = False
+                continue
+
             devise = commande.currency_id or commande.company_id.currency_id
             facture = commande.account_move
             if facture and facture.state == 'posted':
