@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 {
     'name': "La Résidence — Fermeture automatique de caisse",
-    'version': '19.0.1',
+    'version': '19.0.2',
     'category': 'Point of Sale',
     'summary': "Verrouille la caisse à une heure définie, si plus rien n'est en cours — alerte sinon",
     'description': """

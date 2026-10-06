@@ -13,6 +13,7 @@ from datetime import timedelta
 import pytz
 
 from odoo import api, fields, models, _
+from odoo.exceptions import UserError
 
 _logger = logging.getLogger(__name__)
 
@@ -28,20 +29,32 @@ class PosSession(models.Model):
     # ------------------------------------------------------------------
     # Diagnostic
     # ------------------------------------------------------------------
+    def _laresidence_libelle_commandes_ouvertes(self):
+        """Décrit en clair les commandes encore ouvertes, ou None s'il n'y en a pas.
+
+        Sert à deux endroits : le diagnostic de la fermeture automatique, et le
+        garde-fou qui refuse de verrouiller une caisse avec des tables ouvertes.
+        """
+        self.ensure_one()
+        brouillons = self.order_ids.filtered(lambda o: o.state == 'draft')
+        if not brouillons:
+            return None
+        # restaurant.table n'a pas de champ « name » en Odoo 19 :
+        # table_number, et display_name en repli.
+        tables = [o.table_id.table_number or o.table_id.display_name
+                  for o in brouillons if o.table_id]
+        detail = (" (tables %s)" % ", ".join(str(t) for t in tables if t)) if tables else ""
+        return "%s commande(s) encore ouverte(s)%s" % (len(brouillons), detail)
+
     def _laresidence_auto_close_blockers(self):
         """Retourne la liste, en clair, de ce qui empêche la fermeture."""
         self.ensure_one()
         config = self.config_id
         blocages = []
 
-        brouillons = self.order_ids.filtered(lambda o: o.state == 'draft')
-        if brouillons:
-            # restaurant.table n'a pas de champ « name » en Odoo 19 :
-            # table_number, et display_name en repli.
-            tables = [o.table_id.table_number or o.table_id.display_name
-                      for o in brouillons if o.table_id]
-            detail = (" (tables %s)" % ", ".join(str(t) for t in tables if t)) if tables else ""
-            blocages.append("%s commande(s) encore ouverte(s)%s" % (len(brouillons), detail))
+        libelle = self._laresidence_libelle_commandes_ouvertes()
+        if libelle:
+            blocages.append(libelle)
 
         if config.auto_close_block_on_prep:
             en_prep = self.env['pos.prep.state'].search([
@@ -157,6 +170,58 @@ class PosSession(models.Model):
             'email_to': ','.join(emails),
             'auto_delete': False,
         })
+        return True
+
+    # ------------------------------------------------------------------
+    # Garde-fou et déblocage
+    # ------------------------------------------------------------------
+    def write(self, vals):
+        """Refuse de verrouiller une caisse qui a encore des tables ouvertes.
+
+        Le contrôle porte sur l'écriture de l'état et non sur
+        action_pos_session_closing_control, parce que l'interface de caisse
+        bascule l'état par d'autres chemins : c'est ainsi qu'une session s'est
+        retrouvée verrouillée avec cinq tables ouvertes, impossible à fermer
+        (Odoo refuse la clôture) et impossible à rouvrir (aucun bouton).
+
+        Seules les commandes ouvertes bloquent ici. Les préparations en attente
+        et le délai d'inactivité restent réservés à la fermeture automatique :
+        les opposer à un responsable qui ferme sa caisse à la main serait une
+        gêne sans objet.
+        """
+        if vals.get('state') == 'closing_control':
+            for session in self:
+                if session.state == 'closing_control':
+                    continue
+                libelle = session._laresidence_libelle_commandes_ouvertes()
+                if libelle:
+                    raise UserError(_(
+                        "La caisse %(caisse)s ne peut pas être verrouillée : %(detail)s.\n\n"
+                        "Encaissez ou annulez ces commandes, puis relancez la fermeture.",
+                        caisse=session.config_id.name or session.name,
+                        detail=libelle,
+                    ))
+        return super().write(vals)
+
+    def action_laresidence_reopen(self):
+        """Ramène une session verrouillée à l'état ouvert, avec trace."""
+        for session in self:
+            if session.state != 'closing_control':
+                raise UserError(_(
+                    "Seule une caisse en contrôle de fermeture peut être rouverte. "
+                    "La session %(nom)s est à l'état « %(etat)s ».",
+                    nom=session.name, etat=session.state,
+                ))
+            depuis = session.stop_at or ''
+            session.sudo().write({'state': 'opened'})
+            session._laresidence_trace(_(
+                "Caisse rouverte par %(qui)s. La session était en contrôle de "
+                "fermeture depuis le %(quand)s ; les commandes en cours sont "
+                "conservées.",
+                qui=self.env.user.name, quand=depuis,
+            ))
+            _logger.info("laresidence_pos_close : %s rouverte par %s",
+                         session.name, self.env.user.login)
         return True
 
     # ------------------------------------------------------------------

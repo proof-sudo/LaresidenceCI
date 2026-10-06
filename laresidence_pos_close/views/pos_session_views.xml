@@ -27,4 +27,43 @@ action = {
 }
         </field>
     </record>
+
+    <!-- Bouton de réouverture : visible uniquement sur une caisse verrouillée -->
+    <record id="view_pos_session_form_reopen" model="ir.ui.view">
+        <field name="name">pos.session.form.laresidence.reopen</field>
+        <field name="model">pos.session</field>
+        <field name="inherit_id" ref="point_of_sale.view_pos_session_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//header" position="inside">
+                <button name="action_laresidence_reopen"
+                        type="object"
+                        string="Rouvrir la caisse"
+                        class="btn-primary"
+                        invisible="state != 'closing_control'"
+                        groups="laresidence_pos_close.group_pos_close_notified"
+                        confirm="Rouvrir cette caisse ? Les commandes en cours sont conservées."/>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="action_pos_session_a_rouvrir" model="ir.actions.act_window">
+        <field name="name">Caisses à rouvrir</field>
+        <field name="res_model">pos.session</field>
+        <field name="view_mode">list,form</field>
+        <field name="domain">[('state', '=', 'closing_control')]</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Aucune caisse verrouillée</p>
+            <p>Une caisse apparaît ici lorsqu'elle est en contrôle de fermeture.
+               Dans cet état elle n'accepte plus de commande, et le bouton
+               « Rouvrir la caisse » de sa fiche permet de la remettre en vente
+               sans perdre les commandes en cours.</p>
+        </field>
+    </record>
+
+    <menuitem id="menu_pos_session_a_rouvrir"
+              name="Caisses à rouvrir"
+              parent="point_of_sale.menu_point_of_sale"
+              action="action_pos_session_a_rouvrir"
+              groups="laresidence_pos_close.group_pos_close_notified"
+              sequence="90"/>
 </odoo>
