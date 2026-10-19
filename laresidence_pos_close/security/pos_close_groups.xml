@@ -1,11 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
     <data noupdate="1">
+        <!-- Pas de privilege_id. Un groupe rattaché à un privilège s'affiche
+             dans Odoo 19 en liste déroulante à choix unique : rattaché au
+             privilège « Point of Sale », celui-ci devenait exclusif de
+             « User » et « Administrator ». Le cocher aurait dégradé les
+             droits caisse de la personne au lieu de lui ajouter un accès.
+             Sans privilège, il s'affiche en case à cocher indépendante. -->
         <record id="group_pos_close_notified" model="res.groups">
-            <field name="name">Caisse : destinataire des alertes de fermeture</field>
-            <field name="privilege_id" ref="point_of_sale.res_groups_privilege_point_of_sale"/>
+            <field name="name">Caisse : alertes et déblocage de fermeture</field>
             <field name="comment">Les utilisateurs de ce groupe sont prévenus lorsqu'une caisse
-                n'a pas pu être fermée automatiquement, avec le détail de ce qui reste en cours.</field>
+                n'a pas pu être fermée automatiquement, avec le détail de ce qui reste en cours.
+                Ce sont aussi les seuls à voir le bouton « Rouvrir la caisse » et le menu
+                « Caisses à rouvrir ».</field>
         </record>
     </data>
 </odoo>
