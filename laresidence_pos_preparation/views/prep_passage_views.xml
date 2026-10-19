@@ -5,22 +5,30 @@
         <field name="name">laresidence.prep.passage.list</field>
         <field name="model">laresidence.prep.passage</field>
         <field name="arch" type="xml">
+            <!-- Pas de widget float_time sur les durées : elles sont en
+                 MINUTES, alors que ce widget lit un nombre comme des HEURES.
+                 Il affichait 15,74 min en « 15:44 », soit quinze heures. -->
             <list string="Suivi de préparation" create="false" edit="false"
-                  decoration-danger="depassement" decoration-muted="en_cours">
-                <field name="pos_order_id"/>
+                  decoration-danger="depassement or alerte"
+                  decoration-muted="not en_cours and not depassement">
+                <field name="table_id" optional="show"/>
                 <field name="product_id"/>
-                <field name="quantite" optional="show"/>
+                <field name="quantite" optional="hide"/>
                 <field name="display_id"/>
                 <field name="stage_id"/>
-                <field name="date_debut"/>
-                <field name="date_fin" optional="show"/>
-                <field name="duree" sum="Total" widget="float_time"/>
-                <field name="seuil" optional="hide"/>
-                <field name="depassement" optional="show"/>
+                <field name="date_debut" string="Entrée"/>
+                <field name="date_fin" string="Sortie" optional="show"/>
+                <field name="duree_courante" string="Écoulé (min)" digits="[6, 1]"/>
+                <field name="duree" string="Durée close (min)" sum="Total"
+                       digits="[6, 1]" optional="hide"/>
+                <field name="seuil" optional="show"/>
+                <field name="depassement" optional="hide"/>
                 <field name="force" optional="show"/>
                 <field name="employee_id" optional="show"/>
+                <field name="pos_order_id" optional="hide"/>
                 <field name="user_id" optional="hide"/>
                 <field name="en_cours" column_invisible="1"/>
+                <field name="alerte" column_invisible="1"/>
             </list>
         </field>
     </record>
@@ -32,7 +40,7 @@
             <pivot string="Temps de préparation" sample="1">
                 <field name="product_id" type="row"/>
                 <field name="stage_id" type="col"/>
-                <field name="duree" type="measure" widget="float_time"/>
+                <field name="duree" type="measure"/>
             </pivot>
         </field>
     </record>
@@ -58,9 +66,12 @@
                 <field name="display_id"/>
                 <field name="stage_id"/>
                 <field name="employee_id"/>
+                <field name="table_id"/>
                 <filter name="hors_delai" string="Hors délai" domain="[('depassement', '=', True)]"/>
                 <filter name="force" string="Validé sans passage au passe" domain="[('force', '=', True)]"/>
                 <filter name="en_cours" string="Étape en cours" domain="[('en_cours', '=', True)]"/>
+                <filter name="servis" string="Plats servis"
+                        domain="[('stage_id.name', 'ilike', 'servi')]"/>
                 <separator/>
                 <filter name="aujourdhui" string="Aujourd'hui"
                         domain="[('date_debut', '&gt;=', datetime.datetime.combine(context_today(), datetime.time(0,0,0)))]"/>
@@ -74,6 +85,7 @@
                     <filter name="group_product" string="Plat" domain="[]" context="{'group_by': 'product_id'}"/>
                     <filter name="group_display" string="Poste" domain="[]" context="{'group_by': 'display_id'}"/>
                     <filter name="group_stage" string="Étape" domain="[]" context="{'group_by': 'stage_id'}"/>
+                    <filter name="group_table" string="Table" domain="[]" context="{'group_by': 'table_id'}"/>
                     <filter name="group_order" string="Commande" domain="[]" context="{'group_by': 'pos_order_id'}"/>
                     <filter name="group_employee" string="Serveur" domain="[]" context="{'group_by': 'employee_id'}"/>
                     <filter name="group_user" string="Enregistré par" domain="[]" context="{'group_by': 'user_id'}"/>
@@ -88,9 +100,13 @@
     <record id="action_prep_passage" model="ir.actions.act_window">
         <field name="name">Temps par étape de préparation</field>
         <field name="res_model">laresidence.prep.passage</field>
-        <field name="view_mode">list,pivot,graph</field>
+        <!-- Le tableau croisé d'abord : c'est la vue que la maquette
+             montrait, un plat par ligne et une étape par colonne. La liste
+             brute des passages reste accessible, mais elle répond à une
+             autre question. -->
+        <field name="view_mode">pivot,list,graph</field>
         <field name="search_view_id" ref="view_prep_passage_search"/>
-        <field name="context">{'search_default_group_product': 1}</field>
+        <field name="context">{'search_default_sept_jours': 1}</field>
         <field name="help" type="html">
             <p class="o_view_nocontent_smiling_face">Aucun passage enregistré</p>
             <p>Chaque fois qu'un plat change d'étape sur un écran de préparation,

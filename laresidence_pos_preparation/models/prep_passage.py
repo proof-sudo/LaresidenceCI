@@ -32,6 +32,11 @@ class PrepPassage(models.Model):
         related='prep_line_id.product_id', store=True, index=True)
     quantite = fields.Float(
         string="Quantité", related='prep_line_id.quantity', store=True)
+    table_id = fields.Many2one(
+        'restaurant.table', string="Table",
+        related='pos_order_id.table_id', store=True, index=True,
+        help="Plus parlant que le numéro de commande, qui reste « / » tant "
+             "que la commande n'est pas encaissée.")
 
     stage_id = fields.Many2one(
         'pos.prep.stage', string="Étape", required=True, index=True)
@@ -56,6 +61,11 @@ class PrepPassage(models.Model):
         string="Seuil d'alerte (min)", related='stage_id.alert_timer', store=True)
     depassement = fields.Boolean(
         string="Hors délai", compute='_compute_depassement', store=True, index=True)
+    alerte = fields.Boolean(
+        string="En alerte", compute='_compute_duree_courante',
+        help="Étape encore en cours qui a déjà dépassé son seuil. Non "
+             "stocké : un champ stocké ne se recalcule pas avec le temps "
+             "qui passe, et resterait à faux pendant que le plat attend.")
 
     user_id = fields.Many2one(
         'res.users', string="Enregistré par", index=True,
@@ -85,15 +95,19 @@ class PrepPassage(models.Model):
             else:
                 passage.duree = 0.0
 
-    @api.depends('date_debut', 'date_fin')
+    @api.depends('date_debut', 'date_fin', 'seuil')
     def _compute_duree_courante(self):
         maintenant = fields.Datetime.now()
         for passage in self:
             if not passage.date_debut:
                 passage.duree_courante = 0.0
+                passage.alerte = False
                 continue
             fin = passage.date_fin or maintenant
             passage.duree_courante = (fin - passage.date_debut).total_seconds() / 60.0
+            passage.alerte = bool(
+                not passage.date_fin and passage.seuil
+                and passage.duree_courante > passage.seuil)
 
     @api.depends('duree', 'seuil', 'en_cours')
     def _compute_depassement(self):
