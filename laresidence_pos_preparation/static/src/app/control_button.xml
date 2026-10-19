@@ -3,17 +3,17 @@
 
     <t t-name="laresidence_pos_preparation.ControlButtons"
        t-inherit="point_of_sale.ControlButtons" t-inherit-mode="extension">
-        <!-- Le bouton prend la même condition que ses voisins de la rangée
-             principale : sans « !props.showRemainingButtons », il
-             apparaîtrait aussi dans le panneau des boutons secondaires, le
-             même modèle servant aux deux. -->
-        <xpath expr="//button[hasclass('course-btn')]" position="before">
-            <button class="btn btn-secondary btn-lg laresidence-service-btn"
-                    t-if="pos.config.module_pos_restaurant and !props.showRemainingButtons"
+        <!-- Dans le panneau « Actions », et surtout pas dans la rangée
+             principale. Place en rangee, ce bouton a fait deborder la
+             largeur sur les tablettes du restaurant : le bouton « … » qui
+             ouvre ce panneau sortait de l'ecran, et avec lui l'« Addition ».
+             Constate en service le 19/10. La rangee principale est
+             dimensionnee au pixel par Odoo, on n'y ajoute rien. -->
+        <xpath expr="//div[hasclass('control-buttons')]" position="inside">
+            <button class="btn btn-light btn-lg app-border-color text-start laresidence-service-btn"
+                    t-if="pos.config.module_pos_restaurant"
                     t-on-click="onClickLaresidenceService">
-                <!-- Pas « Service » : Odoo appelle déjà ainsi le bouton des
-                     services du repas, juste à côté. Deux boutons au même
-                     libellé côte à côte, relevé à l'essai sur demo2. -->
+                <i class="fa fa-cutlery me-2" role="img" aria-hidden="true"/>
                 <span>Plats servis</span>
             </button>
         </xpath>

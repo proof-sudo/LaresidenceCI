@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 {
     'name': "La R\u00e9sidence \u2014 Suivi des \u00e9tapes de pr\u00e9paration",
-    'version': '19.0.9',
+    'version': '19.0.10',
     'category': 'Point of Sale',
     'summary': "Historise chaque passage d'\u00e9tape en cuisine et au bar, avec sa dur\u00e9e",
     'description': """
