@@ -32,26 +32,35 @@ class PosPrepDisplay(models.Model):
         return etapes.sorted(key=lambda s: (s.sequence, s.id))[-1]
 
     def _laresidence_assurer_etape_servi(self):
-        """Crée l'étape « Servi » sur les postes qui ne l'ont pas encore."""
+        """Fige l'ordre des étapes et pose « Servi » en dernier.
+
+        Les deux opérations sont faites à chaque appel, y compris sur un
+        poste qui a déjà son étape « Servi » : c'est ce qui permet à une mise
+        à jour du module de rattraper un poste installé auparavant.
+        """
         Etape = self.env['pos.prep.stage'].sudo()
         for ecran in self:
-            if ecran.laresidence_stage_servi_id:
-                continue
-            existante = ecran.stage_ids.filtered(
-                lambda e: (e.name or '').strip().lower() == NOM_ETAPE_SERVI.lower())
-            if existante:
-                ecran.laresidence_stage_servi_id = existante[0]
-                continue
-            # Les étapes existantes sont toutes à la séquence 0 : leur ordre
-            # ne tient qu'à leur identifiant. Une étape ajoutée plus tard en
+            servi = ecran.laresidence_stage_servi_id or ecran.stage_ids.filtered(
+                lambda e: (e.name or '').strip().lower() == NOM_ETAPE_SERVI.lower())[:1]
+
+            # Les étapes d'origine sont toutes à la séquence 0 : leur ordre ne
+            # tient qu'à leur identifiant. Une étape ajoutée plus tard en
             # cuisine prendrait alors la dernière place et deviendrait, sans
             # que personne ne le voie, celle depuis laquelle on peut servir.
-            # On fige donc l'ordre affiché en séquences explicites.
+            # On fige donc l'ordre déjà affiché en séquences explicites.
             rang = 0
-            for etape in ecran.stage_ids:
+            for etape in ecran.stage_ids - servi:
                 rang += 10
                 if etape.sequence != rang:
                     etape.sudo().sequence = rang
+
+            if servi:
+                if ecran.laresidence_stage_servi_id != servi:
+                    ecran.laresidence_stage_servi_id = servi
+                if servi.sequence != rang + 10:
+                    servi.sudo().sequence = rang + 10
+                continue
+
             ecran.laresidence_stage_servi_id = Etape.create({
                 'name': NOM_ETAPE_SERVI,
                 'prep_display_id': ecran.id,
