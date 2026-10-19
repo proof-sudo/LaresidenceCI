@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!--
+        TEMPLATE 0 — Masquer l'en-tête (logo + infos) sur les pages 2+
+        Étend subst() du minimal_layout pour cacher .o_clean_header quand sitepage > 1
+    -->
+    <template id="minimal_layout_laresidence"
+              inherit_id="web.minimal_layout"
+              name="La Résidence — En-tête première page uniquement">
+
+        <xpath expr="//head" position="inside">
+            <script>
+                document.addEventListener('DOMContentLoaded', function() {
+                    try {
+                        var params = {};
+                        window.location.search.substring(1).split('&amp;').forEach(function(p) {
+                            var kv = p.split('=');
+                            if (kv[0]) { params[kv[0]] = kv[1] ? unescape(kv[1]) : ''; }
+                        });
+                        var page = parseInt(params.sitepage || params.page || '1');
+                        if (page &gt; 1) {
+                            document.body.innerHTML = '';
+                        }
+                    } catch(e) {}
+                });
+            </script>
+        </xpath>
+
+    </template>
+
+
+    <!--
+        TEMPLATE 1 — Infos société (adresse, RCCM, email, tel) sous le logo
+        Cible : web.external_layout_bold
+    -->
+    <template id="external_layout_bold_laresidence"
+              inherit_id="web.external_layout_bold"
+              name="La Résidence — Infos société sous logo">
+
+        <xpath expr="//img[@t-att-src='image_data_uri(company.logo)']" position="after">
+            <div style="font-size: 13px; line-height: 1.7; margin-top: 6px;">
+                <div t-if="company.street"><t t-esc="company.street"/></div>
+                <div t-if="company.company_registry">RCCM : <t t-esc="company.company_registry"/></div>
+                <div t-if="company.email"><t t-esc="company.email"/></div>
+                <div t-if="company.phone"><t t-esc="company.phone"/></div>
+            </div>
+        </xpath>
+
+    </template>
+
+
+    <!--
+        TEMPLATE 2 — Rapport de devis : coordonnées bancaires à gauche des totaux
+    -->
+    <template id="report_saleorder_document_laresidence"
+              inherit_id="sale.report_saleorder_document"
+              name="La Résidence — Devis enrichi">
+
+        <!--
+            2a. Retirer l'offset Bootstrap de la colonne des totaux.
+        -->
+        <!-- Prix unitaire HT = price_subtotal / quantité -->
+        <xpath expr="//span[@t-field='line.price_unit']" position="replace">
+            <span t-esc="'%.0f' % (line.price_subtotal / line.product_uom_qty if line.product_uom_qty else 0)"/>
+        </xpath>
+
+<xpath expr="//div[@id='total']/div[1]" position="attributes">
+            <attribute name="class"
+                       remove="offset-1 offset-2 offset-3 offset-4 offset-5 offset-6 offset-7 offset-8 offset-sm-3 offset-sm-4 offset-sm-5 offset-md-3 offset-md-4 offset-md-5 offset-md-6"
+                       separator=" "/>
+        </xpath>
+
+        <!--
+            2b. Insérer le bloc bancaire AVANT la colonne des totaux.
+        -->
+        <xpath expr="//div[@id='total']/div[1]" position="before">
+            <div class="col pe-4" style="font-size: 12px; padding-top: 2px;">
+                <p class="fw-bold mb-1" style="text-decoration: underline; font-size: 12px;">
+                    Modalités et conditions de règlement :
+                </p>
+                <t t-if="doc.company_id.bank_ids">
+                    <t t-set="bank" t-value="doc.company_id.bank_ids[0]"/>
+                    <p class="mb-0"><strong>Par virement bancaire :</strong></p>
+                    <t t-if="bank.bank_id and bank.bank_id.bic">
+                        <p class="mb-0">Code B.I.C : <strong t-esc="bank.bank_id.bic"/></p>
+                    </t>
+                    <p class="mb-1">Code I.B.A.N : <strong t-esc="bank.acc_number"/></p>
+                    <p class="mb-0"><strong>Par chèque à l'ordre de :</strong></p>
+                    <p class="mb-0"><t t-esc="doc.company_id.name"/></p>
+                </t>
+                <t t-else="">
+                    <p class="text-muted mb-0" style="font-style: italic;">
+                        Configurer un compte bancaire dans la fiche société.
+                    </p>
+                </t>
+            </div>
+        </xpath>
+
+        <xpath expr="//div[@id='total']" position="after">
+            <div class="text-center mt-3">
+                <p class="fw-bold mb-0" style="font-size: 12px;">
+                    Toute commande est soumise à l'acceptation préalable de nos conditions générales de vente.
+                </p>
+            </div>
+        </xpath>
+
+    </template>
+
+</odoo>

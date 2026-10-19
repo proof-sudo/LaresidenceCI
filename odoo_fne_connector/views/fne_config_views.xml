@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+
+        <record id="view_fne_config_settings_form" model="ir.ui.view">
+            <field name="name">res.config.settings.view.form.inherit.fne</field>
+            <field name="model">res.config.settings</field>
+            <field name="priority" eval="90"/>
+            <field name="inherit_id" ref="base_setup.res_config_settings_view_form"/>
+            <field name="arch" type="xml">
+                <xpath expr="//form" position="inside">
+
+                    <div class="app_settings_block" data-string="FNE" string="FNE" data-key="fne">
+                        <h2>Configuration FNE / DGI</h2>
+
+                        <div class="row mt16 o_settings_container">
+
+                            <!-- Clé API -->
+                            <div class="col-12 col-lg-6 o_setting_box">
+                                <div class="o_setting_right_pane">
+                                    <label for="fne_api_key"/>
+                                    <div class="text-muted">
+                                        Fournie par la DGI dans votre espace FNE (onglet Paramétrage)
+                                    </div>
+                                    <field name="fne_api_key" password="True"/>
+                                </div>
+                            </div>
+
+                            <!-- Mode -->
+                            <div class="col-12 col-lg-6 o_setting_box">
+                                <div class="o_setting_right_pane">
+                                    <label for="fne_mode"/>
+                                    <div class="text-muted">
+                                        Basculez en Production uniquement après validation DGI
+                                    </div>
+                                    <field name="fne_mode" widget="radio"/>
+                                </div>
+                            </div>
+
+                            <!-- URL Test -->
+                            <div class="col-12 col-lg-6 o_setting_box">
+                                <div class="o_setting_right_pane">
+                                    <label for="fne_test_url"/>
+                                    <field name="fne_test_url"/>
+                                </div>
+                            </div>
+
+                            <!-- URL Production (visible seulement en mode prod) -->
+                            <div class="col-12 col-lg-6 o_setting_box"
+                                 invisible="fne_mode != 'prod'">
+                                <div class="o_setting_right_pane">
+                                    <label for="fne_prod_url"/>
+                                    <field name="fne_prod_url"/>
+                                </div>
+                            </div>
+
+                            <!-- Point de vente -->
+                            <div class="col-12 col-lg-6 o_setting_box">
+                                <div class="o_setting_right_pane">
+                                    <label for="fne_point_de_vente"/>
+                                    <div class="text-muted">Ex : SIEGE, AGENCE PLATEAU…</div>
+                                    <field name="fne_point_de_vente"/>
+                                </div>
+                            </div>
+
+                            <!-- Établissement -->
+                            <div class="col-12 col-lg-6 o_setting_box">
+                                <div class="o_setting_right_pane">
+                                    <label for="fne_establishment"/>
+                                    <div class="text-muted">Raison sociale telle qu'elle apparaît sur la facture</div>
+                                    <field name="fne_establishment"/>
+                                </div>
+                            </div>
+
+
+                            <!-- Pied de page -->
+                            <div class="col-12 col-lg-6 o_setting_box">
+                                <div class="o_setting_right_pane">
+                                    <label for="fne_footer"/>
+                                    <div class="text-muted">Message personnalisé affiché en bas de la facture certifiée</div>
+                                    <field name="fne_footer"/>
+                                </div>
+                            </div>
+
+                        </div>
+
+                        <!-- Bouton test connexion -->
+                        <div class="row mt8">
+                            <div class="col-12">
+                                <button name="action_test_fne_connection"
+                                        string="Tester la connexion"
+                                        type="object"
+                                        class="btn btn-secondary"
+                                        icon="fa-plug"/>
+                            </div>
+                        </div>
+
+                    </div>
+
+                </xpath>
+            </field>
+        </record>
+
+        <!-- Action pour ouvrir la configuration FNE directement -->
+        <record id="action_fne_config_settings" model="ir.actions.act_window">
+            <field name="name">Configuration FNE</field>
+            <field name="res_model">res.config.settings</field>
+            <field name="view_mode">form</field>
+            <field name="target">current</field>
+            <field name="context">{'module': 'odoo_fne_connector'}</field>
+        </record>
+
+        <menuitem id="menu_fne_config_root"
+                  name="FNE"
+                  parent="base.menu_administration"
+                  sequence="50"
+                  groups="base.group_system"/>
+
+        <menuitem id="menu_fne_config_settings"
+                  name="Paramètres"
+                  parent="menu_fne_config_root"
+                  action="action_fne_config_settings"
+                  sequence="10"
+                  groups="base.group_system"/>
+
+    </data>
+</odoo>

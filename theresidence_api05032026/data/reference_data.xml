@@ -1,0 +1,250 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="1">
+        
+        <!-- Types d'adhésion -->
+        <record id="membership_type_visitor" model="theresidence.membership.type">
+            <field name="name">Visiteur</field>
+            <field name="code">VISITOR</field>
+            <field name="description">Accès limité aux événements publics</field>
+            <field name="sort_order">1</field>
+        </record>
+        <record id="membership_type_member" model="theresidence.membership.type">
+            <field name="name">Membre</field>
+            <field name="code">MEMBER</field>
+            <field name="description">Accès standard au club</field>
+            <field name="sort_order">2</field>
+        </record>
+        <record id="membership_type_premium" model="theresidence.membership.type">
+            <field name="name">Premium</field>
+            <field name="code">PREMIUM</field>
+            <field name="description">Accès complet avec avantages exclusifs</field>
+            <field name="sort_order">3</field>
+        </record>
+        <record id="membership_type_vip" model="theresidence.membership.type">
+            <field name="name">VIP</field>
+            <field name="code">VIP</field>
+            <field name="description">Accès illimité et services personnalisés</field>
+            <field name="sort_order">4</field>
+        </record>
+        <record id="membership_type_corporate" model="theresidence.membership.type">
+            <field name="name">Corporate</field>
+            <field name="code">CORPORATE</field>
+            <field name="description">Adhésion entreprise multi-utilisateurs</field>
+            <field name="sort_order">5</field>
+        </record>
+
+        <!-- Types d'espaces -->
+        <record id="space_type_meeting_room" model="theresidence.space.type">
+            <field name="name">Salle de réunion</field>
+            <field name="code">MEETING_ROOM</field>
+            <field name="description">Salle équipée pour réunions professionnelles</field>
+            <field name="sequence">1</field>
+        </record>
+        <record id="space_type_conference" model="theresidence.space.type">
+            <field name="name">Salle de conférence</field>
+            <field name="code">CONFERENCE</field>
+            <field name="description">Grande salle pour conférences et séminaires</field>
+            <field name="sequence">2</field>
+        </record>
+        <record id="space_type_office" model="theresidence.space.type">
+            <field name="name">Bureau privé</field>
+            <field name="code">OFFICE</field>
+            <field name="description">Bureau individuel ou partagé</field>
+            <field name="sequence">3</field>
+        </record>
+        <record id="space_type_coworking" model="theresidence.space.type">
+            <field name="name">Espace coworking</field>
+            <field name="code">COWORKING</field>
+            <field name="description">Espace de travail partagé</field>
+            <field name="sequence">4</field>
+        </record>
+        <record id="space_type_event" model="theresidence.space.type">
+            <field name="name">Salle événementielle</field>
+            <field name="code">EVENT</field>
+            <field name="description">Espace pour événements et réceptions</field>
+            <field name="sequence">5</field>
+        </record>
+        <record id="space_type_lounge" model="theresidence.space.type">
+            <field name="name">Lounge</field>
+            <field name="code">LOUNGE</field>
+            <field name="description">Espace détente et networking</field>
+            <field name="sequence">6</field>
+        </record>
+
+        <!-- Options de réservation -->
+        <record id="option_projector" model="theresidence.reservation.option.def">
+            <field name="name">Vidéoprojecteur</field>
+            <field name="code">PROJECTOR</field>
+            <field name="description">Vidéoprojecteur HD avec écran</field>
+            <field name="scope">SPACE</field>
+            <field name="price">5000</field>
+            <field name="sequence">1</field>
+        </record>
+        <record id="option_tv_screen" model="theresidence.reservation.option.def">
+            <field name="name">Écran TV</field>
+            <field name="code">TV_SCREEN</field>
+            <field name="description">Écran TV grand format</field>
+            <field name="scope">SPACE</field>
+            <field name="price">3000</field>
+            <field name="sequence">2</field>
+        </record>
+        <record id="option_whiteboard" model="theresidence.reservation.option.def">
+            <field name="name">Tableau blanc</field>
+            <field name="code">WHITEBOARD</field>
+            <field name="description">Tableau blanc avec marqueurs</field>
+            <field name="scope">SPACE</field>
+            <field name="price">0</field>
+            <field name="sequence">3</field>
+        </record>
+        <record id="option_flipchart" model="theresidence.reservation.option.def">
+            <field name="name">Paperboard</field>
+            <field name="code">FLIPCHART</field>
+            <field name="description">Chevalet paperboard avec papier</field>
+            <field name="scope">SPACE</field>
+            <field name="price">2000</field>
+            <field name="sequence">4</field>
+        </record>
+        <record id="option_catering" model="theresidence.reservation.option.def">
+            <field name="name">Service traiteur</field>
+            <field name="code">CATERING</field>
+            <field name="description">Pause café, déjeuner ou cocktail</field>
+            <field name="scope">SPACE</field>
+            <field name="price">25000</field>
+            <field name="sequence">5</field>
+        </record>
+        <record id="option_coffee_break" model="theresidence.reservation.option.def">
+            <field name="name">Pause café</field>
+            <field name="code">COFFEE_BREAK</field>
+            <field name="description">Café, thé et viennoiseries</field>
+            <field name="scope">SPACE</field>
+            <field name="price">5000</field>
+            <field name="sequence">6</field>
+        </record>
+        <record id="option_wifi_premium" model="theresidence.reservation.option.def">
+            <field name="name">WiFi haut débit</field>
+            <field name="code">WIFI_PREMIUM</field>
+            <field name="description">Connexion WiFi dédiée haute vitesse</field>
+            <field name="scope">SPACE</field>
+            <field name="price">3000</field>
+            <field name="sequence">7</field>
+        </record>
+        <record id="option_conference_phone" model="theresidence.reservation.option.def">
+            <field name="name">Téléphone conférence</field>
+            <field name="code">CONFERENCE_PHONE</field>
+            <field name="description">Téléphone de conférence</field>
+            <field name="scope">SPACE</field>
+            <field name="price">5000</field>
+            <field name="sequence">8</field>
+        </record>
+        <record id="option_video_conference" model="theresidence.reservation.option.def">
+            <field name="name">Visioconférence</field>
+            <field name="code">VIDEO_CONFERENCE</field>
+            <field name="description">Système de visioconférence complet</field>
+            <field name="scope">SPACE</field>
+            <field name="price">10000</field>
+            <field name="sequence">9</field>
+        </record>
+        <record id="option_parking" model="theresidence.reservation.option.def">
+            <field name="name">Parking</field>
+            <field name="code">PARKING</field>
+            <field name="description">Place de parking réservée</field>
+            <field name="scope">GLOBAL</field>
+            <field name="price">2000</field>
+            <field name="sequence">10</field>
+        </record>
+        <record id="option_hostess" model="theresidence.reservation.option.def">
+            <field name="name">Hôtesse d'accueil</field>
+            <field name="code">HOSTESS</field>
+            <field name="description">Service d'accueil personnalisé</field>
+            <field name="scope">EVENT</field>
+            <field name="price">15000</field>
+            <field name="sequence">11</field>
+        </record>
+
+        <!-- Types de menu -->
+        <record id="menu_kind_breakfast" model="theresidence.menu.kind">
+            <field name="name">Petit-déjeuner</field>
+            <field name="code">BREAKFAST</field>
+            <field name="sequence">1</field>
+        </record>
+        <record id="menu_kind_lunch" model="theresidence.menu.kind">
+            <field name="name">Déjeuner</field>
+            <field name="code">LUNCH</field>
+            <field name="sequence">2</field>
+        </record>
+        <record id="menu_kind_dinner" model="theresidence.menu.kind">
+            <field name="name">Dîner</field>
+            <field name="code">DINNER</field>
+            <field name="sequence">3</field>
+        </record>
+        <record id="menu_kind_drinks" model="theresidence.menu.kind">
+            <field name="name">Boissons</field>
+            <field name="code">DRINKS</field>
+            <field name="sequence">4</field>
+        </record>
+        <record id="menu_kind_snacks" model="theresidence.menu.kind">
+            <field name="name">Snacks</field>
+            <field name="code">SNACKS</field>
+            <field name="sequence">5</field>
+        </record>
+
+        <!-- Types d'événements webhook -->
+        <record id="webhook_event_member_created" model="theresidence.webhook.event.type">
+            <field name="name">Membre créé</field>
+            <field name="code">MEMBER_CREATED</field>
+            <field name="sequence">1</field>
+        </record>
+        <record id="webhook_event_reservation_created" model="theresidence.webhook.event.type">
+            <field name="name">Réservation créée</field>
+            <field name="code">RESERVATION_CREATED</field>
+            <field name="sequence">10</field>
+        </record>
+        <record id="webhook_event_reservation_updated" model="theresidence.webhook.event.type">
+            <field name="name">Réservation modifiée</field>
+            <field name="code">RESERVATION_UPDATED</field>
+            <field name="sequence">11</field>
+        </record>
+        <record id="webhook_event_reservation_status_changed" model="theresidence.webhook.event.type">
+            <field name="name">Statut réservation changé</field>
+            <field name="code">RESERVATION_STATUS_CHANGED</field>
+            <field name="sequence">12</field>
+        </record>
+        <record id="webhook_event_reservation_cancelled" model="theresidence.webhook.event.type">
+            <field name="name">Réservation annulée</field>
+            <field name="code">RESERVATION_CANCELLED</field>
+            <field name="sequence">13</field>
+        </record>
+        <record id="webhook_event_order_created" model="theresidence.webhook.event.type">
+            <field name="name">Commande créée</field>
+            <field name="code">ORDER_CREATED</field>
+            <field name="sequence">20</field>
+        </record>
+        <record id="webhook_event_order_status_changed" model="theresidence.webhook.event.type">
+            <field name="name">Statut commande changé</field>
+            <field name="code">ORDER_STATUS_CHANGED</field>
+            <field name="sequence">21</field>
+        </record>
+        <record id="webhook_event_order_cancelled" model="theresidence.webhook.event.type">
+            <field name="name">Commande annulée</field>
+            <field name="code">ORDER_CANCELLED</field>
+            <field name="sequence">22</field>
+        </record>
+        <record id="webhook_event_subscription_created" model="theresidence.webhook.event.type">
+            <field name="name">Abonnement créé</field>
+            <field name="code">SUBSCRIPTION_CREATED</field>
+            <field name="sequence">30</field>
+        </record>
+        <record id="webhook_event_subscription_status_changed" model="theresidence.webhook.event.type">
+            <field name="name">Statut abonnement changé</field>
+            <field name="code">SUBSCRIPTION_STATUS_CHANGED</field>
+            <field name="sequence">31</field>
+        </record>
+        <record id="webhook_event_subscription_cancelled" model="theresidence.webhook.event.type">
+            <field name="name">Abonnement annulé</field>
+            <field name="code">SUBSCRIPTION_CANCELLED</field>
+            <field name="sequence">32</field>
+        </record>
+
+    </data>
+</odoo>

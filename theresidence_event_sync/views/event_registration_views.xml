@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ─────────────────────────────────────────────────────────
+         event.registration — Vue formulaire
+         Onglet "The Residence" avec les champs de synchronisation
+    ───────────────────────────────────────────────────────────── -->
+    <record id="view_registration_form_tr" model="ir.ui.view">
+        <field name="name">event.registration.form.tr</field>
+        <field name="model">event.registration</field>
+        <field name="inherit_id" ref="event.view_event_registration_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//sheet" position="inside">
+                <notebook>
+                    <page string="The Residence" name="tr_sync">
+                        <group string="Synchronisation backend">
+                            <field name="x_tr_external_id" readonly="1"
+                                   string="ID Externe TR"/>
+                            <field name="x_tr_member_uuid" readonly="1"
+                                   string="UUID Membre TR"/>
+                            <field name="x_tr_is_attendee" readonly="1"
+                                   string="Est un invité nominatif"/>
+                            <field name="x_tr_guests_count"
+                                   string="Nb invités non-nominatifs"/>
+                            <field name="x_tr_parent_registration_id"
+                                   readonly="1"
+                                   string="Inscription parente"
+                                   invisible="not x_tr_is_attendee"/>
+                        </group>
+                        <group string="Invités nominatifs"
+                               invisible="x_tr_is_attendee">
+                            <field name="x_tr_attendee_ids"
+                                   nolabel="1"
+                                   mode="list">
+                                <list string="Invités nominatifs">
+                                    <field name="name"             string="Nom"/>
+                                    <field name="email"            string="Email"/>
+                                    <field name="phone"            string="Téléphone"/>
+                                    <field name="state"            string="Statut"/>
+                                    <field name="x_tr_external_id" string="ID Externe" optional="show"/>
+                                </list>
+                            </field>
+                        </group>
+                    </page>
+                </notebook>
+            </xpath>
+        </field>
+    </record>
+
+</odoo>

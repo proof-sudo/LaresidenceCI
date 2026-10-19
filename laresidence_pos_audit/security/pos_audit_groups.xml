@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="1">
+
+        <record id="group_pos_audit_viewer" model="res.groups">
+            <field name="name">Journal d'audit : consultation</field>
+            <field name="privilege_id" ref="point_of_sale.res_groups_privilege_point_of_sale"/>
+            <field name="comment">Donne accès au journal d'audit du Point de Vente.
+                Sans ce droit, le menu n'apparaît pas et les enregistrements sont
+                inaccessibles, y compris aux responsables de caisse.
+                L'accès reste protégé par un code : appartenir au groupe ne suffit pas
+                à ouvrir le journal.</field>
+        </record>
+
+        <record id="group_pos_audit_officer" model="res.groups">
+            <field name="name">Journal d'audit : administration</field>
+            <field name="privilege_id" ref="point_of_sale.res_groups_privilege_point_of_sale"/>
+            <field name="implied_ids" eval="[(4, ref('group_pos_audit_viewer'))]"/>
+            <field name="comment">Permet en plus de définir le code d'accès et de
+                désigner qui peut consulter le journal. Toute modification de cette
+                liste est elle-même inscrite dans le journal.</field>
+        </record>
+
+        <!-- Le responsable d'origine du paramétrage garde l'accès. -->
+        <record id="base.user_admin" model="res.users">
+            <field name="group_ids" eval="[(4, ref('group_pos_audit_officer'))]"/>
+        </record>
+
+    </data>
+</odoo>

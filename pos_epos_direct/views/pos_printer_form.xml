@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!--
+        Étend le formulaire pos.printer pour rendre le champ epson_printer_ip
+        visible (et obligatoire) pour les deux types ePOS Direct.
+        Le champ product_categories_ids est déjà visible dans le formulaire de base
+        pour toutes les imprimantes d'ordre — aucune modification nécessaire.
+    -->
+    <record id="view_pos_printer_epos_direct_form" model="ir.ui.view">
+        <field name="name">pos.printer.epos.direct.form</field>
+        <field name="model">pos.printer</field>
+        <field name="inherit_id" ref="point_of_sale.view_pos_printer_form"/>
+        <field name="arch" type="xml">
+
+            <!-- Bouton smart Logs -->
+            <xpath expr="//sheet" position="before">
+                <div class="oe_button_box" name="button_box"
+                     invisible="printer_type not in ('epos_direct', 'epos_direct_kitchen')">
+                    <button name="action_test_connection" type="object"
+                            class="oe_stat_button" icon="fa-plug">
+                        <span class="o_stat_info">
+                            <span class="o_stat_text">Tester</span>
+                            <span class="o_stat_text">connexion</span>
+                        </span>
+                    </button>
+                    <button name="action_view_logs" type="object"
+                            class="oe_stat_button" icon="fa-list-alt">
+                        <field name="log_count" widget="statinfo" string="Logs"/>
+                    </button>
+                </div>
+            </xpath>
+
+            <field name="epson_printer_ip" position="attributes">
+                <attribute name="invisible">
+                    printer_type not in ('epson_epos', 'epos_direct', 'epos_direct_kitchen')
+                </attribute>
+                <attribute name="required">
+                    printer_type in ('epos_direct', 'epos_direct_kitchen')
+                </attribute>
+                <attribute name="help">
+                    Adresse IP de l'imprimante Epson ePOS (ex: 192.168.1.50).
+                    L'imprimante doit avoir le service ePOS-Print activé.
+                    Préfixe http:// ou https:// optionnel.
+                </attribute>
+            </field>
+        </field>
+    </record>
+</odoo>

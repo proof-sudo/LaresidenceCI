@@ -1,0 +1,3 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_laresidence_hr_exception_user,laresidence.hr.exception.user,model_laresidence_hr_exception,hr_attendance.group_hr_attendance_officer,1,1,0,0
+access_laresidence_hr_exception_manager,laresidence.hr.exception.manager,model_laresidence_hr_exception,hr_attendance.group_hr_attendance_manager,1,1,1,1

@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="view_users_form_tr" model="ir.ui.view">
+        <field name="name">res.users.form.tr</field>
+        <field name="model">res.users</field>
+        <field name="inherit_id" ref="base.view_users_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//notebook" position="inside">
+                <page string="The Residence" name="tr_access_rights">
+                    <group string="Droits d'accès The Residence">
+                        <field name="x_tr_admin"/>
+                        <field name="x_tr_members"/>
+                        <field name="x_tr_reservations"/>
+                        <field name="x_tr_subscriptions"/>
+                        <field name="x_tr_orders"/>
+                        <field name="x_tr_config"/>
+                        <field name="x_tr_spaces"/>
+                    </group>
+                    <div class="alert alert-info mt-2" role="alert">
+                        <b>Administrateur TR</b> implique automatiquement tous les autres rôles.
+                        Après modification, actualiser la page (F5) pour voir les menus mis à jour.
+                    </div>
+                    <group string="Accès simplifié">
+                        <field name="x_tr_reservations_only"/>
+                    </group>
+                    <div class="alert alert-warning mt-2" role="alert">
+                        <b>Réservations uniquement</b> : l'utilisateur accède exclusivement à un menu
+                        de réservations simplifié, sans informations financières ni autres menus TR.
+                        L'utilisateur doit être de type <b>Utilisateur interne</b> (onglet Droits d'accès).
+                        Ne pas combiner avec les rôles TR standard.
+                    </div>
+                </page>
+            </xpath>
+        </field>
+    </record>
+
+</odoo>

@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="0">
+
+        <!-- Discuss : pas de groupe standard en Odoo 19 (conservé pour compatibilité) -->
+        <record id="group_discuss_user" model="res.groups">
+            <field name="name">Discuss / Utilisateur</field>
+            <field name="implied_ids" eval="[(4, ref('base.group_user'))]"/>
+        </record>
+
+        <!-- Approvals : pas de groupe standard en Odoo 19 -->
+        <record id="group_approvals_user" model="res.groups">
+            <field name="name">Approvals / Utilisateur</field>
+            <field name="implied_ids" eval="[(4, ref('base.group_user'))]"/>
+        </record>
+
+        <!-- Time Off : groupe custom pour users sans rôle RH officiel -->
+        <record id="group_time_off_user" model="res.groups">
+            <field name="name">Congés / Utilisateur</field>
+            <field name="implied_ids" eval="[(4, ref('base.group_user'))]"/>
+        </record>
+
+        <!-- Calendar : pas de groupe standard dédié en Odoo 19 -->
+        <record id="group_calendar_user" model="res.groups">
+            <field name="name">Calendrier / Utilisateur</field>
+            <field name="implied_ids" eval="[(4, ref('base.group_user'))]"/>
+        </record>
+
+        <!-- Knowledge : pas de groupe standard dédié en Odoo 19 -->
+        <record id="group_knowledge_user" model="res.groups">
+            <field name="name">Connaissances / Utilisateur</field>
+            <field name="implied_ids" eval="[(4, ref('base.group_user'))]"/>
+        </record>
+
+        <!-- WhatsApp : pas de groupe standard dédié en Odoo 19 -->
+        <record id="group_whatsapp_user" model="res.groups">
+            <field name="name">WhatsApp / Utilisateur</field>
+            <field name="implied_ids" eval="[(4, ref('base.group_user'))]"/>
+        </record>
+
+        <!-- Dashboards : pas de groupe standard dédié en Odoo 19 -->
+        <record id="group_dashboard_user" model="res.groups">
+            <field name="name">Tableaux de bord / Utilisateur</field>
+            <field name="implied_ids" eval="[(4, ref('base.group_user'))]"/>
+        </record>
+
+        <!-- Location/Rental : groupe custom — accès explicite requis -->
+        <record id="group_rental_user" model="res.groups">
+            <field name="name">Location / Utilisateur</field>
+            <field name="implied_ids" eval="[(4, ref('base.group_user'))]"/>
+        </record>
+
+        <!-- Contacts : coordonnées complètes (téléphone/email de tous les contacts) -->
+        <record id="group_contacts_full_details" model="res.groups">
+            <field name="name">Contacts / Coordonnées complètes</field>
+            <field name="implied_ids" eval="[(4, ref('base.group_user'))]"/>
+        </record>
+
+        <!-- Division Direction : accès complet aux contacts clients -->
+        <record id="group_division_direction" model="res.groups">
+            <field name="name">Division Direction</field>
+            <field name="implied_ids" eval="[(4, ref('base.group_user')), (4, ref('laresidence_menu_security.group_contacts_full_details'))]"/>
+        </record>
+
+        <!-- Division Commercial : accès complet aux contacts clients -->
+        <record id="group_division_commercial" model="res.groups">
+            <field name="name">Division Commercial</field>
+            <field name="implied_ids" eval="[(4, ref('base.group_user')), (4, ref('laresidence_menu_security.group_contacts_full_details'))]"/>
+        </record>
+
+    </data>
+</odoo>

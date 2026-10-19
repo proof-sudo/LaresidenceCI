@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!--
+        Surcharge de la vue formulaire de nomenclature (mrp.bom)
+        Objectif : afficher la colonne "Prix (Coût)" du composant
+        dans le notebook onglet "Composants", entre Composant et Quantité.
+
+        Ordre final des colonnes : Composant | Prix (Coût) | Quantité | Unité
+    -->
+    <record id="mrp_bom_form_view_add_cost_column" model="ir.ui.view">
+        <field name="name">mrp.bom.form.view.add.cost.column</field>
+        <field name="model">mrp.bom</field>
+        <field name="inherit_id" ref="mrp.mrp_bom_form_view"/>
+        <field name="arch" type="xml">
+
+            <!-- Insérer "Prix (Coût)" avant la colonne "Quantité" -->
+            <xpath expr="//field[@name='bom_line_ids']//field[@name='product_qty']" position="before">
+                <field name="currency_id" column_invisible="True"/>
+                <field name="product_standard_price"
+                       string="Prix (Coût)"
+                       readonly="1"
+                       widget="monetary"
+                       options="{'currency_field': 'currency_id'}"
+                       optional="show"/>
+            </xpath>
+
+        </field>
+    </record>
+
+</odoo>

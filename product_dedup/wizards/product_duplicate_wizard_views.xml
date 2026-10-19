@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="product_duplicate_wizard_view_form" model="ir.ui.view">
+        <field name="name">product.duplicate.wizard.view.form</field>
+        <field name="model">product.duplicate.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Produits en doublon">
+                <sheet>
+
+                    <!-- Bandeau de résumé -->
+                    <div class="alert alert-info" role="alert" invisible="total_duplicates == 0">
+                        <strong>
+                            <field name="total_duplicates" nolabel="1"/>
+                            produit(s) en doublon détecté(s).
+                        </strong>
+                        <span invisible="selected_count == 0">
+                            — <field name="selected_count" nolabel="1"/> sélectionné(s) pour action.
+                        </span>
+                    </div>
+
+                    <div class="alert alert-success" role="alert" invisible="total_duplicates != 0">
+                        <strong>Aucun doublon trouvé.</strong>
+                        Tous vos produits ont des noms uniques.
+                    </div>
+
+                    <!-- Boutons de sélection rapide -->
+                    <div class="mb-2" invisible="total_duplicates == 0">
+                        <button name="action_select_all" type="object"
+                                string="Tout sélectionner (garder 1er)"
+                                class="btn btn-sm btn-secondary me-1"/>
+                        <button name="action_deselect_all" type="object"
+                                string="Tout désélectionner"
+                                class="btn btn-sm btn-secondary"/>
+                    </div>
+
+                    <!-- Liste des doublons -->
+                    <field name="line_ids" nolabel="1" invisible="total_duplicates == 0">
+                        <list editable="bottom" decoration-danger="to_delete"
+                              decoration-success="not to_delete">
+                            <field name="to_delete" string="Suppr." widget="boolean_toggle"/>
+                            <field name="duplicate_name" string="Nom du produit"
+                                   decoration-bf="1" optional="show"/>
+                            <field name="product_tmpl_id" string="Fiche produit"
+                                   optional="show"/>
+                            <field name="default_code" string="Réf. interne" optional="show"/>
+                            <field name="create_date" string="Créé le"
+                                   widget="datetime" optional="show"/>
+                            <field name="group_size" string="Occurrences" optional="show"/>
+                        </list>
+                    </field>
+
+                </sheet>
+
+                <footer>
+                    <!-- Action principale : archiver (réversible) -->
+                    <button name="action_archive" type="object"
+                            string="Archiver la sélection"
+                            class="btn-warning"
+                            invisible="selected_count == 0"
+                            confirm="Les produits sélectionnés seront archivés (masqués). Continuer ?"/>
+
+                    <!-- Action destructive : supprimer définitivement -->
+                    <button name="action_delete" type="object"
+                            string="Supprimer définitivement"
+                            class="btn-danger"
+                            invisible="selected_count == 0"
+                            confirm="ATTENTION : cette action est irréversible. Les produits sélectionnés seront supprimés définitivement. Continuer ?"/>
+
+                    <button name="action_refresh" type="object"
+                            string="Rafraîchir"
+                            class="btn-secondary"/>
+
+                    <button special="cancel" string="Fermer" class="btn-secondary"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <!-- Action pour ouvrir le wizard depuis le menu Produits -->
+    <record id="action_product_duplicate_wizard" model="ir.actions.act_window">
+        <field name="name">Détecter les doublons</field>
+        <field name="res_model">product.duplicate.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+        <field name="binding_model_id" ref="product.model_product_template"/>
+        <field name="binding_view_types">list</field>
+    </record>
+
+</odoo>

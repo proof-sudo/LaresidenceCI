@@ -1,0 +1,179 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ══════════════════════════════════════════════════════════════════
+         Menus avec base.group_user → groupe spécifique
+         ══════════════════════════════════════════════════════════════════ -->
+
+    <!-- Discuss → visible par tous les utilisateurs internes -->
+    <record id="mail.menu_root_discuss" model="ir.ui.menu">
+        <field name="group_ids" eval="[(6, 0, [ref('base.group_user')])]"/>
+    </record>
+
+    <!-- Appointments → appointment.group_appointment_user -->
+    <record id="appointment.main_menu_appointments" model="ir.ui.menu">
+        <field name="group_ids" eval="[(6, 0, [ref('appointment.group_appointment_user')])]"/>
+    </record>
+
+    <!-- Calendar → groupe custom configurable -->
+    <record id="calendar.mail_menu_calendar" model="ir.ui.menu">
+        <field name="group_ids" eval="[(6, 0, [ref('laresidence_menu_security.group_calendar_user')])]"/>
+    </record>
+
+    <!-- Contacts → tous les utilisateurs internes -->
+    <record id="contacts.menu_contacts" model="ir.ui.menu">
+        <field name="group_ids" eval="[(6, 0, [ref('base.group_user')])]"/>
+    </record>
+
+    <!-- Documents → documents.group_documents_user -->
+    <record id="documents.menu_root" model="ir.ui.menu">
+        <field name="group_ids" eval="[(6, 0, [ref('documents.group_documents_user')])]"/>
+    </record>
+
+    <!-- Planning → planning.group_planning_user -->
+    <record id="planning.planning_menu_root" model="ir.ui.menu">
+        <field name="group_ids" eval="[(6, 0, [ref('planning.group_planning_user')])]"/>
+    </record>
+
+    <!-- Website → masqué via migration SQL (xmlid instable selon la version) -->
+
+    <!-- Social Marketing → social.group_social_user -->
+    <record id="social.menu_social_global" model="ir.ui.menu">
+        <field name="group_ids" eval="[(6, 0, [ref('social.group_social_user')])]"/>
+    </record>
+
+    <!-- Employees → admin seulement -->
+    <record id="hr.menu_hr_root" model="ir.ui.menu">
+        <field name="group_ids" eval="[(6, 0, [ref('base.group_erp_manager')])]"/>
+    </record>
+
+    <!-- Time Off → groupe custom configurable -->
+    <record id="hr_holidays.menu_hr_holidays_root" model="ir.ui.menu">
+        <field name="group_ids" eval="[(6, 0, [ref('laresidence_menu_security.group_time_off_user')])]"/>
+    </record>
+
+    <!-- ══════════════════════════════════════════════════════════════════
+         Menus sans groupe (NO GROUP) → groupe ajouté
+         ══════════════════════════════════════════════════════════════════ -->
+
+    <!-- To-do → visible par tous (aucun groupe = accès libre) -->
+    <record id="project_todo.menu_todo_todos" model="ir.ui.menu">
+        <field name="group_ids" eval="[(6, 0, [])]"/>
+    </record>
+
+    <!-- Knowledge → groupe custom configurable -->
+    <record id="knowledge.knowledge_menu_root" model="ir.ui.menu">
+        <field name="group_ids" eval="[(6, 0, [ref('laresidence_menu_security.group_knowledge_user')])]"/>
+    </record>
+
+    <!-- Sales → complètement masqué (géré via theresidence_api) -->
+    <record id="sale.sale_menu_root" model="ir.ui.menu">
+        <field name="active" eval="False"/>
+    </record>
+
+    <!-- Location/Rental → groupe custom (accès explicite requis, personne par défaut) -->
+    <record id="sale_renting.rental_menu_root" model="ir.ui.menu">
+        <field name="group_ids" eval="[(6, 0, [ref('laresidence_menu_security.group_rental_user')])]"/>
+    </record>
+
+    <!-- Dashboards → groupe custom configurable + admin -->
+    <record id="spreadsheet_dashboard.spreadsheet_dashboard_menu_root" model="ir.ui.menu">
+        <field name="group_ids" eval="[(6, 0, [ref('laresidence_menu_security.group_dashboard_user'), ref('base.group_erp_manager')])]"/>
+    </record>
+
+    <!-- Approvals → groupe custom configurable -->
+    <record id="approvals.approvals_menu_root" model="ir.ui.menu">
+        <field name="group_ids" eval="[(6, 0, [ref('laresidence_menu_security.group_approvals_user')])]"/>
+    </record>
+
+    <!-- WhatsApp → groupe custom configurable -->
+    <record id="whatsapp.whatsapp_menu_main" model="ir.ui.menu">
+        <field name="group_ids" eval="[(6, 0, [ref('laresidence_menu_security.group_whatsapp_user')])]"/>
+    </record>
+
+    <!-- Tests (menu debug) → admin seulement -->
+    <record id="base.menu_tests" model="ir.ui.menu">
+        <field name="group_ids" eval="[(6, 0, [ref('base.group_erp_manager')])]"/>
+    </record>
+
+    <!-- ══════════════════════════════════════════════════════════════════
+         Contacts : phone/mobile/email visibles si fournisseur/employé
+         ou si user a group_contacts_full_details
+         ══════════════════════════════════════════════════════════════════ -->
+
+    <record id="view_partner_form_hide_phone_email" model="ir.ui.view">
+        <field name="name">res.partner.form.hide.phone.email</field>
+        <field name="model">res.partner</field>
+        <field name="inherit_id" ref="base.view_partner_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//form" position="inside">
+                <field name="x_show_contact_details" invisible="1"/>
+            </xpath>
+            <field name="phone" position="attributes">
+                <attribute name="invisible">not x_show_contact_details</attribute>
+            </field>
+            <field name="email" position="attributes">
+                <attribute name="invisible">not x_show_contact_details</attribute>
+            </field>
+        </field>
+    </record>
+
+    <!-- Vue liste contacts : masquer colonnes phone/email pour les non-autorisés.
+         En Odoo 19, invisible="not x_show_contact_details" n'est pas évalué par ligne
+         dans les listes — on utilise groups= sur la colonne (solution fiable).
+         La vue formulaire garde le comportement granulaire (visible fournisseurs/employés). -->
+    <record id="view_partner_tree_hide_phone_email" model="ir.ui.view">
+        <field name="name">res.partner.tree.hide.phone.email</field>
+        <field name="model">res.partner</field>
+        <field name="inherit_id" ref="base.view_partner_tree"/>
+        <field name="arch" type="xml">
+            <field name="phone" position="attributes">
+                <attribute name="groups">laresidence_menu_security.group_contacts_full_details,base.group_erp_manager</attribute>
+            </field>
+            <field name="email" position="attributes">
+                <attribute name="groups">laresidence_menu_security.group_contacts_full_details,base.group_erp_manager</attribute>
+            </field>
+        </field>
+    </record>
+
+    <!-- ══════════════════════════════════════════════════════════════════
+         Fiche utilisateur : onglet Permissions Contacts
+         ══════════════════════════════════════════════════════════════════ -->
+
+    <record id="view_users_form_contacts_permissions" model="ir.ui.view">
+        <field name="name">res.users.form.contacts.permissions</field>
+        <field name="model">res.users</field>
+        <field name="inherit_id" ref="base.view_users_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//notebook" position="inside">
+                <page string="Permissions Contacts" name="contacts_permissions">
+                    <group string="Accès aux contacts">
+                        <field name="x_contacts_can_create"/>
+                        <field name="x_contacts_full_details"/>
+                    </group>
+                    <div class="alert alert-info mt-2" role="alert">
+                        <b>Peut créer / modifier</b> : permet de créer et éditer des contacts.<br/>
+                        <b>Coordonnées complètes</b> : affiche téléphone et email de TOUS les contacts
+                        (clients inclus). Sans ce droit, seuls les coordonnées des fournisseurs
+                        et employés sont visibles.
+                    </div>
+                </page>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- ══════════════════════════════════════════════════════════════════
+         Frontdesk → les non-admin atterrissent directement sur Visiteurs
+         ══════════════════════════════════════════════════════════════════ -->
+
+    <!-- Frontdesk / Stations → admin seulement (gestion des bornes) -->
+    <record id="frontdesk.frontdesk_menu_stations" model="ir.ui.menu">
+        <field name="group_ids" eval="[(6, 0, [ref('base.group_erp_manager')])]"/>
+    </record>
+
+    <!-- Frontdesk / Rapports → admin seulement -->
+    <record id="frontdesk.frontdesk_menu_report" model="ir.ui.menu">
+        <field name="group_ids" eval="[(6, 0, [ref('base.group_erp_manager')])]"/>
+    </record>
+
+</odoo>

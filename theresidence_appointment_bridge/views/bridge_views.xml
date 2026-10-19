@@ -1,0 +1,163 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ================================================== -->
+    <!-- product.template : champ appointment.type          -->
+    <!-- Hérite de la page "The Residence" déjà existante   -->
+    <!-- ================================================== -->
+    <record id="view_product_template_form_bridge" model="ir.ui.view">
+        <field name="name">product.template.form.bridge.appointment</field>
+        <field name="model">product.template</field>
+        <field name="inherit_id" ref="theresidence_api.view_product_template_form_inherit_theresidence"/>
+        <field name="arch" type="xml">
+            <!-- On ajoute le lien appointment.type après x_tr_space_uuid dans le groupe espace -->
+            <xpath expr="//field[@name='x_tr_space_uuid']" position="after">
+                <field name="x_tr_appointment_type_id"
+                       readonly="1"
+                       invisible="not x_tr_is_space"
+                       string="Type RDV (pos_appointment)"/>
+                <!-- <field name="x_tr_appointment_resource_id"
+                       readonly="1"
+                       invisible="not x_tr_is_space"
+                       string="Ressource Appointment"/> -->
+            </xpath>
+        </field>
+    </record>
+
+    <!-- ================================================== -->
+    <!-- sale.order : champ calendar.event                  -->
+    <!-- Hérite de l'onglet "Réservation TR" existant       -->
+    <!-- ================================================== -->
+    <record id="view_sale_order_form_bridge" model="ir.ui.view">
+        <field name="name">sale.order.form.bridge.appointment</field>
+        <field name="model">sale.order</field>
+        <field name="inherit_id" ref="theresidence_api.view_sale_order_form_inherit_theresidence"/>
+        <field name="arch" type="xml">
+            <!-- Bouton "Charger la commande" dans la barre de boutons -->
+            <xpath expr="//div[@name='button_box']" position="inside">
+                <button name="action_load_to_pos"
+                        type="object"
+                        string="Charger la commande"
+                        class="oe_stat_button btn-warning"
+                        icon="fa-shopping-cart"
+                        invisible="not x_tr_is_reservation or x_tr_reservation_status != 'ARRIVED'"/>
+            </xpath>
+            <!-- On ajoute le lien calendar.event après x_tr_space_id dans l'onglet réservation -->
+            <xpath expr="//field[@name='x_tr_space_id']" position="after">
+                <field name="x_tr_calendar_event_id"
+                       readonly="1"
+                       invisible="not x_tr_is_reservation"
+                       string="Événement Agenda (Bridge)"/>
+                <field name="x_tr_pos_order_id"
+                       readonly="1"
+                       invisible="not x_tr_is_reservation"
+                       string="Commande POS chargée"/>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- ================================================== -->
+    <!-- Action : réparer les appointment.type sans staff   -->
+    <!-- À lancer manuellement depuis la liste des espaces  -->
+    <!-- ================================================== -->
+    <record id="action_tr_fix_apt_staff" model="ir.actions.server">
+        <field name="name">Réparer Types RDV (ajouter staff admin)</field>
+        <field name="model_id" ref="product.model_product_template"/>
+        <field name="binding_model_id" ref="product.model_product_template"/>
+        <field name="binding_view_types">list</field>
+        <field name="state">code</field>
+        <field name="code">
+admin_user = env.ref('base.user_admin', raise_if_not_found=False)
+for record in records:
+    if record.x_tr_is_space and record.x_tr_appointment_type_id and admin_user:
+        apt = record.x_tr_appointment_type_id.sudo()
+        if admin_user not in apt.staff_user_ids:
+            apt.write({'staff_user_ids': [(4, admin_user.id)]})
+            log('TR BRIDGE: staff admin ajouté à ' + apt.name)
+        </field>
+    </record>
+
+    <!-- ================================================== -->
+    <!-- Action : synchroniser les calendar.event (sale.order) -->
+    <!-- ================================================== -->
+    <record id="action_tr_sync_bridge" model="ir.actions.server">
+        <field name="name">Synchroniser les événements Agenda (Bridge TR)</field>
+        <field name="model_id" ref="sale.model_sale_order"/>
+        <field name="binding_model_id" ref="sale.model_sale_order"/>
+        <field name="binding_view_types">list</field>
+        <field name="state">code</field>
+        <field name="code">
+for record in records:
+    if record.x_tr_is_reservation and record.x_tr_start_time and record.x_tr_end_time:
+        if record.x_tr_calendar_event_id:
+            record.sudo()._sync_update_calendar_event()
+        else:
+            record.sudo()._sync_create_calendar_event()
+        </field>
+    </record>
+
+    <!-- ================================================== -->
+    <!-- Action : lier les appointment.type au POS          -->
+    <!-- ================================================== -->
+    <record id="action_tr_link_apt_to_pos" model="ir.actions.server">
+        <field name="name">Lier les Types RDV au POS (Bridge TR)</field>
+        <field name="model_id" ref="product.model_product_template"/>
+        <field name="binding_model_id" ref="product.model_product_template"/>
+        <field name="binding_view_types">list</field>
+        <field name="state">code</field>
+        <field name="code">
+pos_configs = env['pos.config'].sudo().search([('active', '=', True)])
+for record in records:
+    if record.x_tr_is_space and record.x_tr_appointment_type_id and pos_configs:
+        record.x_tr_appointment_type_id.sudo().write({
+            'pos_config_ids': [(6, 0, pos_configs.ids)]
+        })
+        </field>
+    </record>
+
+    <!-- ================================================== -->
+    <!-- calendar.event : boutons TR dans la vue formulaire -->
+    <!-- POS > Appointments > clic sur un événement > Voir  -->
+    <!-- ================================================== -->
+    <record id="view_calendar_event_form_bridge_tr" model="ir.ui.view">
+        <field name="name">calendar.event.form.bridge.tr.actions</field>
+        <field name="model">calendar.event</field>
+        <field name="inherit_id" ref="pos_appointment.calendar_event_view_form_gantt_booking"/>
+        <field name="arch" type="xml">
+            <!-- Ajoute le champ TR au sheet pour le rendre disponible dans les conditions -->
+            <xpath expr="//sheet" position="inside">
+                <field name="x_tr_reservation_status" invisible="1"/>
+            </xpath>
+            <!-- Remplace le bouton natif "Check In" par nos boutons TR conditionnels -->
+            <xpath expr="//button[@name='set_attended']" position="replace">
+                <button name="action_tr_reserve" type="object"
+                        string="Réserver" class="btn-primary mx-1"
+                        invisible="x_tr_reservation_status != 'PENDING'"/>
+                <button name="action_tr_arrive" type="object"
+                        string="Marquer arrivée" class="btn-primary mx-1"
+                        invisible="x_tr_reservation_status != 'RESERVED'"/>
+                <button name="action_tr_release" type="object"
+                        string="Libérer l'espace" class="btn-success mx-1"
+                        invisible="x_tr_reservation_status not in ('RESERVED', 'ARRIVED')"/>
+                <!-- Bouton natif Check In conservé pour les events non-TR -->
+                <button name="set_attended" type="object"
+                        string="Check In" class="btn-secondary mx-1"
+                        invisible="x_tr_reservation_status"/>
+            </xpath>
+            <!-- Remplace le bouton natif "Cancel" par notre bouton Annuler TR -->
+            <xpath expr="//button[@name='set_cancelled']" position="replace">
+                <button name="action_tr_cancel" type="object"
+                        string="Annuler" class="btn-danger mx-1"
+                        invisible="x_tr_reservation_status not in ('PENDING', 'RESERVED', 'ARRIVED')"/>
+                <button name="action_tr_load_to_pos" type="object"
+                        string="Charger la commande" class="btn-warning mx-1"
+                        invisible="x_tr_reservation_status != 'ARRIVED'"/>
+                <!-- Bouton natif Cancel conservé pour les events non-TR -->
+                <button name="set_cancelled" type="object"
+                        string="Cancel" class="btn-secondary"
+                        invisible="x_tr_reservation_status"/>
+            </xpath>
+        </field>
+    </record>
+
+</odoo>

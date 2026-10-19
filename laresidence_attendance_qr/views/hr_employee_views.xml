@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="hr_employee_view_form_inherit_qr" model="ir.ui.view">
+        <field name="name">hr.employee.form.inherit.attendance.qr</field>
+        <field name="model">hr.employee</field>
+        <field name="inherit_id" ref="hr.view_employee_form"/>
+        <field name="arch" type="xml">
+
+            <!-- Injection après le champ barcode -->
+            <xpath expr="//field[@name='barcode']" position="after">
+                <label for="attendance_qr_image"/>
+                <div>
+                    <field name="attendance_qr_image" widget="image" readonly="1" options="{'size': [100, 100]}"/>
+                    <div style="margin-top:4px;">
+                        <button
+                            name="action_print_attendance_badge"
+                            type="object"
+                            string="Imprimer badge QR"
+                            class="btn btn-primary btn-sm"
+                            icon="fa-print"
+                        />
+                    </div>
+                </div>
+            </xpath>
+
+        </field>
+    </record>
+
+</odoo>

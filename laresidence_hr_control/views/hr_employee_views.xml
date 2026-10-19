@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_employee_form_exception" model="ir.ui.view">
+        <field name="name">hr.employee.form.exception</field>
+        <field name="model">hr.employee</field>
+        <field name="inherit_id" ref="hr.view_employee_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//div[@name='button_box']" position="inside">
+                <button name="action_view_exceptions" type="object"
+                        class="oe_stat_button" icon="fa-exclamation-triangle"
+                        groups="hr_attendance.group_hr_attendance_officer"
+                        invisible="exception_count == 0">
+                    <field name="exception_count" widget="statinfo" string="Écarts"/>
+                </button>
+            </xpath>
+        </field>
+    </record>
+</odoo>
