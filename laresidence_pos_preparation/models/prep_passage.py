@@ -34,9 +34,22 @@ class PrepPassage(models.Model):
         string="Quantité", related='prep_line_id.quantity', store=True)
     table_id = fields.Many2one(
         'restaurant.table', string="Table",
-        related='pos_order_id.table_id', store=True, index=True,
-        help="Plus parlant que le numéro de commande, qui reste « / » tant "
+        related='pos_order_id.table_id', store=True, index=True)
+    numero = fields.Char(
+        string="N° commande", related='pos_order_id.tracking_number',
+        store=True, index=True,
+        help="Le numéro que les équipes utilisent. Il existe dès la saisie, "
+             "contrairement à la référence comptable, qui reste « / » tant "
              "que la commande n'est pas encaissée.")
+    nom_commande = fields.Char(
+        string="Nom de la commande", related='pos_order_id.floating_order_name',
+        store=True,
+        help="Ce que l'écran de cuisine affiche en tête de commande.")
+    serveur_id = fields.Many2one(
+        'hr.employee', string="Serveur",
+        related='pos_order_id.employee_id', store=True, index=True,
+        help="Le caissier qui a saisi la commande. Renseigné dès l'envoi en "
+             "cuisine, pour tous les passages.")
 
     stage_id = fields.Many2one(
         'pos.prep.stage', string="Étape", required=True, index=True)
@@ -71,10 +84,10 @@ class PrepPassage(models.Model):
         'res.users', string="Enregistré par", index=True,
         default=lambda self: self.env.user)
     employee_id = fields.Many2one(
-        'hr.employee', string="Serveur", index=True,
-        help="Caissier connecté en caisse au moment de la validation. "
-             "L'utilisateur Odoo est le même pour toute la salle : c'est "
-             "l'employé qui dit qui a réellement servi.")
+        'hr.employee', string="Service validé par", index=True,
+        help="Caissier connecté en caisse au moment où le plat a été déclaré "
+             "servi. Vide pour les étapes de cuisine, qui ne passent pas par "
+             "la caisse.")
     force = fields.Boolean(
         string="Validé sans passage au passe", index=True,
         help="Le plat a été déclaré servi alors que la cuisine ne l'avait pas "

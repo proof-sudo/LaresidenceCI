@@ -11,7 +11,10 @@
             <list string="Suivi de préparation" create="false" edit="false"
                   decoration-danger="depassement or alerte"
                   decoration-muted="not en_cours and not depassement">
+                <field name="numero" string="N°" optional="show"/>
+                <field name="nom_commande" optional="hide"/>
                 <field name="table_id" optional="show"/>
+                <field name="serveur_id" optional="show"/>
                 <field name="product_id"/>
                 <field name="quantite" optional="hide"/>
                 <field name="display_id"/>
@@ -24,7 +27,7 @@
                 <field name="seuil" optional="show"/>
                 <field name="depassement" optional="hide"/>
                 <field name="force" optional="show"/>
-                <field name="employee_id" optional="show"/>
+                <field name="employee_id" optional="hide"/>
                 <field name="pos_order_id" optional="hide"/>
                 <field name="user_id" optional="hide"/>
                 <field name="en_cours" column_invisible="1"/>
@@ -65,8 +68,11 @@
                 <field name="pos_order_id"/>
                 <field name="display_id"/>
                 <field name="stage_id"/>
+                <field name="serveur_id"/>
                 <field name="employee_id"/>
                 <field name="table_id"/>
+                <field name="numero"/>
+                <field name="nom_commande"/>
                 <filter name="hors_delai" string="Hors délai" domain="[('depassement', '=', True)]"/>
                 <filter name="force" string="Validé sans passage au passe" domain="[('force', '=', True)]"/>
                 <filter name="en_cours" string="Étape en cours" domain="[('en_cours', '=', True)]"/>
@@ -87,7 +93,8 @@
                     <filter name="group_stage" string="Étape" domain="[]" context="{'group_by': 'stage_id'}"/>
                     <filter name="group_table" string="Table" domain="[]" context="{'group_by': 'table_id'}"/>
                     <filter name="group_order" string="Commande" domain="[]" context="{'group_by': 'pos_order_id'}"/>
-                    <filter name="group_employee" string="Serveur" domain="[]" context="{'group_by': 'employee_id'}"/>
+                    <filter name="group_serveur" string="Serveur" domain="[]" context="{'group_by': 'serveur_id'}"/>
+                    <filter name="group_employee" string="Service validé par" domain="[]" context="{'group_by': 'employee_id'}"/>
                     <filter name="group_user" string="Enregistré par" domain="[]" context="{'group_by': 'user_id'}"/>
                     <filter name="group_jour" string="Jour" domain="[]" context="{'group_by': 'date_debut:day'}"/>
                     <filter name="group_semaine" string="Semaine" domain="[]" context="{'group_by': 'date_debut:week'}"/>
