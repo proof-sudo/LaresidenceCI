@@ -86,7 +86,7 @@
     </record>
 
     <record id="action_prep_passage" model="ir.actions.act_window">
-        <field name="name">Temps de préparation</field>
+        <field name="name">Temps par étape de préparation</field>
         <field name="res_model">laresidence.prep.passage</field>
         <field name="view_mode">list,pivot,graph</field>
         <field name="search_view_id" ref="view_prep_passage_search"/>
@@ -99,10 +99,16 @@
         </field>
     </record>
 
+    <!-- Sous Analyse, et non sous Commandes : c'est une vue d'analyse.
+         Juste après l'entrée native « Preparation Time », dont le nom prête
+         à confusion mais qui mesure tout autre chose — le temps entre la
+         saisie de la ligne et la cloture de la commande, soit la duree
+         d'occupation de la table. Relevé sur la production : 2 h 34 de
+         moyenne, un Martini à 2 h 11, un Grog à 5 h 49. -->
     <menuitem id="menu_prep_passage"
-              name="Temps de préparation"
-              parent="point_of_sale.menu_point_of_sale"
+              name="Temps par étape"
+              parent="point_of_sale.menu_point_rep"
               action="action_prep_passage"
-              sequence="95"/>
+              sequence="7"/>
 
 </odoo>
