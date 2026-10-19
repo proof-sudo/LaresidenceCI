@@ -1,6 +1,6 @@
 /** @odoo-module */
 
-import { Component, onWillStart, useState } from "@odoo/owl";
+import { Component, onWillStart, onWillUnmount, useState } from "@odoo/owl";
 import { Dialog } from "@web/core/dialog/dialog";
 import { ConfirmationDialog } from "@web/core/confirmation_dialog/confirmation_dialog";
 import { useService } from "@web/core/utils/hooks";
@@ -15,7 +15,7 @@ import { _t } from "@web/core/l10n/translation";
 export class ServiceDialog extends Component {
     static template = "laresidence_pos_preparation.ServiceDialog";
     static components = { Dialog };
-    static props = { lignes: Array, close: Function };
+    static props = { lignes: Array, employeeId: { type: [Number, Boolean], optional: true }, close: Function };
 
     setup() {
         this.orm = useService("orm");
@@ -23,14 +23,19 @@ export class ServiceDialog extends Component {
         this.notification = useService("notification");
         this.state = useState({ statuts: {}, chargement: true, enCours: false });
         onWillStart(() => this.recharger());
+        // La cuisine avance pendant que l'écran reste ouvert. Sans ce
+        // rafraîchissement, le serveur verrait l'état figé à l'ouverture et
+        // conclurait que le plat n'est toujours pas prêt.
+        this.minuteur = setInterval(() => this.recharger(true), 15000);
+        onWillUnmount(() => clearInterval(this.minuteur));
     }
 
     get uuids() {
         return this.props.lignes.map((ligne) => ligne.uuid);
     }
 
-    async recharger() {
-        this.state.chargement = true;
+    async recharger(silencieux = false) {
+        this.state.chargement = !silencieux;
         try {
             this.state.statuts = await this.orm.call(
                 "pos.prep.state", "laresidence_statuts", [this.uuids]);
@@ -93,7 +98,8 @@ export class ServiceDialog extends Component {
         this.state.enCours = true;
         try {
             const resultat = await this.orm.call(
-                "pos.prep.state", "laresidence_marquer_servi", [uuids, forcer]);
+                "pos.prep.state", "laresidence_marquer_servi",
+                [uuids, forcer, this.props.employeeId || false]);
             const servis = (resultat && resultat.servis) || [];
             const refuses = (resultat && resultat.refuses) || [];
             if (servis.length) {

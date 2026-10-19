@@ -19,6 +19,9 @@ patch(ControlButtons.prototype, {
     onClickLaresidenceService() {
         const commande = this.currentOrder;
         const lignes = commande ? commande.getOrderlines() : [];
-        this.dialog.add(ServiceDialog, { lignes });
+        this.dialog.add(ServiceDialog, {
+            lignes,
+            employeeId: (this.pos.cashier && this.pos.cashier.id) || false,
+        });
     },
 });

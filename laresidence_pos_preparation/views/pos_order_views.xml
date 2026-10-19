@@ -52,7 +52,7 @@
                             <field name="seuil"/>
                             <field name="depassement"/>
                             <field name="force" string="Forcé"/>
-                            <field name="user_id"/>
+                            <field name="employee_id"/>
                             <field name="en_cours" column_invisible="1"/>
                         </list>
                     </field>

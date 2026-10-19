@@ -60,6 +60,11 @@ class PrepPassage(models.Model):
     user_id = fields.Many2one(
         'res.users', string="Enregistré par", index=True,
         default=lambda self: self.env.user)
+    employee_id = fields.Many2one(
+        'hr.employee', string="Serveur", index=True,
+        help="Caissier connecté en caisse au moment de la validation. "
+             "L'utilisateur Odoo est le même pour toute la salle : c'est "
+             "l'employé qui dit qui a réellement servi.")
     force = fields.Boolean(
         string="Validé sans passage au passe", index=True,
         help="Le plat a été déclaré servi alors que la cuisine ne l'avait pas "

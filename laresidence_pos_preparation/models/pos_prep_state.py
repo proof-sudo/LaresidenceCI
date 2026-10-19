@@ -32,6 +32,7 @@ class PosPrepState(models.Model):
         Passage = self.env['laresidence.prep.passage'].sudo()
         horodatage = horodatage or fields.Datetime.now()
         force = bool(self.env.context.get('laresidence_force_servi'))
+        employe = self.env.context.get('laresidence_employee_id') or False
         valeurs = []
         for etat in self:
             if not etat.stage_id:
@@ -46,6 +47,7 @@ class PosPrepState(models.Model):
                 'date_debut': horodatage,
                 'date_fin': horodatage if terminal else False,
                 'user_id': self.env.user.id,
+                'employee_id': employe,
                 'force': force,
             })
         if valeurs:
@@ -129,7 +131,7 @@ class PosPrepState(models.Model):
         return resultat
 
     @api.model
-    def laresidence_marquer_servi(self, line_uuids, forcer=False):
+    def laresidence_marquer_servi(self, line_uuids, forcer=False, employee_id=None):
         """Déclare servis les plats désignés par leurs lignes de caisse.
 
         Renvoie ce qui a été fait et ce qui a été refusé, plutôt que de lever
@@ -164,6 +166,7 @@ class PosPrepState(models.Model):
 
             etat.with_context(
                 laresidence_force_servi=uuid in forces,
+                laresidence_employee_id=employee_id,
             ).write({
                 'stage_id': etape_servi.id,
                 'todo': False,

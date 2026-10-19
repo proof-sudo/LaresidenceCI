@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 {
     'name': "La R\u00e9sidence \u2014 Suivi des \u00e9tapes de pr\u00e9paration",
-    'version': '19.0.4',
+    'version': '19.0.5',
     'category': 'Point of Sale',
     'summary': "Historise chaque passage d'\u00e9tape en cuisine et au bar, avec sa dur\u00e9e",
     'description': """
@@ -31,6 +31,7 @@ l'analyse, pour que l'oubli devienne un chiffre plut\u00f4t qu'un angle mort.
         'point_of_sale',
         'pos_restaurant',
         'pos_restaurant_preparation_display',
+        'pos_hr',
     ],
     'data': [
         'security/ir.model.access.csv',

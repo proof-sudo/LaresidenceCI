@@ -18,6 +18,7 @@
                 <field name="seuil" optional="hide"/>
                 <field name="depassement" optional="show"/>
                 <field name="force" optional="show"/>
+                <field name="employee_id" optional="show"/>
                 <field name="user_id" optional="hide"/>
                 <field name="en_cours" column_invisible="1"/>
             </list>
@@ -56,6 +57,7 @@
                 <field name="pos_order_id"/>
                 <field name="display_id"/>
                 <field name="stage_id"/>
+                <field name="employee_id"/>
                 <filter name="hors_delai" string="Hors délai" domain="[('depassement', '=', True)]"/>
                 <filter name="force" string="Validé sans passage au passe" domain="[('force', '=', True)]"/>
                 <filter name="en_cours" string="Étape en cours" domain="[('en_cours', '=', True)]"/>
@@ -73,6 +75,7 @@
                     <filter name="group_display" string="Poste" domain="[]" context="{'group_by': 'display_id'}"/>
                     <filter name="group_stage" string="Étape" domain="[]" context="{'group_by': 'stage_id'}"/>
                     <filter name="group_order" string="Commande" domain="[]" context="{'group_by': 'pos_order_id'}"/>
+                    <filter name="group_employee" string="Serveur" domain="[]" context="{'group_by': 'employee_id'}"/>
                     <filter name="group_user" string="Enregistré par" domain="[]" context="{'group_by': 'user_id'}"/>
                     <filter name="group_jour" string="Jour" domain="[]" context="{'group_by': 'date_debut:day'}"/>
                     <filter name="group_semaine" string="Semaine" domain="[]" context="{'group_by': 'date_debut:week'}"/>

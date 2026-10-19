@@ -11,7 +11,10 @@
             <button class="btn btn-secondary btn-lg laresidence-service-btn"
                     t-if="pos.config.module_pos_restaurant and !props.showRemainingButtons"
                     t-on-click="onClickLaresidenceService">
-                <span>Service</span>
+                <!-- Pas « Service » : Odoo appelle déjà ainsi le bouton des
+                     services du repas, juste à côté. Deux boutons au même
+                     libellé côte à côte, relevé à l'essai sur demo2. -->
+                <span>Plats servis</span>
             </button>
         </xpath>
     </t>
