@@ -1,0 +1,3 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_laresidence_prep_passage_user,laresidence.prep.passage utilisateur,model_laresidence_prep_passage,point_of_sale.group_pos_user,1,0,0,0
+access_laresidence_prep_passage_manager,laresidence.prep.passage responsable,model_laresidence_prep_passage,point_of_sale.group_pos_manager,1,1,1,1

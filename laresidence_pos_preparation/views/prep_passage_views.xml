@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="view_prep_passage_list" model="ir.ui.view">
+        <field name="name">laresidence.prep.passage.list</field>
+        <field name="model">laresidence.prep.passage</field>
+        <field name="arch" type="xml">
+            <list string="Suivi de préparation" create="false" edit="false"
+                  decoration-danger="depassement" decoration-muted="en_cours">
+                <field name="pos_order_id"/>
+                <field name="product_id"/>
+                <field name="quantite" optional="show"/>
+                <field name="display_id"/>
+                <field name="stage_id"/>
+                <field name="date_debut"/>
+                <field name="date_fin" optional="show"/>
+                <field name="duree" sum="Total" widget="float_time"/>
+                <field name="seuil" optional="hide"/>
+                <field name="depassement" optional="show"/>
+                <field name="force" optional="show"/>
+                <field name="user_id" optional="hide"/>
+                <field name="en_cours" column_invisible="1"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_prep_passage_pivot" model="ir.ui.view">
+        <field name="name">laresidence.prep.passage.pivot</field>
+        <field name="model">laresidence.prep.passage</field>
+        <field name="arch" type="xml">
+            <pivot string="Temps de préparation" sample="1">
+                <field name="product_id" type="row"/>
+                <field name="stage_id" type="col"/>
+                <field name="duree" type="measure" widget="float_time"/>
+            </pivot>
+        </field>
+    </record>
+
+    <record id="view_prep_passage_graph" model="ir.ui.view">
+        <field name="name">laresidence.prep.passage.graph</field>
+        <field name="model">laresidence.prep.passage</field>
+        <field name="arch" type="xml">
+            <graph string="Temps de préparation" type="bar" sample="1">
+                <field name="product_id"/>
+                <field name="duree" type="measure"/>
+            </graph>
+        </field>
+    </record>
+
+    <record id="view_prep_passage_search" model="ir.ui.view">
+        <field name="name">laresidence.prep.passage.search</field>
+        <field name="model">laresidence.prep.passage</field>
+        <field name="arch" type="xml">
+            <search string="Suivi de préparation">
+                <field name="product_id"/>
+                <field name="pos_order_id"/>
+                <field name="display_id"/>
+                <field name="stage_id"/>
+                <filter name="hors_delai" string="Hors délai" domain="[('depassement', '=', True)]"/>
+                <filter name="force" string="Validé sans passage au passe" domain="[('force', '=', True)]"/>
+                <filter name="en_cours" string="Étape en cours" domain="[('en_cours', '=', True)]"/>
+                <separator/>
+                <filter name="aujourdhui" string="Aujourd'hui"
+                        domain="[('date_debut', '&gt;=', datetime.datetime.combine(context_today(), datetime.time(0,0,0)))]"/>
+                <filter name="sept_jours" string="7 derniers jours"
+                        domain="[('date_debut', '&gt;=', (context_today() - datetime.timedelta(days=7)).strftime('%Y-%m-%d'))]"/>
+                <group expand="0" string="Regrouper par">
+                    <filter name="group_product" string="Plat" context="{'group_by': 'product_id'}"/>
+                    <filter name="group_display" string="Poste" context="{'group_by': 'display_id'}"/>
+                    <filter name="group_stage" string="Étape" context="{'group_by': 'stage_id'}"/>
+                    <filter name="group_order" string="Commande" context="{'group_by': 'pos_order_id'}"/>
+                    <filter name="group_user" string="Enregistré par" context="{'group_by': 'user_id'}"/>
+                    <filter name="group_jour" string="Jour" context="{'group_by': 'date_debut:day'}"/>
+                    <filter name="group_heure" string="Heure" context="{'group_by': 'date_debut:hour'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_prep_passage" model="ir.actions.act_window">
+        <field name="name">Temps de préparation</field>
+        <field name="res_model">laresidence.prep.passage</field>
+        <field name="view_mode">list,pivot,graph</field>
+        <field name="search_view_id" ref="view_prep_passage_search"/>
+        <field name="context">{'search_default_group_product': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Aucun passage enregistré</p>
+            <p>Chaque fois qu'un plat change d'étape sur un écran de préparation,
+               le passage est enregistré ici avec sa durée. Si cette liste reste
+               vide, c'est que les commandes ne parviennent pas aux écrans.</p>
+        </field>
+    </record>
+
+    <menuitem id="menu_prep_passage"
+              name="Temps de préparation"
+              parent="point_of_sale.menu_point_of_sale"
+              action="action_prep_passage"
+              sequence="95"/>
+
+</odoo>

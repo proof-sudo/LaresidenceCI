@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="view_pos_order_form_preparation" model="ir.ui.view">
+        <field name="name">pos.order.form.laresidence.preparation</field>
+        <field name="model">pos.order</field>
+        <field name="inherit_id" ref="point_of_sale.view_pos_pos_form"/>
+        <field name="arch" type="xml">
+
+            <!-- La vue standard a déjà un en-tête et une boîte de boutons :
+                 on s'y insère au lieu d'en créer un second, qui ne
+                 s'afficherait pas. -->
+            <xpath expr="//header" position="inside">
+                <field name="laresidence_prep_statut" widget="statusbar"
+                       statusbar_visible="envoye,en_cours,a_envoyer,servi"
+                       invisible="laresidence_prep_statut == 'aucun'"/>
+            </xpath>
+
+            <xpath expr="//div[hasclass('oe_button_box')]" position="inside">
+                    <button type="object" name="action_laresidence_voir_passages"
+                            class="oe_stat_button" icon="fa-clock-o"
+                            invisible="laresidence_nb_plats == 0">
+                        <field name="laresidence_temps_service" widget="float_time"
+                               string="Temps de service"/>
+                    </button>
+                    <button type="object" name="action_laresidence_voir_passages"
+                            class="oe_stat_button" icon="fa-cutlery"
+                            invisible="laresidence_nb_plats == 0">
+                        <field name="laresidence_nb_plats" widget="statinfo"
+                               string="Plats suivis"/>
+                    </button>
+                    <button type="object" name="action_laresidence_voir_passages"
+                            class="oe_stat_button" icon="fa-exclamation-triangle"
+                            invisible="laresidence_nb_hors_delai == 0">
+                        <field name="laresidence_nb_hors_delai" widget="statinfo"
+                               string="Hors délai"/>
+                    </button>
+            </xpath>
+
+            <xpath expr="//notebook" position="inside">
+                <page string="Suivi de préparation" name="laresidence_preparation"
+                      invisible="laresidence_nb_plats == 0">
+                    <field name="laresidence_passage_ids" readonly="1">
+                        <list decoration-danger="depassement" decoration-muted="en_cours">
+                            <field name="product_id"/>
+                            <field name="quantite"/>
+                            <field name="display_id"/>
+                            <field name="stage_id"/>
+                            <field name="date_debut"/>
+                            <field name="date_fin"/>
+                            <field name="duree" widget="float_time" sum="Total"/>
+                            <field name="seuil"/>
+                            <field name="depassement"/>
+                            <field name="force" string="Forcé"/>
+                            <field name="user_id"/>
+                            <field name="en_cours" column_invisible="1"/>
+                        </list>
+                    </field>
+                </page>
+            </xpath>
+
+        </field>
+    </record>
+
+    <record id="view_pos_order_tree_preparation" model="ir.ui.view">
+        <field name="name">pos.order.list.laresidence.preparation</field>
+        <field name="model">pos.order</field>
+        <field name="inherit_id" ref="point_of_sale.view_pos_order_tree"/>
+        <field name="arch" type="xml">
+            <field name="amount_total" position="before">
+                <field name="laresidence_prep_statut" optional="show"/>
+                <field name="laresidence_temps_service" widget="float_time" optional="hide"/>
+                <field name="laresidence_nb_hors_delai" optional="hide"/>
+            </field>
+        </field>
+    </record>
+
+    <record id="view_pos_order_filter_preparation" model="ir.ui.view">
+        <field name="name">pos.order.search.laresidence.preparation</field>
+        <field name="model">pos.order</field>
+        <field name="inherit_id" ref="point_of_sale.view_pos_order_filter"/>
+        <field name="arch" type="xml">
+            <filter name="order_date" position="after">
+                <separator/>
+                <filter name="laresidence_hors_delai" string="Avec un plat hors délai"
+                        domain="[('laresidence_nb_hors_delai', '&gt;', 0)]"/>
+                <filter name="laresidence_non_servi" string="Préparation non terminée"
+                        domain="[('laresidence_nb_plats', '&gt;', 0),
+                                 ('laresidence_prep_statut', '!=', 'servi')]"/>
+            </filter>
+        </field>
+    </record>
+
+</odoo>
