@@ -42,11 +42,20 @@ class PosPrepDisplay(models.Model):
             if existante:
                 ecran.laresidence_stage_servi_id = existante[0]
                 continue
-            sequences = ecran.stage_ids.mapped('sequence') or [0]
+            # Les étapes existantes sont toutes à la séquence 0 : leur ordre
+            # ne tient qu'à leur identifiant. Une étape ajoutée plus tard en
+            # cuisine prendrait alors la dernière place et deviendrait, sans
+            # que personne ne le voie, celle depuis laquelle on peut servir.
+            # On fige donc l'ordre affiché en séquences explicites.
+            rang = 0
+            for etape in ecran.stage_ids:
+                rang += 10
+                if etape.sequence != rang:
+                    etape.sudo().sequence = rang
             ecran.laresidence_stage_servi_id = Etape.create({
                 'name': NOM_ETAPE_SERVI,
                 'prep_display_id': ecran.id,
-                'sequence': max(sequences) + 10,
+                'sequence': rang + 10,
                 'alert_timer': 0,
                 'color': '#1D6B4F',
             })

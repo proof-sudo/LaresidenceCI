@@ -36,10 +36,15 @@ class PosPrepState(models.Model):
         for etat in self:
             if not etat.stage_id:
                 continue
+            # « Servi » est un état terminal, pas une durée : son passage est
+            # clos dès sa création. Sans cela, tout plat servi resterait
+            # indéfiniment « étape en cours » dans les filtres et l'analyse.
+            terminal = etat.stage_id == etat.stage_id.prep_display_id.laresidence_stage_servi_id
             valeurs.append({
                 'prep_state_id': etat.id,
                 'stage_id': etat.stage_id.id,
                 'date_debut': horodatage,
+                'date_fin': horodatage if terminal else False,
                 'user_id': self.env.user.id,
                 'force': force,
             })
