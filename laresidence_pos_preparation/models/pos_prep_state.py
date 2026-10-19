@@ -97,6 +97,38 @@ class PosPrepState(models.Model):
         return self.stage_id == ecran._laresidence_stage_passe()
 
     @api.model
+    def laresidence_statuts(self, line_uuids):
+        """État de préparation des lignes désignées, pour l'écran de caisse.
+
+        La caisse ne charge pas les modèles de préparation : elle demande cet
+        état au moment où le serveur ouvre l'écran de service. Cela évite
+        d'alourdir le démarrage de la caisse, et surtout d'y toucher.
+        """
+        if not line_uuids:
+            return {}
+        etats = self.sudo().search([
+            ('prep_line_id.pos_order_line_uuid', 'in', list(line_uuids)),
+        ])
+        maintenant = fields.Datetime.now()
+        resultat = {}
+        for etat in etats:
+            ecran = etat.stage_id.prep_display_id
+            etape_servi = ecran.laresidence_stage_servi_id
+            passage = etat._laresidence_passage_ouvert()
+            depuis = 0.0
+            if passage and passage.date_debut:
+                depuis = (maintenant - passage.date_debut).total_seconds() / 60.0
+            resultat[etat.prep_line_id.pos_order_line_uuid] = {
+                'etape': etat.stage_id.name or '',
+                'poste': ecran.name or '',
+                'pret': etat._laresidence_pret_a_servir(),
+                'servi': bool(etape_servi) and etat.stage_id == etape_servi,
+                'depuis': round(depuis, 1),
+                'seuil': etat.stage_id.alert_timer or 0,
+            }
+        return resultat
+
+    @api.model
     def laresidence_marquer_servi(self, line_uuids, forcer=False):
         """Déclare servis les plats désignés par leurs lignes de caisse.
 

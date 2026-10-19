@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates id="template" xml:space="preserve">
+
+    <t t-name="laresidence_pos_preparation.ControlButtons"
+       t-inherit="point_of_sale.ControlButtons" t-inherit-mode="extension">
+        <!-- Le bouton prend la même condition que ses voisins de la rangée
+             principale : sans « !props.showRemainingButtons », il
+             apparaîtrait aussi dans le panneau des boutons secondaires, le
+             même modèle servant aux deux. -->
+        <xpath expr="//button[hasclass('course-btn')]" position="before">
+            <button class="btn btn-secondary btn-lg laresidence-service-btn"
+                    t-if="pos.config.module_pos_restaurant and !props.showRemainingButtons"
+                    t-on-click="onClickLaresidenceService">
+                <span>Service</span>
+            </button>
+        </xpath>
+    </t>
+
+</templates>

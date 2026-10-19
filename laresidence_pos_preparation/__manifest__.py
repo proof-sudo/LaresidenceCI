@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 {
     'name': "La R\u00e9sidence \u2014 Suivi des \u00e9tapes de pr\u00e9paration",
-    'version': '19.0.3',
+    'version': '19.0.4',
     'category': 'Point of Sale',
     'summary': "Historise chaque passage d'\u00e9tape en cuisine et au bar, avec sa dur\u00e9e",
     'description': """
@@ -37,6 +37,14 @@ l'analyse, pour que l'oubli devienne un chiffre plut\u00f4t qu'un angle mort.
         'views/prep_passage_views.xml',
         'views/pos_order_views.xml',
     ],
+    'assets': {
+        'point_of_sale._assets_pos': [
+            'laresidence_pos_preparation/static/src/app/service_dialog.js',
+            'laresidence_pos_preparation/static/src/app/service_dialog.xml',
+            'laresidence_pos_preparation/static/src/app/control_button.js',
+            'laresidence_pos_preparation/static/src/app/control_button.xml',
+        ],
+    },
     'post_init_hook': 'post_init_hook',
     'installable': True,
     'application': False,

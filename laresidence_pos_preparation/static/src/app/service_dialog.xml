@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates id="template" xml:space="preserve">
+
+    <t t-name="laresidence_pos_preparation.ServiceDialog">
+        <Dialog title="'Service des plats'" size="'md'">
+            <div t-if="state.chargement" class="text-center p-4 text-muted">
+                Lecture de l'état de la préparation…
+            </div>
+            <div t-elif="!props.lignes.length" class="text-center p-4 text-muted">
+                Aucun plat sur cette commande.
+            </div>
+            <div t-else="" class="d-flex flex-column gap-2">
+                <div t-foreach="props.lignes" t-as="ligne" t-key="ligne.uuid"
+                     class="d-flex align-items-center gap-3 border-bottom pb-2">
+                    <div class="flex-grow-1 min-width-0">
+                        <div class="fw-bold text-truncate"
+                             t-esc="ligne.getFullProductName()"/>
+                        <small t-att-class="classeEtat(ligne)" t-esc="libelle(ligne)"/>
+                    </div>
+                    <button t-if="peutServir(ligne)" type="button"
+                            class="btn btn-primary btn-lg flex-shrink-0"
+                            t-att-disabled="state.enCours"
+                            t-on-click="() => this.servir([ligne])">
+                        Servi
+                    </button>
+                    <button t-elif="peutForcer(ligne)" type="button"
+                            class="btn btn-link btn-sm flex-shrink-0 text-muted"
+                            t-on-click="() => this.forcer(ligne)">
+                        Forcer
+                    </button>
+                </div>
+            </div>
+            <t t-set-slot="footer">
+                <button type="button" class="btn btn-primary btn-lg"
+                        t-att-disabled="state.enCours or !lignesServables.length"
+                        t-on-click="() => this.servir(lignesServables)">
+                    Tout marquer servi
+                </button>
+                <button type="button" class="btn btn-secondary btn-lg"
+                        t-on-click="() => props.close()">
+                    Fermer
+                </button>
+            </t>
+        </Dialog>
+    </t>
+
+</templates>
