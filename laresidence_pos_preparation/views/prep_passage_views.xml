@@ -71,7 +71,8 @@
                     <filter name="group_order" string="Commande" context="{'group_by': 'pos_order_id'}"/>
                     <filter name="group_user" string="Enregistré par" context="{'group_by': 'user_id'}"/>
                     <filter name="group_jour" string="Jour" context="{'group_by': 'date_debut:day'}"/>
-                    <filter name="group_heure" string="Heure" context="{'group_by': 'date_debut:hour'}"/>
+                    <filter name="group_semaine" string="Semaine" context="{'group_by': 'date_debut:week'}"/>
+                    <filter name="group_mois" string="Mois" context="{'group_by': 'date_debut:month'}"/>
                 </group>
             </search>
         </field>
