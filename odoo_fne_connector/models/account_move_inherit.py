@@ -435,15 +435,21 @@ class AccountMove(models.Model):
         }
 
     def _fne_amount_in_words(self):
-        """Total TTC en lettres (français), ex. « cent cinq mille francs CFA ».
+        """Total TTC en lettres (français), ex. « Cent cinq mille francs CFA ».
 
-        Retourne '' si la conversion échoue (bibliothèque num2words absente,
-        langue non gérée) : le pied de page reste alors inchangé.
+        Pour le franc CFA (XOF), le libellé est construit ici (« francs CFA »,
+        au pluriel). Pour les autres devises on laisse Odoo (amount_to_text).
+        Retourne '' si la conversion échoue : le pied de page reste alors inchangé.
         """
         self.ensure_one()
+        amount = abs(self.amount_total)
         try:
-            words = self.currency_id.with_context(lang='fr_FR').amount_to_text(
-                abs(self.amount_total))
+            if self.currency_id.name == 'XOF':
+                from num2words import num2words
+                words = num2words(int(round(amount)), lang='fr').strip()
+                words = words[:1].upper() + words[1:]
+                return _clean_str("%s francs CFA" % words)
+            words = self.currency_id.with_context(lang='fr_FR').amount_to_text(amount)
         except Exception:
             _logger.exception("[FNE] Conversion du montant en lettres impossible pour %s", self.name)
             return ''
@@ -504,6 +510,7 @@ class AccountMove(models.Model):
             "clientPhone": client_info["clientPhone"],
             "clientEmail": client_info["clientEmail"],
             "clientNcc": client_info["clientNcc"],
+            "clientSellerName": _truncate(self.invoice_user_id.name or self.env.user.name or "", 100),
             "pointOfSale": point_de_vente,
             "establishment": _truncate(establishment, 100),
             "items": items,

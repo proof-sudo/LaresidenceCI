@@ -1,6 +1,6 @@
 {
     'name': 'FNE Connector (DGI) for Odoo 19',
-    'version': '19.0.1.3.1',
+    'version': '19.0.1.3.2',
     'sequence': 2,
     'summary': 'Connecteur FNE - Déversement des factures vers la DGI',
     'author': 'Neurones Technologies',
