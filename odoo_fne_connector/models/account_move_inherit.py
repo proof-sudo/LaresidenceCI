@@ -295,7 +295,7 @@ class AccountMove(models.Model):
         discount = float(line.discount or 0)
         subtotal_ht = float(line.price_subtotal or 0)  # toujours HT, même si price_include
         divisor = qty * (1 - discount / 100) if discount < 100 else 0
-        amount = round(subtotal_ht / divisor, 2) if divisor else 0.0
+        amount = round(subtotal_ht / divisor, 4) if divisor else 0.0
         return qty, discount, amount
 
     # ------------------------------------------------------------------
@@ -316,6 +316,9 @@ class AccountMove(models.Model):
         if not (config.get_param('fne.point_de_vente') or '').strip():
             errors.append(_("Le point de vente FNE n'est pas configuré (Paramètres > section FNE)."))
         if self.move_type not in ('out_invoice', 'out_refund'):
+            return errors
+        if self.state != 'posted':
+            errors.append(_("La facture doit être comptabilisée (validée) avant la certification FNE."))
             return errors
         partner = self.partner_id
         if self.move_type == 'out_invoice':

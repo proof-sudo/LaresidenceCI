@@ -1,6 +1,6 @@
 {
     'name': 'FNE Connector - Ventes (objet du marché)',
-    'version': '19.0.1.0.0',
+    'version': '19.0.1.0.1',
     'summary': "Objet du marché saisi sur le devis, repris sur la facture et envoyé à la FNE",
     'author': 'Neurones Technologies',
     'license': 'AGPL-3',

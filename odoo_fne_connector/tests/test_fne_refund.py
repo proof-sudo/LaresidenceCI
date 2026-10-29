@@ -214,3 +214,12 @@ class TestFneRefund(AccountTestInvoicingCommon):
         self.assertTrue(good.fne_sent)
         self.assertFalse(bad.fne_sent)
         self.assertTrue(bad.fne_error)
+
+    def test_13_draft_invoice_is_blocked(self):
+        inv = self.env['account.move'].create({
+            'move_type': 'out_invoice', 'partner_id': self.partner_a.id,
+            'invoice_date': fields.Date.today(), 'modes_paiement': 'espece',
+            'invoice_line_ids': [(0, 0, {'product_id': self.product.id, 'quantity': 1,
+                                         'price_unit': 1000, 'tax_ids': [(6, 0, self.tax18.ids)]})],
+        })
+        self.assertTrue(any('comptabilisée' in e for e in inv._fne_validation_errors()))

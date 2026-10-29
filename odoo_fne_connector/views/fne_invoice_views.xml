@@ -44,9 +44,12 @@
                     </div>
                 </xpath>
 
-                <xpath expr="//field[@name='invoice_payment_term_id']" position="after">
-                    <field name="modes_paiement"/>
-                    <field name="fne_objet_marche" readonly="fne_sent"/>
+                <xpath expr="//group[@id='header_right_group']" position="inside">
+                    <field name="modes_paiement" string="Méthode de paiement (FNE)"
+                           readonly="fne_sent"/>
+                    <field name="fne_objet_marche" string="Objet du marché"
+                           readonly="fne_sent"
+                           placeholder="Repris du devis, modifiable avant la certification"/>
                 </xpath>
 
                 <xpath expr="//notebook" position="inside">
