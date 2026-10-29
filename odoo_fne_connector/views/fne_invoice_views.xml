@@ -26,6 +26,18 @@
                 </xpath>
 
                 <xpath expr="//sheet" position="before">
+                    <field name="fne_blocking_text" invisible="1"/>
+                    <field name="fne_error" invisible="1"/>
+                    <div class="alert alert-danger mb-0" role="alert"
+                         invisible="not fne_blocking_text">
+                        <strong>FNE : à corriger avant l'envoi</strong><br/>
+                        <field name="fne_blocking_text" readonly="1" nolabel="1"/>
+                    </div>
+                    <div class="alert alert-warning mb-0" role="alert"
+                         invisible="not fne_error or fne_sent">
+                        <strong>Dernière erreur FNE :</strong>
+                        <field name="fne_error" readonly="1" nolabel="1"/>
+                    </div>
                     <div class="alert alert-warning mb-0" role="alert"
                          invisible="not fne_warning">
                         La DGI a renvoyé un avertissement pour cette facture.
@@ -34,6 +46,7 @@
 
                 <xpath expr="//field[@name='invoice_payment_term_id']" position="after">
                     <field name="modes_paiement"/>
+                    <field name="fne_objet_marche" readonly="fne_sent"/>
                 </xpath>
 
                 <xpath expr="//notebook" position="before">

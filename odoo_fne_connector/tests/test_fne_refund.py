@@ -24,6 +24,7 @@ class TestFneRefund(AccountTestInvoicingCommon):
         icp.set_param('fne.mode', 'test')
         icp.set_param('fne.point_de_vente', 'PDV-TEST')
         icp.set_param('fne.establishment', 'ETAB-TEST')
+        cls.partner_a.write({'phone': '0709080765', 'email': 'client@test.ci', 'templateFne': 'b2c'})
         cls.tax18 = cls.env['account.tax'].create({
             'name': 'TVA 18%', 'amount': 18, 'amount_type': 'percent',
             'type_tax_use': 'sale', 'company_id': cls.env.company.id,
@@ -40,6 +41,7 @@ class TestFneRefund(AccountTestInvoicingCommon):
             'move_type': 'out_invoice',
             'partner_id': self.partner_a.id,
             'invoice_date': fields.Date.today(),
+            'modes_paiement': 'espece',
             'invoice_line_ids': [(0, 0, {
                 'product_id': self.product.id, 'quantity': qty, 'price_unit': price,
                 'tax_ids': [(6, 0, self.tax18.ids)],
@@ -172,3 +174,43 @@ class TestFneRefund(AccountTestInvoicingCommon):
         refund.action_post()
         with self.assertRaises(UserError):
             self._certify_refund(refund)
+
+    # ------------------------------------------------- contrôles avant envoi
+
+    def test_09_missing_payment_method_is_blocked(self):
+        inv = self._invoice([(5000, 1)])
+        inv.modes_paiement = False
+        self.assertTrue(inv._fne_validation_errors())
+        with self.assertRaises(UserError):
+            inv.action_send_to_fne()
+
+    def test_10_missing_phone_or_email_is_blocked(self):
+        inv = self._invoice([(5000, 1)])
+        inv.partner_id.phone = False
+        self.assertTrue(any('téléphone' in e for e in inv._fne_validation_errors()))
+        inv.partner_id.phone = '0709080765'
+        inv.partner_id.email = False
+        self.assertTrue(any('e-mail' in e for e in inv._fne_validation_errors()))
+
+    def test_11_tax_without_fne_code_is_blocked(self):
+        odd = self.env['account.tax'].create({
+            'name': 'Taxe X', 'amount': 5, 'amount_type': 'percent',
+            'type_tax_use': 'sale', 'company_id': self.env.company.id,
+        })
+        inv = self._invoice([(5000, 1)])
+        inv.invoice_line_ids.write({'tax_ids': [(6, 0, odd.ids)]})
+        self.assertTrue(any('taxe TVA FNE' in e for e in inv._fne_validation_errors()))
+        odd.fne_tax_code = 'TVAB'
+        self.assertFalse(any('taxe TVA FNE' in e for e in inv._fne_validation_errors()))
+
+    def test_12_batch_failure_keeps_successful_invoices(self):
+        good = self._invoice([(5000, 1)])
+        bad = self._invoice([(5000, 1)])
+        bad.modes_paiement = False
+        resp = {'reference': 'R', 'token': 'T', 'id': 'FNE-X', 'invoice': {'id': 'FNE-X', 'items': [{'id': 'I'}]}}
+        with patch.object(FneAccountMove, '_request_fne', return_value=resp):
+            with self.assertRaises(UserError):
+                (good | bad)._execute_fne_send()
+        self.assertTrue(good.fne_sent)
+        self.assertFalse(bad.fne_sent)
+        self.assertTrue(bad.fne_error)

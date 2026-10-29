@@ -79,6 +79,10 @@
                                     <label for="fne_footer"/>
                                     <div class="text-muted">Message personnalisé affiché en bas de la facture certifiée</div>
                                     <field name="fne_footer"/>
+                                    <div class="mt-2">
+                                        <field name="fne_amount_in_words"/>
+                                        <label for="fne_amount_in_words"/>
+                                    </div>
                                 </div>
                             </div>
 

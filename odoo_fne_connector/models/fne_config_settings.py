@@ -51,6 +51,13 @@ class ResConfigSettings(models.TransientModel):
         help="Message affiché en pied de page sur les factures certifiées",
     )
 
+    fne_amount_in_words = fields.Boolean(
+        string="Montant en lettres dans le pied de page",
+        config_parameter='fne.amount_in_words',
+        help="Ajoute au pied de page FNE : « Arrêtée la présente facture à la "
+             "somme de : … » (total TTC en lettres, en français).",
+    )
+
     def action_test_fne_connection(self):
         """Teste la connexion vers l'API FNE et affiche le résultat."""
         api_key = (self.fne_api_key or '').strip()

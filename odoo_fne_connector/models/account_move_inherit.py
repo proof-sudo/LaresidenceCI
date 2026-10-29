@@ -1,5 +1,7 @@
 import logging
+import re
 import requests
+import psycopg2
 from odoo import models, api, fields, _
 from odoo.exceptions import UserError
 
@@ -13,6 +15,7 @@ def _detect_fne_vat_code(tax):
     """Retourne le code TVA FNE correspondant à une taxe Odoo, ou None.
 
     Stratégie (par priorité) :
+    0. Champ « Code FNE » renseigné sur la taxe
     1. Code FNE explicite dans le nom ou le groupe (TVA/TVAB/TVAC/TVAD)
     2. Marqueur VAT/TVA présent → mapping par taux + suffixe du nom
        - 18 %          → TVA
@@ -20,6 +23,10 @@ def _detect_fne_vat_code(tax):
        - 0 % + LEG/LEGAL → TVAD  (exonération légale)
        - 0 % autres    → TVAC  (exonération convention / générique)
     """
+    # Code FNE saisi explicitement sur la taxe : toujours prioritaire.
+    explicit = getattr(tax, 'fne_tax_code', False)
+    if explicit:
+        return explicit
     group_name = (tax.tax_group_id.name or '').upper() if tax.tax_group_id else ''
     tax_name = (tax.name or '').upper()
     combined = group_name + ' ' + tax_name
@@ -123,9 +130,34 @@ class AccountMove(models.Model):
             ('card', 'Carte Bancaire'),
         ],
         string="Methode de paiement",
-        default='cheque',
-        help="Sélectionnez le mode de paiement pour la facture.",
+        copy=False,
+        help="Obligatoire pour la certification FNE : à choisir sur chaque facture.",
     )
+    fne_error = fields.Text(string="Dernière erreur FNE", readonly=True, copy=False)
+    fne_blocking_text = fields.Text(
+        string="Points à corriger avant l'envoi FNE",
+        compute='_compute_fne_blocking_text',
+    )
+
+    fne_objet_marche = fields.Char(
+        string="Objet du marché",
+        copy=False,
+        help="Envoyé à la FNE dans le champ « Message commercial » "
+             "(commercialMessage) sous la forme « Objet du marché : … ».",
+    )
+
+    @api.depends(
+        'move_type', 'state', 'fne_sent', 'partner_id.phone', 'partner_id.email',
+        'partner_id.vat', 'partner_id.templateFne', 'modes_paiement',
+        'invoice_line_ids.tax_ids', 'invoice_line_ids.fne_item_id',
+        'reversed_entry_id.fne_sent',
+    )
+    def _compute_fne_blocking_text(self):
+        for move in self:
+            if move.move_type in ('out_invoice', 'out_refund') and move.state == 'posted' and not move.fne_sent:
+                move.fne_blocking_text = "\n".join(move._fne_validation_errors())
+            else:
+                move.fne_blocking_text = False
 
     def _compute_fne_mode(self):
         mode = self.env['ir.config_parameter'].sudo().get_param('fne.mode', default='test')
@@ -250,6 +282,68 @@ class AccountMove(models.Model):
         amount = round(subtotal_ht / divisor, 2) if divisor else 0.0
         return qty, discount, amount
 
+    # ------------------------------------------------------------------
+    # Contrôles avant envoi (messages bloquants)
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def _fne_clean_phone(raw):
+        return ''.join(filter(str.isdigit, raw or ''))
+
+    def _fne_validation_errors(self):
+        """Liste des points bloquants avant certification (vide = prêt à envoyer)."""
+        self.ensure_one()
+        errors = []
+        config = self.env['ir.config_parameter'].sudo()
+        if not (config.get_param('fne.api_key') or '').strip():
+            errors.append(_("La clé API FNE n'est pas configurée (Paramètres > section FNE)."))
+        if not (config.get_param('fne.point_de_vente') or '').strip():
+            errors.append(_("Le point de vente FNE n'est pas configuré (Paramètres > section FNE)."))
+        if self.move_type not in ('out_invoice', 'out_refund'):
+            return errors
+        partner = self.partner_id
+        if self.move_type == 'out_invoice':
+            if not partner:
+                errors.append(_("Le client est obligatoire."))
+                return errors
+            template = self._detect_template()
+            if template == 'B2B':
+                ncc = re.sub(r'\s', '', partner.vat or '')
+                if not ncc:
+                    errors.append(_("Le NCC du client est obligatoire (client professionnel B2B)."))
+                elif len(ncc) != 8:
+                    errors.append(_("Le NCC du client doit comporter 8 caractères (actuellement : %s).") % ncc)
+            phone = self._fne_clean_phone(partner.phone)
+            if not phone:
+                errors.append(_("Le téléphone du client est obligatoire."))
+            elif template != 'B2F' and len(phone.lstrip('0')) < 8:
+                errors.append(_("Le téléphone du client semble invalide (%s) : format ivoirien attendu, 10 chiffres.") % partner.phone)
+            if not (partner.email or '').strip():
+                errors.append(_("L'e-mail du client est obligatoire."))
+            if not self.modes_paiement:
+                errors.append(_("Le mode de paiement FNE est obligatoire (champ « Méthode de paiement »)."))
+            if template == 'B2F' and self.currency_id == self.company_currency_id:
+                errors.append(_("Client étranger (B2F) : la facture doit être en devise étrangère."))
+            if not self._get_fne_lines():
+                errors.append(_("Aucune ligne à certifier (produit, quantité et prix positifs requis)."))
+            for line in self._get_fne_lines():
+                if not self._fne_line_tax_codes(line):
+                    errors.append(_("Ligne « %s » : aucune taxe TVA FNE (TVA, TVAB, TVAC ou TVAD). "
+                                    "Renseignez le « Code FNE » sur la taxe.") % (line.name or line.product_id.display_name))
+        else:
+            origin = self.reversed_entry_id
+            if not origin:
+                errors.append(_("L'avoir doit référencer la facture d'origine."))
+            elif not origin.invoice_id_from_fne:
+                errors.append(_("La facture d'origine doit d'abord être certifiée FNE."))
+            elif any(not l.fne_item_id for l in origin.invoice_line_ids.filtered('product_id')
+                     if l.price_subtotal and l.quantity):
+                errors.append(_("Certaines lignes de la facture d'origine n'ont pas d'identifiant FNE."))
+        return errors
+
+    def _fne_line_tax_codes(self, line):
+        return self._classify_taxes(line)[0]
+
     def _get_fne_lines(self):
         """Lignes effectivement envoyées à la FNE, dans l'ordre exact du payload.
 
@@ -273,7 +367,7 @@ class AccountMove(models.Model):
         - Taxes non-TVA placées en customTaxes par ligne (GRA, AIRSI, etc.)
         """
         items = []
-        for line in self._get_fne_lines():
+        for index, line in enumerate(self._get_fne_lines(), start=1):
             qty, discount, amount = self._fne_line_values(line)
 
             uom = _normalize_uom(line.product_uom_id.name if line.product_uom_id else "")
@@ -283,10 +377,12 @@ class AccountMove(models.Model):
                          line.name, uom, fne_taxes, custom_taxes)
 
             if not fne_taxes:
-                _logger.warning("[FNE] Ligne '%s' : aucune taxe TVA reconnue, TVAC (0%%) appliqué par défaut", line.name)
-                fne_taxes = ['TVAC']
+                # Normalement bloqué en amont par _fne_validation_errors().
+                raise UserError(_("Ligne « %s » : aucune taxe TVA FNE reconnue. "
+                                  "Renseignez le « Code FNE » sur la taxe.") % (line.name or ''))
 
             item = {
+                "reference": str(index),
                 "taxes": fne_taxes,
                 "customTaxes": custom_taxes,
                 "description": _truncate(line.name or line.product_id.display_name or "Ligne", 255),
@@ -294,15 +390,15 @@ class AccountMove(models.Model):
                 "amount": amount,
                 "measurementUnit": uom,
             }
-            if line.product_id.default_code:
-                item["reference"] = _clean_str(line.product_id.default_code)
             if discount > 0:
                 item["discount"] = discount
             items.append(item)
         return items
 
     def _get_payment_method(self):
-        odoo_method = self.modes_paiement or 'cheque'
+        odoo_method = self.modes_paiement
+        if not odoo_method:
+            raise UserError(_("Le mode de paiement FNE est obligatoire sur la facture %s.") % self.name)
         fne_method = PAYMENT_METHOD_MAPPING.get(odoo_method, 'check')
         _logger.info("[FNE] Payment method : %s -> %s", odoo_method, fne_method)
         return fne_method
@@ -311,13 +407,45 @@ class AccountMove(models.Model):
         partner = self.partner_id
         raw_phone = partner.phone or ""
         client_phone = ''.join(filter(str.isdigit, raw_phone))
-        client_email = (partner.email or "").strip() or (self.company_id.email or "").strip() or "noreply@entreprise.ci"
+        client_email = (partner.email or "").strip()
         return {
             "clientCompanyName": _truncate(partner.name or "Client"),
             "clientPhone": client_phone,
             "clientEmail": client_email,
             "clientNcc": _truncate(partner.vat or ""),
         }
+
+    def _fne_amount_in_words(self):
+        """Total TTC en lettres (français), ex. « cent cinq mille francs CFA ».
+
+        Retourne '' si la conversion échoue (bibliothèque num2words absente,
+        langue non gérée) : le pied de page reste alors inchangé.
+        """
+        self.ensure_one()
+        try:
+            words = self.currency_id.with_context(lang='fr_FR').amount_to_text(
+                abs(self.amount_total))
+        except Exception:
+            _logger.exception("[FNE] Conversion du montant en lettres impossible pour %s", self.name)
+            return ''
+        return _clean_str(words or '').strip()
+
+    def _build_fne_footer(self, base_footer):
+        """Pied de page envoyé à la FNE : texte du réglage + (option) montant en lettres.
+
+        Limité à 255 caractères ; si le texte est trop long, c'est le message
+        du réglage qui est raccourci, jamais le montant en lettres.
+        """
+        config = self.env['ir.config_parameter'].sudo()
+        footer = base_footer or ''
+        if config.get_param('fne.amount_in_words') in ('True', 'true', '1'):
+            words = self._fne_amount_in_words()
+            if words:
+                phrase = "Arrêtée la présente facture à la somme de : %s" % words
+                room = 255 - len(phrase) - 3
+                head = footer[:room].rstrip() if room > 0 else ''
+                footer = (head + " - " + phrase) if head else phrase
+        return _truncate(footer, 255)
 
     def _prepare_base_payload(self, invoice_type):
         """Construit le payload complet pour l'API FNE.
@@ -360,8 +488,11 @@ class AccountMove(models.Model):
             "pointOfSale": point_de_vente,
             "establishment": _truncate(establishment, 100),
             "items": items,
-            "footer": footer,
+            "footer": self._build_fne_footer(footer),
         }
+        objet = (self.fne_objet_marche or '').strip()
+        if objet:
+            payload["commercialMessage"] = _truncate("Objet du marché : %s" % objet, 255)
         payload["foreignCurrency"] = foreign_currency or ""
         payload["foreignCurrencyRate"] = foreign_rate if foreign_currency else 0
 
@@ -387,6 +518,10 @@ class AccountMove(models.Model):
             if resp.status_code in (200, 201):
                 return data
             raise UserError(_("FNE %s %s : %s - %s") % (method, url, resp.status_code, data))
+        except requests.Timeout as e:
+            raise UserError(_(
+                "Délai dépassé lors de l'appel FNE : le résultat est INCERTAIN (la DGI a peut-être "
+                "certifié la facture). Vérifiez dans votre espace FNE avant de renvoyer. (%s)") % str(e))
         except requests.RequestException as e:
             raise UserError(_("Erreur réseau FNE %s %s : %s") % (method, url, str(e)))
 
@@ -409,9 +544,17 @@ class AccountMove(models.Model):
         _logger.info("[FNE] Facture %s certifiée : ref=%s id=%s",
                      self.name, self.fne_reference_dgi, self.invoice_id_from_fne)
 
-        # Mapper les fne_item_id retournés par la DGI sur les lignes Odoo (par index)
+        # Mapper les fne_item_id retournés par la DGI sur les lignes Odoo :
+        # par « reference » (numéro de ligne envoyé) quand la DGI le renvoie,
+        # sinon par ordre d'envoi.
         fne_items = data.get("invoice", {}).get("items", [])
         odoo_lines = self._get_fne_lines()
+        ref_to_line = {str(i): l for i, l in enumerate(odoo_lines, start=1)}
+        if fne_items and all(it.get("reference") in ref_to_line for it in fne_items):
+            for fne_item in fne_items:
+                if fne_item.get("id"):
+                    ref_to_line[fne_item["reference"]].fne_item_id = fne_item["id"]
+            return
         if len(fne_items) != len(odoo_lines):
             _logger.warning("[FNE] %s : %d items DGI pour %d lignes envoyées, mapping des fne_item_id incertain",
                             self.name, len(fne_items), len(odoo_lines))
@@ -544,6 +687,14 @@ class AccountMove(models.Model):
         if not to_send:
             raise UserError(_("Aucune facture éligible à la certification (déjà certifiées ou type non géré)."))
 
+        problems = []
+        for move in to_send:
+            errs = move._fne_validation_errors()
+            if errs:
+                problems.append("%s :\n  - %s" % (move.name, "\n  - ".join(errs)))
+        if problems:
+            raise UserError(_("Certification FNE impossible, à corriger d'abord :\n\n%s") % "\n\n".join(problems))
+
         wizard = self.env['fne.confirm.wizard'].create({
             'invoice_ids': [(6, 0, to_send.ids)],
         })
@@ -555,11 +706,24 @@ class AccountMove(models.Model):
             'target': 'new',
         }
 
+    def _fne_lock(self):
+        """Verrouille la facture pour la durée de la transaction (évite un double envoi)."""
+        self.ensure_one()
+        try:
+            with self.env.cr.savepoint(flush=False):
+                self.env.cr.execute(
+                    "SELECT id FROM account_move WHERE id = %s FOR UPDATE NOWAIT", [self.id])
+        except psycopg2.errors.LockNotAvailable:
+            raise UserError(_("La facture %s est en cours de traitement par un autre utilisateur.") % self.name)
+
     def _execute_fne_send(self):
         """Envoie effectivement la/les factures à la DGI via l'API FNE.
 
-        Méthode interne appelée uniquement après confirmation (wizard)
-        ou automatiquement via action_post si fne_auto_send est activé.
+        Chaque facture est traitée séparément : verrou, contrôles, envoi, puis
+        validation en base immédiate. Un échec n'annule pas les factures déjà
+        certifiées du même lot (évite de les renvoyer à la DGI par erreur).
+        L'erreur est conservée sur la facture (champ + suivi) ; une erreur
+        récapitulative est levée à la fin.
         """
         api_key, _mode, base_url = self._get_fne_config()
         headers = {
@@ -568,30 +732,44 @@ class AccountMove(models.Model):
             'Accept': 'application/json',
         }
         endpoint_sign = base_url.rstrip('/') + "/external/invoices/sign"
+        failures = []
 
         for inv in self:
             if inv.fne_sent:
                 _logger.info("[FNE] %s déjà certifiée, ignorée.", inv.name)
                 continue
             try:
-                if inv.move_type == 'out_invoice':
-                    payload = inv._prepare_base_payload("sale")
-                    data = inv._request_fne("POST", endpoint_sign, headers, json_body=payload)
-                    inv._apply_sign_success(data)
-
-                elif inv.move_type == 'out_refund':
-                    inv._post_refund_to_fne(headers, base_url)
-
-                else:
-                    # Factures d'achat : fournisseur déclare de son côté
-                    _logger.info("[FNE] %s ignorée (type %s non géré).", inv.name, inv.move_type)
-
-            except UserError:
-                raise
-            except Exception:
+                inv._fne_lock()
+                with self.env.cr.savepoint():
+                    errors = inv._fne_validation_errors()
+                    if errors:
+                        raise UserError("\n".join(errors))
+                    if inv.move_type == 'out_invoice':
+                        payload = inv._prepare_base_payload("sale")
+                        data = inv._request_fne("POST", endpoint_sign, headers, json_body=payload)
+                        inv._apply_sign_success(data)
+                    elif inv.move_type == 'out_refund':
+                        inv._post_refund_to_fne(headers, base_url)
+                    else:
+                        _logger.info("[FNE] %s ignorée (type %s non gérée).", inv.name, inv.move_type)
+                        continue
+                    inv.fne_error = False
+            except UserError as e:
+                msg = e.args[0] if e.args else str(e)
+                failures.append((inv.name, msg))
+                inv.write({'fne_error': msg})
+                inv.message_post(body=_("Échec de la certification FNE : %s") % msg)
+            except Exception as e:
                 _logger.exception("[FNE] Exception non gérée lors de l'envoi de %s", inv.name)
-                raise
+                msg = str(e)
+                failures.append((inv.name, msg))
+                inv.write({'fne_error': msg})
+            if not self.env.registry.in_test_mode():
+                self.env.cr.commit()
 
+        if failures:
+            raise UserError(_("Certification FNE non effectuée pour :\n\n%s") % "\n\n".join(
+                "%s : %s" % f for f in failures))
 
     def action_open_fne_link(self):
         """Ouvre le lien de vérification DGI dans un nouvel onglet."""
