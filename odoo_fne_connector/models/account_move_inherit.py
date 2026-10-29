@@ -1,6 +1,9 @@
 import logging
 import re
 import requests
+from datetime import datetime
+from markupsafe import Markup
+from werkzeug.urls import url_quote
 import psycopg2
 from odoo import models, api, fields, _
 from odoo.exceptions import UserError
@@ -119,6 +122,8 @@ class AccountMove(models.Model):
     invoice_id_from_fne = fields.Char(string="ID FNE", readonly=True, copy=False)
     fne_warning = fields.Boolean(string="Avertissement FNE", readonly=True, copy=False)
     fne_balance_sticker = fields.Integer(string="Solde sticker FNE", readonly=True, copy=False)
+    fne_datetime = fields.Datetime(string="Date de certification FNE", readonly=True, copy=False)
+    fne_qr_img = fields.Html(string="QR code FNE", compute='_compute_fne_qr_img', sanitize=False)
     fne_mode = fields.Char(compute='_compute_fne_mode', string="Mode FNE")
     modes_paiement = fields.Selection(
         selection=[
@@ -158,6 +163,17 @@ class AccountMove(models.Model):
                 move.fne_blocking_text = "\n".join(move._fne_validation_errors())
             else:
                 move.fne_blocking_text = False
+
+    @api.depends('fne_verification_url')
+    def _compute_fne_qr_img(self):
+        for move in self:
+            if move.fne_verification_url:
+                move.fne_qr_img = Markup(
+                    '<img src="/report/barcode/?barcode_type=QR&amp;value={url}&amp;width=200&amp;height=200" '
+                    'alt="QR code FNE" style="width:200px;height:200px"/>'
+                ).format(url=url_quote(move.fne_verification_url, safe=''))
+            else:
+                move.fne_qr_img = False
 
     def _compute_fne_mode(self):
         mode = self.env['ir.config_parameter'].sudo().get_param('fne.mode', default='test')
@@ -536,6 +552,7 @@ class AccountMove(models.Model):
         self.fne_verification_url = data.get("token") or False
         self.fne_warning = bool(data.get("warning"))
         self.fne_balance_sticker = int(data.get("balance_sticker") or 0)
+        self.fne_datetime = self._fne_parse_datetime(data.get("invoice", {}).get("date"))
         self.invoice_id_from_fne = (
             data.get("id")
             or data.get("invoice", {}).get("id")
@@ -566,6 +583,16 @@ class AccountMove(models.Model):
                 odoo_lines[i].fne_item_id = fne_item_id
             except IndexError:
                 _logger.warning("[FNE] Pas assez de lignes Odoo pour mapper l'item %d de %s", i, self.name)
+
+    @staticmethod
+    def _fne_parse_datetime(value):
+        """Date ISO renvoyée par la DGI -> datetime naïf UTC (ou maintenant si absente)."""
+        if value:
+            try:
+                return datetime.fromisoformat(value.replace('Z', '+00:00')).replace(tzinfo=None)
+            except ValueError:
+                pass
+        return fields.Datetime.now()
 
     def _post_refund_to_fne(self, headers, base_url):
         """Envoie un avoir (credit note) à la DGI."""
@@ -668,6 +695,7 @@ class AccountMove(models.Model):
         self.fne_verification_url = data.get("token") or False
         self.fne_warning = bool(data.get("warning"))
         self.fne_balance_sticker = int(data.get("balance_sticker") or 0)
+        self.fne_datetime = fields.Datetime.now()
         _logger.info("[FNE] Avoir %s certifié : %s", self.name, data)
         return data
 

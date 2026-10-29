@@ -49,13 +49,22 @@
                     <field name="fne_objet_marche" readonly="fne_sent"/>
                 </xpath>
 
-                <xpath expr="//notebook" position="before">
-                    <group string="Informations de Certification FNE / DGI"
-                           invisible="not fne_sent">
-                        <field name="fne_reference_dgi" readonly="1"/>
-                        <field name="fne_verification_url" widget="url" readonly="1"/>
-                        <field name="invoice_id_from_fne" readonly="1"/>
-                    </group>
+                <xpath expr="//notebook" position="inside">
+                    <page string="FNE / DGI" name="fne_details" invisible="not fne_sent">
+                        <group>
+                            <group string="Certification">
+                                <field name="fne_reference_dgi" readonly="1"/>
+                                <field name="invoice_id_from_fne" readonly="1"/>
+                                <field name="fne_datetime" readonly="1"/>
+                                <field name="fne_objet_marche" readonly="1"/>
+                                <field name="fne_balance_sticker" readonly="1"/>
+                                <field name="fne_verification_url" widget="url" readonly="1"/>
+                            </group>
+                            <group string="QR code de vérification">
+                                <field name="fne_qr_img" widget="html" nolabel="1" readonly="1"/>
+                            </group>
+                        </group>
+                    </page>
                 </xpath>
 
             </field>
