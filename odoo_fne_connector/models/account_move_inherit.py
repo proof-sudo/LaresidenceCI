@@ -764,7 +764,7 @@ class AccountMove(models.Model):
                 msg = str(e)
                 failures.append((inv.name, msg))
                 inv.write({'fne_error': msg})
-            if not self.env.registry.in_test_mode():
+            if self.env['account.move.send']._can_commit():
                 self.env.cr.commit()
 
         if failures:
