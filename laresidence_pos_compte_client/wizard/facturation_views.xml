@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="facturation_form" model="ir.ui.view">
+        <field name="name">laresidence.pos.facturation.form</field>
+        <field name="model">laresidence.pos.facturation</field>
+        <field name="arch" type="xml">
+            <form string="Facturer un compte client">
+                <div class="alert alert-info" role="alert">
+                    Choisissez le client et la période. Les consommations réglées
+                    en <b>compte client</b> et pas encore facturées apparaissent
+                    ci-dessous, déjà sélectionnées. Décochez ce que vous ne voulez
+                    pas facturer.
+                </div>
+                <group>
+                    <group>
+                        <field name="partner_id" options="{'no_create': True}"
+                               placeholder="Nom du client…"/>
+                    </group>
+                    <group>
+                        <field name="date_debut"/>
+                        <field name="date_fin"/>
+                        <field name="currency_id" invisible="1"/>
+                        <field name="montant_total" class="oe_subtotal_footer_separator"/>
+                    </group>
+                </group>
+                <field name="avertissement" invisible="not avertissement" nolabel="1"
+                       readonly="1" widget="text" class="alert alert-warning"/>
+                <group>
+                    <field name="regrouper_societe"/>
+                </group>
+                <field name="order_ids" nolabel="1">
+                    <list create="false" edit="false" decoration-muted="state == 'cancel'">
+                        <field name="date_order" string="Date"/>
+                        <field name="name" string="Ticket"/>
+                        <field name="partner_id" string="Au nom de"/>
+                        <field name="amount_total" string="Montant" sum="Total"/>
+                        <field name="state" column_invisible="1"/>
+                    </list>
+                </field>
+                <footer>
+                    <button name="action_facturer" type="object" class="btn-primary"
+                            string="Générer la facture"/>
+                    <button string="Annuler" special="cancel" class="btn-secondary"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_facturation" model="ir.actions.act_window">
+        <field name="name">Facturer un compte client</field>
+        <field name="res_model">laresidence.pos.facturation</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+
+    <record id="action_comptes_a_facturer" model="ir.actions.act_window">
+        <field name="name">Comptes clients à facturer</field>
+        <field name="res_model">pos.order</field>
+        <field name="view_mode">list,form</field>
+        <field name="domain">[('payment_ids.payment_method_id.journal_id', '=', False), ('account_move', '=', False), ('laresidence_regularisee', '=', False), ('state', 'in', ['paid', 'done'])]</field>
+        <field name="context">{'group_by': ['partner_id'], 'create': False}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Aucune consommation en attente de facturation</p>
+            <p>Les consommations réglées en compte client et pas encore facturées
+               apparaissent ici, regroupées par client.</p>
+        </field>
+    </record>
+
+    <menuitem id="menu_compte_client"
+              name="Comptes clients"
+              parent="point_of_sale.menu_point_of_sale"
+              groups="account.group_account_invoice"
+              sequence="45"/>
+
+    <menuitem id="menu_comptes_a_facturer"
+              name="Comptes clients à facturer"
+              parent="menu_compte_client"
+              action="action_comptes_a_facturer"
+              groups="account.group_account_invoice"
+              sequence="10"/>
+
+    <menuitem id="menu_facturation"
+              name="Facturer un compte client"
+              parent="menu_compte_client"
+              action="action_facturation"
+              groups="account.group_account_invoice"
+              sequence="20"/>
+
+</odoo>

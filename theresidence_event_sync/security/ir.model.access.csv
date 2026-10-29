@@ -1,0 +1,3 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_event_event_tr,event.event TR Sync,event.model_event_event,,1,1,1,0
+access_event_registration_tr,event.registration TR Sync,event.model_event_registration,,1,1,1,0

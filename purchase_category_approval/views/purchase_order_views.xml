@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+
+        <!-- ===== Bouton smart "Approbation" sur le formulaire PO ===== -->
+        <record id="view_purchase_order_form_approval" model="ir.ui.view">
+            <field name="name">purchase.order.form.approval</field>
+            <field name="model">purchase.order</field>
+            <field name="inherit_id" ref="purchase.purchase_order_form"/>
+            <field name="arch" type="xml">
+
+                <!-- Bouton smart dans button_box -->
+                <xpath expr="//div[@name='button_box']" position="inside">
+                    <button name="action_view_approval_request"
+                            type="object"
+                            class="oe_stat_button"
+                            icon="fa-check-circle"
+                            invisible="not approval_request_id">
+                        <div class="o_field_widget o_stat_info">
+                            <span class="o_stat_text">Approbation</span>
+                            <span class="o_stat_value">
+                                <field name="approval_state"
+                                       widget="badge"
+                                       decoration-success="approval_state == 'approved'"
+                                       decoration-warning="approval_state == 'pending'"
+                                       decoration-danger="approval_state == 'refused'"
+                                       decoration-info="approval_state == 'draft'"/>
+                            </span>
+                        </div>
+                    </button>
+                </xpath>
+
+                <!-- Bandeau d'avertissement sous le statut quand approbation en attente -->
+                <xpath expr="//field[@name='state']" position="after">
+                    <div class="alert alert-warning mb-0"
+                         role="alert"
+                         invisible="approval_state != 'pending'">
+                        <i class="fa fa-clock-o me-1"/>
+                        En attente d'approbation —
+                        <field name="approval_request_id" nolabel="1" readonly="1"/>
+                    </div>
+                    <div class="alert alert-danger mb-0"
+                         role="alert"
+                         invisible="approval_state != 'refused'">
+                        <i class="fa fa-times-circle me-1"/>
+                        Approbation refusée —
+                        <field name="approval_request_id" nolabel="1" readonly="1"/>
+                    </div>
+                </xpath>
+
+            </field>
+        </record>
+
+    </data>
+</odoo>

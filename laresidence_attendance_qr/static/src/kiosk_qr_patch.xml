@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<templates>
+    <t t-inherit="hr_attendance.public_kiosk_app" t-inherit-mode="extension">
+        <xpath expr="//h6[hasclass('text-muted')]" position="replace">
+            <h6 class="mt-2 text-muted">Scannez votre badge ou QR Code</h6>
+        </xpath>
+    </t>
+</templates>

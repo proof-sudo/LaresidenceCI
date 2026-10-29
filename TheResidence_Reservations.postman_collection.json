@@ -1,0 +1,959 @@
+{
+  "info": {
+    "name": "The Residence — Réservations API",
+    "description": "Collection complète pour tester le workflow des réservations depuis l'API REST.\n\nVariables requises :\n- `base_url` : https://proof-sudo-laresidenceci.odoo.com/v1/external\n- `api_key`  : votre clé API\n\nWorkflow recommandé :\n1. Lancer '0. Setup' pour récupérer memberId et spaceId réels\n2. Exécuter les scénarios dans l'ordre",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url", "value": "https://proof-sudo-laresidenceci.odoo.com/v1/external" },
+    { "key": "api_key",  "value": "tr_4m6-Ph-gfjCgyml0qgzTWzsFKNjjLKBg6hlurE0tzgE" },
+    { "key": "member_id", "value": "" },
+    { "key": "space_id",  "value": "" },
+    { "key": "reservation_id", "value": "" },
+    { "key": "reservation_pending_id", "value": "" },
+    { "key": "reservation_approved_id", "value": "" },
+    { "key": "option_id", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "0. Setup — Récupérer IDs réels",
+      "description": "Étape préalable : récupère les UUIDs d'un membre et d'un espace existants, puis remplace les variables de collection.",
+      "item": [
+        {
+          "name": "0.1 — Lister les membres (prendre le 1er)",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "X-API-Key", "value": "{{api_key}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/members?page=0&size=5",
+              "host": ["{{base_url}}"],
+              "path": ["members"],
+              "query": [
+                { "key": "page", "value": "0" },
+                { "key": "size", "value": "5" }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.success && json.content && json.content.length > 0) {",
+                  "    const member = json.content[0];",
+                  "    pm.collectionVariables.set('member_id', member.id);",
+                  "    console.log('member_id défini :', member.id, '—', member.firstName, member.lastName);",
+                  "    pm.test('Membre récupéré', () => pm.expect(member.id).to.be.a('string'));",
+                  "} else {",
+                  "    console.warn('Aucun membre trouvé — créez un membre d abord');",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "0.2 — Lister les espaces (prendre le 1er)",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "X-API-Key", "value": "{{api_key}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/reference/spaces",
+              "host": ["{{base_url}}"],
+              "path": ["reference", "spaces"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.success && json.data && json.data.length > 0) {",
+                  "    const space = json.data[0];",
+                  "    pm.collectionVariables.set('space_id', space.id);",
+                  "    console.log('space_id défini :', space.id, '—', space.name);",
+                  "    pm.test('Espace récupéré', () => pm.expect(space.id).to.be.a('string'));",
+                  "} else {",
+                  "    console.warn('Aucun espace trouvé — créez un espace d abord');",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "0.3 — Lister les options disponibles",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "X-API-Key", "value": "{{api_key}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/reference/options",
+              "host": ["{{base_url}}"],
+              "path": ["reference", "options"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.success && json.data && json.data.length > 0) {",
+                  "    const opt = json.data[0];",
+                  "    pm.collectionVariables.set('option_id', opt.id);",
+                  "    console.log('option_id défini :', opt.id, '—', opt.label);",
+                  "} else {",
+                  "    console.log('Pas d options disponibles (optionnel)');",
+                  "}"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "1. Scénario NOMINAL — PENDING → APPROVED → CHECKED_IN",
+      "description": "Flux complet d'une réservation réussie : création, approbation, check-in.",
+      "item": [
+        {
+          "name": "1.1 — Créer une réservation (PENDING)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "X-API-Key", "value": "{{api_key}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"memberId\": \"{{member_id}}\",\n  \"spaceId\": \"{{space_id}}\",\n  \"startTime\": \"2026-03-15T09:00:00Z\",\n  \"endTime\": \"2026-03-15T11:00:00Z\",\n  \"guestCount\": 5,\n  \"notes\": \"Réunion équipe projet Alpha — test Postman\",\n  \"invitees\": [\n    {\n      \"name\": \"Aya Koné\",\n      \"email\": \"aya.kone@example.ci\",\n      \"phone\": \"+22507111001\"\n    },\n    {\n      \"name\": \"Ibrahima Diallo\",\n      \"email\": \"i.diallo@example.ci\"\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/reservations",
+              "host": ["{{base_url}}"],
+              "path": ["reservations"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "pm.test('Status 200/201', () => pm.expect(pm.response.code).to.be.oneOf([200, 201]));",
+                  "pm.test('success = true', () => pm.expect(json.success).to.be.true);",
+                  "pm.test('status = PENDING', () => pm.expect(json.data.status).to.eql('PENDING'));",
+                  "pm.test('id présent (UUID)', () => pm.expect(json.data.id).to.match(/^[0-9a-f-]{36}$/i));",
+                  "pm.test('memberId présent', () => pm.expect(json.data.memberId).to.be.a('string'));",
+                  "pm.test('spaceId présent', () => pm.expect(json.data.spaceId).to.be.a('string'));",
+                  "pm.test('invitees créés', () => pm.expect(json.data.invitees).to.have.lengthOf(2));",
+                  "pm.collectionVariables.set('reservation_id', json.data.id);",
+                  "pm.collectionVariables.set('reservation_pending_id', json.data.id);",
+                  "console.log('Réservation créée :', json.data.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "1.2 — Récupérer la réservation créée",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "X-API-Key", "value": "{{api_key}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/reservations/{{reservation_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["reservations", "{{reservation_id}}"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "pm.test('Réservation trouvée', () => pm.expect(json.success).to.be.true);",
+                  "pm.test('id correspond', () => pm.expect(json.data.id).to.eql(pm.collectionVariables.get('reservation_id')));",
+                  "pm.test('status = PENDING', () => pm.expect(json.data.status).to.eql('PENDING'));",
+                  "console.log('Données réservation:', JSON.stringify(json.data, null, 2));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "1.3 — Ajouter une option à la réservation",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "X-API-Key", "value": "{{api_key}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"optionId\": \"{{option_id}}\",\n  \"quantity\": 2\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/reservations/{{reservation_id}}/options",
+              "host": ["{{base_url}}"],
+              "path": ["reservations", "{{reservation_id}}", "options"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "// Skippé si pas d'option disponible",
+                  "if (!pm.collectionVariables.get('option_id')) {",
+                  "    console.log('Pas d option définie — étape ignorée');",
+                  "    return;",
+                  "}",
+                  "const json = pm.response.json();",
+                  "pm.test('Option ajoutée', () => pm.expect(json.success).to.be.true);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "1.4 — Approuver la réservation (PENDING → APPROVED)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "X-API-Key", "value": "{{api_key}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}"
+            },
+            "url": {
+              "raw": "{{base_url}}/reservations/{{reservation_id}}/approve",
+              "host": ["{{base_url}}"],
+              "path": ["reservations", "{{reservation_id}}", "approve"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "pm.test('Approbation réussie', () => pm.expect(json.success).to.be.true);",
+                  "pm.test('status = APPROVED', () => pm.expect(json.data.status).to.eql('APPROVED'));",
+                  "pm.collectionVariables.set('reservation_approved_id', json.data.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "1.5 — Check-in (APPROVED → CHECKED_IN)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "X-API-Key", "value": "{{api_key}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}"
+            },
+            "url": {
+              "raw": "{{base_url}}/reservations/{{reservation_id}}/check-in",
+              "host": ["{{base_url}}"],
+              "path": ["reservations", "{{reservation_id}}", "check-in"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "pm.test('Check-in réussi', () => pm.expect(json.success).to.be.true);",
+                  "pm.test('status = CHECKED_IN', () => pm.expect(json.data.status).to.eql('CHECKED_IN'));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "2. Scénario REJET — PENDING → REJECTED",
+      "description": "Une réservation est créée puis rejetée avec une raison.",
+      "item": [
+        {
+          "name": "2.1 — Créer une réservation à rejeter",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "X-API-Key", "value": "{{api_key}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"memberId\": \"{{member_id}}\",\n  \"spaceId\": \"{{space_id}}\",\n  \"startTime\": \"2026-03-16T14:00:00Z\",\n  \"endTime\": \"2026-03-16T16:00:00Z\",\n  \"guestCount\": 12,\n  \"notes\": \"Événement à rejeter — test capacité dépassée\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/reservations",
+              "host": ["{{base_url}}"],
+              "path": ["reservations"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "pm.test('Réservation créée', () => pm.expect(json.success).to.be.true);",
+                  "pm.collectionVariables.set('reservation_to_reject_id', json.data.id);",
+                  "console.log('Réservation à rejeter :', json.data.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "2.2 — Rejeter la réservation",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "X-API-Key", "value": "{{api_key}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"Capacité maximale de la salle dépassée (max 10 personnes). Veuillez réduire le nombre d'invités ou choisir un espace plus grand.\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/reservations/{{reservation_to_reject_id}}/reject",
+              "host": ["{{base_url}}"],
+              "path": ["reservations", "{{reservation_to_reject_id}}", "reject"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "pm.test('Rejet réussi', () => pm.expect(json.success).to.be.true);",
+                  "pm.test('status = REJECTED', () => pm.expect(json.data.status).to.eql('REJECTED'));",
+                  "pm.test('raison présente', () => pm.expect(json.data.rejectionReason || json.data.rejection_reason).to.be.a('string'));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "3. Scénario ANNULATION — PENDING → CANCELLED",
+      "description": "Un membre annule sa propre réservation.",
+      "item": [
+        {
+          "name": "3.1 — Créer une réservation à annuler",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "X-API-Key", "value": "{{api_key}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"memberId\": \"{{member_id}}\",\n  \"spaceId\": \"{{space_id}}\",\n  \"startTime\": \"2026-03-20T10:00:00Z\",\n  \"endTime\": \"2026-03-20T12:00:00Z\",\n  \"guestCount\": 3,\n  \"notes\": \"Réservation test à annuler\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/reservations",
+              "host": ["{{base_url}}"],
+              "path": ["reservations"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "pm.collectionVariables.set('reservation_to_cancel_id', json.data.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "3.2 — Annuler via DELETE",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              { "key": "X-API-Key", "value": "{{api_key}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/reservations/{{reservation_to_cancel_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["reservations", "{{reservation_to_cancel_id}}"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "pm.test('Annulation réussie', () => pm.expect(json.success).to.be.true);",
+                  "pm.test('status = CANCELLED', () => pm.expect(json.data.status).to.eql('CANCELLED'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "3.3 — Annuler APPROVED via /cancel",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "X-API-Key", "value": "{{api_key}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}"
+            },
+            "url": {
+              "raw": "{{base_url}}/reservations/{{reservation_approved_id}}/cancel",
+              "host": ["{{base_url}}"],
+              "path": ["reservations", "{{reservation_approved_id}}", "cancel"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "pm.test('Annulation APPROVED réussie', () => pm.expect(json.success).to.be.true);",
+                  "pm.test('status = CANCELLED', () => pm.expect(json.data.status).to.eql('CANCELLED'));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "4. Scénario MODIFICATION — Mise à jour PENDING",
+      "description": "Modifier les dates, le nombre d'invités d'une réservation PENDING.",
+      "item": [
+        {
+          "name": "4.1 — Créer réservation modifiable",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "X-API-Key", "value": "{{api_key}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"memberId\": \"{{member_id}}\",\n  \"spaceId\": \"{{space_id}}\",\n  \"startTime\": \"2026-03-22T08:00:00Z\",\n  \"endTime\": \"2026-03-22T10:00:00Z\",\n  \"guestCount\": 2,\n  \"notes\": \"Version initiale à modifier\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/reservations",
+              "host": ["{{base_url}}"],
+              "path": ["reservations"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "pm.collectionVariables.set('reservation_to_update_id', json.data.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "4.2 — Modifier la réservation (PUT)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "X-API-Key", "value": "{{api_key}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"startTime\": \"2026-03-22T09:00:00Z\",\n  \"endTime\": \"2026-03-22T11:30:00Z\",\n  \"guestCount\": 6,\n  \"notes\": \"Version modifiée — démarrage décalé d'1h, durée allongée\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/reservations/{{reservation_to_update_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["reservations", "{{reservation_to_update_id}}"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "pm.test('Modification réussie', () => pm.expect(json.success).to.be.true);",
+                  "pm.test('guestCount mis à jour', () => pm.expect(json.data.guestCount).to.eql(6));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "5. Scénario INVITÉS — Gestion dynamique",
+      "description": "Ajouter et supprimer des invités sur une réservation PENDING.",
+      "item": [
+        {
+          "name": "5.1 — Ajouter un invité",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "X-API-Key", "value": "{{api_key}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"Mariam Coulibaly\",\n  \"email\": \"m.coulibaly@example.ci\",\n  \"phone\": \"+22507222333\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/reservations/{{reservation_to_update_id}}/invitees",
+              "host": ["{{base_url}}"],
+              "path": ["reservations", "{{reservation_to_update_id}}", "invitees"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "pm.test('Invité ajouté', () => pm.expect(json.success).to.be.true);",
+                  "if (json.data.invitees && json.data.invitees.length > 0) {",
+                  "    const lastInvitee = json.data.invitees[json.data.invitees.length - 1];",
+                  "    pm.collectionVariables.set('invitee_id', lastInvitee.id || lastInvitee.uuid || '');",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "5.2 — Supprimer un invité",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              { "key": "X-API-Key", "value": "{{api_key}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/reservations/{{reservation_to_update_id}}/invitees/{{invitee_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["reservations", "{{reservation_to_update_id}}", "invitees", "{{invitee_id}}"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "pm.test('Invité supprimé', () => pm.expect(json.success).to.be.true);"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "6. Listing & Filtres",
+      "description": "Tester tous les filtres disponibles sur l'endpoint de listing.",
+      "item": [
+        {
+          "name": "6.1 — Toutes les réservations (paginé)",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "X-API-Key", "value": "{{api_key}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/reservations?page=0&size=20",
+              "host": ["{{base_url}}"],
+              "path": ["reservations"],
+              "query": [
+                { "key": "page", "value": "0" },
+                { "key": "size", "value": "20" }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "pm.test('Liste réussie', () => pm.expect(json.success).to.be.true);",
+                  "pm.test('pagingInfo présent', () => pm.expect(json.pagingInfo).to.be.an('object'));",
+                  "pm.test('content est un tableau', () => pm.expect(json.content).to.be.an('array'));",
+                  "console.log('Total réservations:', json.totalCount);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "6.2 — Filtrer par statut PENDING",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "X-API-Key", "value": "{{api_key}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/reservations?status=PENDING&page=0&size=10",
+              "host": ["{{base_url}}"],
+              "path": ["reservations"],
+              "query": [
+                { "key": "status", "value": "PENDING" },
+                { "key": "page", "value": "0" },
+                { "key": "size", "value": "10" }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "pm.test('Filtrage PENDING OK', () => pm.expect(json.success).to.be.true);",
+                  "if (json.content.length > 0) {",
+                  "    pm.test('Tous les statuts = PENDING', () => {",
+                  "        json.content.forEach(r => pm.expect(r.status).to.eql('PENDING'));",
+                  "    });",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "6.3 — Filtrer par membre",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "X-API-Key", "value": "{{api_key}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/reservations?memberId={{member_id}}&page=0&size=20",
+              "host": ["{{base_url}}"],
+              "path": ["reservations"],
+              "query": [
+                { "key": "memberId", "value": "{{member_id}}" },
+                { "key": "page", "value": "0" },
+                { "key": "size", "value": "20" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "6.4 — Filtrer par espace",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "X-API-Key", "value": "{{api_key}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/reservations?spaceId={{space_id}}&page=0&size=20",
+              "host": ["{{base_url}}"],
+              "path": ["reservations"],
+              "query": [
+                { "key": "spaceId", "value": "{{space_id}}" },
+                { "key": "page", "value": "0" },
+                { "key": "size", "value": "20" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "6.5 — Réservations d'un membre via /members/:id/reservations",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "X-API-Key", "value": "{{api_key}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/members/{{member_id}}/reservations?page=0&size=10",
+              "host": ["{{base_url}}"],
+              "path": ["members", "{{member_id}}", "reservations"],
+              "query": [
+                { "key": "page", "value": "0" },
+                { "key": "size", "value": "10" }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "pm.test('Réservations membre OK', () => pm.expect(json.success).to.be.true);",
+                  "if (json.content && json.content.length > 0) {",
+                  "    pm.test('memberId cohérent', () => {",
+                  "        json.content.forEach(r => pm.expect(r.memberId).to.eql(pm.collectionVariables.get('member_id')));",
+                  "    });",
+                  "}"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "7. Cas d'erreurs — Validations",
+      "description": "Vérifier les réponses d'erreur pour les cas invalides.",
+      "item": [
+        {
+          "name": "7.1 — Créer sans memberId (400)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "X-API-Key", "value": "{{api_key}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"spaceId\": \"{{space_id}}\",\n  \"startTime\": \"2026-03-25T10:00:00Z\",\n  \"endTime\": \"2026-03-25T12:00:00Z\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/reservations",
+              "host": ["{{base_url}}"],
+              "path": ["reservations"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "pm.test('Erreur retournée', () => pm.expect(json.success).to.be.false);",
+                  "pm.test('Code HTTP 4xx', () => pm.expect(pm.response.code).to.be.within(400, 499));",
+                  "console.log('Erreur:', json.message || json.errorCode);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "7.2 — endTime avant startTime (400)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "X-API-Key", "value": "{{api_key}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"memberId\": \"{{member_id}}\",\n  \"spaceId\": \"{{space_id}}\",\n  \"startTime\": \"2026-03-25T12:00:00Z\",\n  \"endTime\": \"2026-03-25T10:00:00Z\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/reservations",
+              "host": ["{{base_url}}"],
+              "path": ["reservations"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "pm.test('Erreur date invalide', () => pm.expect(json.success).to.be.false);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "7.3 — UUID inexistant (404)",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "X-API-Key", "value": "{{api_key}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/reservations/00000000-0000-0000-0000-000000000000",
+              "host": ["{{base_url}}"],
+              "path": ["reservations", "00000000-0000-0000-0000-000000000000"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "pm.test('404 retourné', () => pm.expect(json.success).to.be.false);",
+                  "pm.test('Code HTTP 404', () => pm.expect(pm.response.code).to.eql(404));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "7.4 — Approuver une réservation REJECTED (transition invalide)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "X-API-Key", "value": "{{api_key}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}"
+            },
+            "url": {
+              "raw": "{{base_url}}/reservations/{{reservation_to_reject_id}}/approve",
+              "host": ["{{base_url}}"],
+              "path": ["reservations", "{{reservation_to_reject_id}}", "approve"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "pm.test('Transition invalide rejetée', () => pm.expect(json.success).to.be.false);",
+                  "console.log('Message erreur:', json.message);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "7.5 — Sans API Key (401)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/reservations",
+              "host": ["{{base_url}}"],
+              "path": ["reservations"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('401 sans clé API', () => pm.expect(pm.response.code).to.eql(401));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "8. Données de référence",
+      "description": "Récupérer les données de référence (espaces, options, types d'adhésion).",
+      "item": [
+        {
+          "name": "8.1 — Tous les espaces",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "X-API-Key", "value": "{{api_key}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/reference/spaces",
+              "host": ["{{base_url}}"],
+              "path": ["reference", "spaces"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "pm.test('Espaces OK', () => pm.expect(json.success).to.be.true);",
+                  "console.log('Espaces disponibles:');",
+                  "if (json.data) json.data.forEach(s => console.log(' -', s.id, ':', s.name, '| capacité:', s.capacity, '| prix:', s.price));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "8.2 — Toutes les options",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "X-API-Key", "value": "{{api_key}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/reference/options",
+              "host": ["{{base_url}}"],
+              "path": ["reference", "options"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "pm.test('Options OK', () => pm.expect(json.success).to.be.true);",
+                  "console.log('Options disponibles:');",
+                  "if (json.data) json.data.forEach(o => console.log(' -', o.id, ':', o.label, '| prix:', o.price, o.currency));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "8.3 — Types d'adhésion",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "X-API-Key", "value": "{{api_key}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/reference/membership-types",
+              "host": ["{{base_url}}"],
+              "path": ["reference", "membership-types"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

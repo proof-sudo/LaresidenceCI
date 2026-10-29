@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Les assets JS POS sont déclarés directement dans __manifest__.py -->
+    <!-- Ce fichier est conservé pour d'éventuelles vues XML supplémentaires -->
+</odoo>

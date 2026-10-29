@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- Historique des ouvertures -->
+    <record id="mail_ouverture_list" model="ir.ui.view">
+        <field name="name">laresidence.mail.ouverture.list</field>
+        <field name="model">laresidence.mail.ouverture</field>
+        <field name="arch" type="xml">
+            <list string="Fenêtres d'envoi" create="false" edit="false"
+                  decoration-danger="etat == 'ouverte'">
+                <field name="date_debut" string="Ouverte le"/>
+                <field name="user_id" string="Par"/>
+                <field name="duree_minutes" string="Durée (min)"/>
+                <field name="date_fin" string="Échéance"/>
+                <field name="date_fermeture" string="Refermée le"/>
+                <field name="motif"/>
+                <field name="etat" widget="badge"
+                       decoration-danger="etat == 'ouverte'"
+                       decoration-success="etat == 'fermee'"/>
+                <button name="action_refermer" type="object" string="Refermer"
+                        class="btn-link" invisible="etat == 'fermee'"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="action_mail_ouverture" model="ir.actions.act_window">
+        <field name="name">Historique des ouvertures</field>
+        <field name="res_model">laresidence.mail.ouverture</field>
+        <field name="view_mode">list</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Aucune fenêtre d'envoi n'a été ouverte</p>
+            <p>Chaque autorisation temporaire d'envoi est consignée ici, avec son
+               motif et la personne qui l'a ouverte.</p>
+        </field>
+    </record>
+
+    <!-- Messages bloqués -->
+    <record id="mail_bloque_list" model="ir.ui.view">
+        <field name="name">mail.mail.bloques.list</field>
+        <field name="model">mail.mail</field>
+        <field name="arch" type="xml">
+            <list string="Messages bloqués" create="false" edit="false">
+                <header>
+                    <button name="action_laresidence_renvoyer" type="object"
+                            string="Débloquer et renvoyer" class="btn-primary"/>
+                </header>
+                <field name="create_date" string="Créé le"/>
+                <field name="subject" string="Objet"/>
+                <field name="email_to" string="Destinataire"/>
+                <field name="recipient_ids" widget="many2many_tags" string="Destinataires liés"/>
+                <field name="model" string="Origine" optional="show"/>
+                <field name="state" string="État" widget="badge"/>
+                <field name="failure_reason" string="Motif" optional="hide"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="action_mail_bloques" model="ir.actions.act_window">
+        <field name="name">Messages bloqués</field>
+        <field name="res_model">mail.mail</field>
+        <field name="view_mode">list,form</field>
+        <field name="domain">[('state', 'in', ['cancel', 'exception'])]</field>
+        <field name="context">{'create': False}</field>
+        <field name="view_id" ref="mail_bloque_list"/>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Aucun message bloqué</p>
+            <p>Les e-mails que la base a tenté d'émettre apparaissent ici au lieu
+               de partir chez leurs destinataires.</p>
+        </field>
+    </record>
+
+    <!-- Menus -->
+    <menuitem id="menu_mail_blocage_racine"
+              name="Blocage des e-mails"
+              parent="base.menu_administration"
+              groups="base.group_system"
+              sequence="95"/>
+
+    <menuitem id="menu_mail_blocage_ouverture"
+              name="Ouvrir temporairement les envois"
+              parent="menu_mail_blocage_racine"
+              action="action_mail_ouverture_wizard"
+              groups="base.group_system"
+              sequence="10"/>
+
+    <menuitem id="menu_mail_blocage_messages"
+              name="Messages bloqués"
+              parent="menu_mail_blocage_racine"
+              action="action_mail_bloques"
+              groups="base.group_system"
+              sequence="20"/>
+
+    <menuitem id="menu_mail_blocage_historique"
+              name="Historique des ouvertures"
+              parent="menu_mail_blocage_racine"
+              action="action_mail_ouverture"
+              groups="base.group_system"
+              sequence="30"/>
+
+</odoo>

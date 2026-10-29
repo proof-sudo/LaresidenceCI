@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_webhook_log_list" model="ir.ui.view">
+        <field name="name">webhook.log.list</field>
+        <field name="model">webhook.log</field>
+        <field name="arch" type="xml">
+            <list string="Logs Webhook" decoration-danger="success == False" decoration-success="success == True">
+                <field name="create_date"/>
+                <field name="name"/>
+                <field name="model_name"/>
+                <field name="res_id"/>
+                <field name="status_code"/>
+                <field name="success"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_webhook_log_form" model="ir.ui.view">
+        <field name="name">webhook.log.form</field>
+        <field name="model">webhook.log</field>
+        <field name="arch" type="xml">
+            <form string="Détail Webhook">
+                <sheet>
+                    <group>
+                        <group>
+                            <field name="name" readonly="1"/>
+                            <field name="model_name" readonly="1"/>
+                            <field name="res_id" readonly="1"/>
+                        </group>
+                        <group>
+                            <field name="status_code" readonly="1"/>
+                            <field name="success" readonly="1"/>
+                            <field name="create_date" readonly="1"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Payload Envoyé">
+                            <field name="request_payload" widget="ace" options="{'mode': 'json'}"/>
+                        </page>
+                        <page string="Réponse de l'API">
+                            <field name="response_body" widget="ace" options="{'mode': 'json'}"/>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_webhook_logs" model="ir.actions.act_window">
+        <field name="name">Logs Webhook</field>
+        <field name="res_model">webhook.log</field>
+        <field name="view_mode">list,form</field>
+    </record>
+
+    <menuitem id="menu_webhook_root" name="Webhooks" parent="base.menu_administration"/>
+    <menuitem id="menu_webhook_logs" name="Historique des envois" parent="menu_webhook_root" action="action_webhook_logs"/>
+</odoo>

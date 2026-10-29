@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- Gestionnaire Membres -->
+    <record id="group_tr_members" model="res.groups">
+        <field name="name">The Residence / Gestionnaire Membres</field>
+    </record>
+
+    <!-- Gestionnaire Réservations -->
+    <record id="group_tr_reservations" model="res.groups">
+        <field name="name">The Residence / Gestionnaire Réservations</field>
+    </record>
+
+    <!-- Gestionnaire Abonnements -->
+    <record id="group_tr_subscriptions" model="res.groups">
+        <field name="name">The Residence / Gestionnaire Abonnements</field>
+    </record>
+
+    <!-- Gestionnaire Commandes -->
+    <record id="group_tr_orders" model="res.groups">
+        <field name="name">The Residence / Gestionnaire Commandes</field>
+    </record>
+
+    <!-- Configuration -->
+    <record id="group_tr_config" model="res.groups">
+        <field name="name">The Residence / Configuration</field>
+    </record>
+
+    <!-- Gestionnaire Espaces -->
+    <record id="group_tr_spaces" model="res.groups">
+        <field name="name">The Residence / Gestionnaire Espaces</field>
+    </record>
+
+    <!-- Accès réservations simplifié (sans prix, sans autres menus TR) -->
+    <record id="group_tr_reservations_only" model="res.groups">
+        <field name="name">The Residence / Réservations uniquement</field>
+        <field name="implied_ids" eval="[(4, ref('sales_team.group_sale_salesman_all_leads'))]"/>
+    </record>
+
+    <!-- Administrateur — implique tous les groupes -->
+    <record id="group_tr_admin" model="res.groups">
+        <field name="name">The Residence / Administrateur</field>
+        <field name="implied_ids" eval="[
+            Command.link(ref('group_tr_members')),
+            Command.link(ref('group_tr_reservations')),
+            Command.link(ref('group_tr_subscriptions')),
+            Command.link(ref('group_tr_orders')),
+            Command.link(ref('group_tr_config')),
+            Command.link(ref('group_tr_spaces')),
+        ]"/>
+    </record>
+
+</odoo>

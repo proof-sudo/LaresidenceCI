@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- Une seule extension suffit. La bulle qui s'ouvre au clic sur un
+         créneau du gantt — planning_view_form_in_gantt — est une variante de
+         cette même fiche, par une chaîne de deux vues : elle en reprend
+         l'arborescence complète, extensions comprises.
+
+         Le droit ne se pose pas sur l'enregistrement de vue : Odoo refuse une
+         vue héritée qui porte un groupe, et demande l'attribut « groups » sur
+         l'élément lui-même. C'est plus juste d'ailleurs — ce n'est pas la vue
+         qu'on réserve, c'est le bloc qu'on y ajoute. -->
+    <record id="planning_slot_form_ecart" model="ir.ui.view">
+        <field name="name">planning.slot.form.laresidence.ecart</field>
+        <field name="model">planning.slot</field>
+        <field name="inherit_id" ref="planning.planning_view_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//sheet" position="inside">
+                <group string="Présence constatée"
+                       groups="planning.group_planning_user"
+                       invisible="not laresidence_ecart">
+                    <field name="laresidence_ecart" readonly="1" nolabel="1"/>
+                    <field name="laresidence_ecart_state" invisible="1"/>
+                    <field name="laresidence_exception_count" invisible="1"/>
+                    <button name="action_laresidence_voir_ecarts" type="object"
+                            string="Voir le détail" class="btn-link"
+                            invisible="laresidence_exception_count == 0"/>
+                </group>
+            </xpath>
+        </field>
+    </record>
+
+</odoo>

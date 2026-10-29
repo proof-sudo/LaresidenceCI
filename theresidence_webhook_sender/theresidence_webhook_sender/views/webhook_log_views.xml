@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    
+    <!-- Vue formulaire pour les logs -->
+    <record id="view_webhook_log_form" model="ir.ui.view">
+        <field name="name">theresidence.webhook.log.form</field>
+        <field name="model">theresidence.webhook.log</field>
+        <field name="arch" type="xml">
+            <form string="Log Webhook" create="false" edit="false">
+                <sheet>
+                    <div class="oe_button_box" name="button_box">
+                        <button name="action_view_queue_item" type="object" class="oe_stat_button" icon="fa-link">
+                            <div class="o_field_widget o_stat_info">
+                                <span class="o_stat_text">Voir dans la queue</span>
+                            </div>
+                        </button>
+                    </div>
+                    
+                    <group>
+                        <group string="Événement">
+                            <field name="event_id"/>
+                            <field name="event_type"/>
+                            <field name="entity_type"/>
+                            <field name="entity_id"/>
+                        </group>
+                        
+                        <group string="Tentative">
+                            <field name="attempt_number"/>
+                            <field name="status" widget="badge" 
+                                   decoration-success="status == 'success'"
+                                   decoration-warning="status == 'retry'"
+                                   decoration-danger="status == 'error'"/>
+                            <field name="http_code"/>
+                            <field name="duration_ms"/>
+                            <field name="next_retry_at"/>
+                        </group>
+                    </group>
+                    
+                    <group string="Requête">
+                        <field name="request_url"/>
+                    </group>
+                    
+                    <notebook>
+                        <page string="Payload envoyé" name="request">
+                            <field name="request_payload" widget="ace" options="{'mode': 'json'}"/>
+                        </page>
+                        
+                        <page string="Réponse API" name="response" invisible="not response_body">
+                            <field name="response_body"/>
+                        </page>
+                        
+                        <page string="Erreur" name="error" invisible="not error_message">
+                            <field name="error_message"/>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+    
+    <!-- Vue liste pour les logs -->
+    <record id="view_webhook_log_list" model="ir.ui.view">
+        <field name="name">theresidence.webhook.log.list</field>
+        <field name="model">theresidence.webhook.log</field>
+        <field name="arch" type="xml">
+            <list string="Logs Webhooks" create="false" edit="false"
+                  decoration-success="status == 'success'"
+                  decoration-warning="status == 'retry'"
+                  decoration-danger="status == 'error'">
+                <field name="create_date" string="Date"/>
+                <field name="event_type"/>
+                <field name="entity_type"/>
+                <field name="entity_id"/>
+                <field name="attempt_number"/>
+                <field name="status" widget="badge"
+                       decoration-success="status == 'success'"
+                       decoration-warning="status == 'retry'"
+                       decoration-danger="status == 'error'"/>
+                <field name="http_code"/>
+                <field name="duration_ms"/>
+                <field name="error_message"/>
+            </list>
+        </field>
+    </record>
+    
+    <!-- Recherche pour les logs -->
+    <!-- <record id="view_webhook_log_search" model="ir.ui.view">
+        <field name="name">theresidence.webhook.log.search</field>
+        <field name="model">theresidence.webhook.log</field>
+        <field name="arch" type="xml">
+            <search string="Rechercher logs">
+                <field name="event_id"/>
+                <field name="event_type"/>
+                <field name="entity_id"/>
+                <separator/>
+                <filter string="Succès" name="success" domain="[('status', '=', 'success')]"/>
+                <filter string="Erreurs" name="errors" domain="[('status', '=', 'error')]"/>
+                <filter string="Retries" name="retries" domain="[('status', '=', 'retry')]"/>
+                <separator/>
+                <filter string="Aujourd'hui" name="today" 
+                        domain="[('create_date', '&gt;=', datetime.datetime.now().replace(hour=0, minute=0, second=0))]"/>
+                <filter string="Cette semaine" name="this_week"
+                        domain="[('create_date', '&gt;=', (context_today() - datetime.timedelta(days=7)).strftime('%Y-%m-%d'))]"/>
+                <separator/>
+                <group expand="0" string="Grouper par">
+                    <filter string="Statut" name="group_status" context="{'group_by': 'status'}"/>
+                    <filter string="Type événement" name="group_event_type" context="{'group_by': 'event_type'}"/>
+                    <filter string="Code HTTP" name="group_http_code" context="{'group_by': 'http_code'}"/>
+                    <filter string="Date" name="group_date" context="{'group_by': 'create_date:day'}"/>
+                </group>
+            </search>
+        </field>
+    </record> -->
+    
+    <!-- Action pour ouvrir les logs -->
+    <record id="action_webhook_log" model="ir.actions.act_window">
+        <field name="name">Logs Webhooks</field>
+        <field name="res_model">theresidence.webhook.log</field>
+        <field name="view_mode">list,form</field>
+        <field name="context">{'search_default_today': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_empty_folder">
+                Aucun log disponible
+            </p>
+            <p>
+                Les logs des tentatives d'envoi de webhooks apparaîtront ici.
+            </p>
+        </field>
+    </record>
+    
+</odoo>

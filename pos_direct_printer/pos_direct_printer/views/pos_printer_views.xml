@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Preparation printer form: add IP/port fields + test button -->
+    <record id="view_pos_printer_direct_form" model="ir.ui.view">
+        <field name="name">pos.direct.printer.form</field>
+        <field name="model">pos.printer</field>
+        <field name="inherit_id" ref="point_of_sale.view_pos_printer_form"/>
+        <field name="arch" type="xml">
+            <field name="epson_printer_ip" position="after">
+                <field name="escpos_printer_ip"
+                       invisible="printer_type != 'network_escpos'"/>
+                <field name="escpos_printer_port"
+                       invisible="printer_type != 'network_escpos'"/>
+            </field>
+            <widget name="point_of_sale_test_epos" position="after">
+                <widget name="pos_direct_printer_test"
+                        invisible="printer_type != 'network_escpos'"/>
+            </widget>
+        </field>
+    </record>
+
+    <!-- Preparation printer form: add mirror printers field -->
+    <record id="view_pos_printer_copies_form" model="ir.ui.view">
+        <field name="name">pos.printer.copies.form</field>
+        <field name="model">pos.printer</field>
+        <field name="inherit_id" ref="point_of_sale.view_pos_printer_form"/>
+        <field name="arch" type="xml">
+            <field name="product_categories_ids" position="after">
+                <field name="duplicate_printer_ids" widget="many2many_tags"
+                       domain="[('id', '!=', id)]"/>
+            </field>
+        </field>
+    </record>
+
+    <!-- Preparation printer list: add IP column -->
+    <record id="view_pos_printer_direct_list" model="ir.ui.view">
+        <field name="name">pos.direct.printer.list</field>
+        <field name="model">pos.printer</field>
+        <field name="inherit_id" ref="point_of_sale.view_pos_printer"/>
+        <field name="arch" type="xml">
+            <field name="name" position="after">
+                <field name="escpos_printer_ip" optional="hide"/>
+            </field>
+        </field>
+    </record>
+
+    <!-- POS config form: add ESC/POS receipt printer setting -->
+    <record id="view_pos_config_direct_printer_form" model="ir.ui.view">
+        <field name="name">pos.config.direct.printer.form</field>
+        <field name="model">pos.config</field>
+        <field name="inherit_id" ref="point_of_sale.pos_config_view_form"/>
+        <field name="arch" type="xml">
+            <setting id="other_devices" position="after">
+                <setting id="escpos_receipt_printer" string="ESC/POS Receipt Printer" help="Print receipts directly to a network ESC/POS thermal printer">
+                    <field name="escpos_receipt_printer_ip" placeholder="Printer IP Address (e.g. 192.168.1.6)" class="w-100 pt-1"/>
+                    <div class="content-group" invisible="escpos_receipt_printer_ip in [False, '']">
+                        <div class="row mb-2">
+                            <div class="col-lg-6">
+                                <field name="escpos_receipt_printer_port"/>
+                            </div>
+                            <div class="col-lg-6">
+                                <widget name="pos_direct_printer_test"/>
+                            </div>
+                        </div>
+                    </div>
+                </setting>
+            </setting>
+        </field>
+    </record>
+</odoo>
