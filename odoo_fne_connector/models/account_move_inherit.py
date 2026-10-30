@@ -23,8 +23,7 @@ def _detect_fne_vat_code(tax):
     2. Marqueur VAT/TVA présent → mapping par taux + suffixe du nom
        - 18 %          → TVA
        - 9 %           → TVAB
-       - 0 % + LEG/LEGAL → TVAD  (exonération légale)
-       - 0 % autres    → TVAC  (exonération convention / générique)
+       - 0 % sans code explicite → aucun code (ligne bloquée : choisir TVAC ou TVAD)
     """
     # Code FNE saisi explicitement sur la taxe : toujours prioritaire.
     explicit = getattr(tax, 'fne_tax_code', False)
@@ -49,9 +48,9 @@ def _detect_fne_vat_code(tax):
     if rate == 9.0:
         return 'TVAB'
     if rate == 0.0:
-        if 'LEG' in tax_name or 'LEGAL' in tax_name:
-            return 'TVAD'
-        return 'TVAC'
+        # Taxe à 0 % sans code explicite : on ne devine plus (TVAC et TVAD n'ont
+        # pas le même sens fiscal). L'utilisateur doit renseigner le « Code FNE ».
+        return None
 
     return None
 
@@ -346,7 +345,18 @@ class AccountMove(models.Model):
             if not self._get_fne_lines():
                 errors.append(_("Aucune ligne à certifier (produit, quantité et prix positifs requis)."))
             for line in self._get_fne_lines():
-                if not self._fne_line_tax_codes(line):
+                zero_tax = line.tax_ids.filtered(
+                    lambda t: t.amount_type == 'percent' and not (t.amount or 0)
+                    and not _detect_fne_vat_code(t))
+                if zero_tax and not self._fne_line_tax_codes(line):
+                    errors.append(_("Ligne « %(line)s » : la taxe « %(tax)s » est à 0 %% mais n'a pas de « Code FNE ». "
+                                    "La FNE demande de préciser le motif de l'exonération : "
+                                    "TVAD si l'exonération est prévue par la loi (ex. main d'oeuvre), "
+                                    "TVAC si elle est prévue par une convention. "
+                                    "Ouvrez la taxe (Comptabilité > Configuration > Taxes) et renseignez le champ « Code FNE ».")
+                                  % {'line': line.name or line.product_id.display_name,
+                                     'tax': ', '.join(zero_tax.mapped('name'))})
+                elif not self._fne_line_tax_codes(line):
                     errors.append(_("Ligne « %s » : aucune taxe reconnue par la FNE. Si la ligne est exonérée "
                                     "(ex. main d'oeuvre), choisissez une taxe à 0 %% avec le code TVAD "
                                     "(exonération légale) ou TVAC (convention). Sinon choisissez la TVA 18 %% ou 9 %%.") % (line.name or line.product_id.display_name))
