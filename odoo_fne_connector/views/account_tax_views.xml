@@ -7,6 +7,10 @@
         <field name="arch" type="xml">
             <xpath expr="//field[@name='type_tax_use']" position="after">
                 <field name="fne_tax_code"/>
+                <div class="text-muted" colspan="2" invisible="not fne_tax_code">
+                    La FNE n'accepte pas de ligne sans TVA : une ligne exonérée porte une taxe à 0 %
+                    avec le code TVAC (convention) ou TVAD (exonération légale, ex. main d'oeuvre).
+                </div>
             </xpath>
         </field>
     </record>

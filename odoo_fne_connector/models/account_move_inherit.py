@@ -347,8 +347,9 @@ class AccountMove(models.Model):
                 errors.append(_("Aucune ligne à certifier (produit, quantité et prix positifs requis)."))
             for line in self._get_fne_lines():
                 if not self._fne_line_tax_codes(line):
-                    errors.append(_("Ligne « %s » : aucune taxe TVA FNE (TVA, TVAB, TVAC ou TVAD). "
-                                    "Renseignez le « Code FNE » sur la taxe.") % (line.name or line.product_id.display_name))
+                    errors.append(_("Ligne « %s » : aucune taxe reconnue par la FNE. Si la ligne est exonérée "
+                                    "(ex. main d'oeuvre), choisissez une taxe à 0 %% avec le code TVAD "
+                                    "(exonération légale) ou TVAC (convention). Sinon choisissez la TVA 18 %% ou 9 %%.") % (line.name or line.product_id.display_name))
         else:
             origin = self.reversed_entry_id
             if not origin:
@@ -397,8 +398,8 @@ class AccountMove(models.Model):
 
             if not fne_taxes:
                 # Normalement bloqué en amont par _fne_validation_errors().
-                raise UserError(_("Ligne « %s » : aucune taxe TVA FNE reconnue. "
-                                  "Renseignez le « Code FNE » sur la taxe.") % (line.name or ''))
+                raise UserError(_("Ligne « %s » : aucune taxe reconnue par la FNE. Choisissez la TVA 18 %% ou 9 %%, "
+                                  "ou une taxe à 0 %% avec le code TVAD ou TVAC.") % (line.name or ''))
 
             item = {
                 "reference": str(index),
